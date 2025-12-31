@@ -9,7 +9,7 @@ A social networking mobile app for university students built with **React Native
 | Framework | React Native + Expo |
 | Routing | Expo Router (file-based) |
 | State | Zustand (global) + React Query (server) |
-| Backend | Supabase |
+| Backend | Firebase |
 | Language | TypeScript (strict mode) |
 
 ## Project Structure
@@ -23,7 +23,7 @@ uni-village/
 ├── src/
 │   ├── features/           # Feature modules (auth, feed, post, profile)
 │   ├── shared/             # Shared components, hooks, utils, types
-│   ├── lib/                # Infrastructure (api, storage, supabase)
+│   ├── lib/                # Infrastructure (api, storage, firebase)
 │   ├── providers/          # React Context providers
 │   └── config/             # Configuration files
 └── assets/                 # Static assets
@@ -36,7 +36,7 @@ uni-village/
 | `app/` | **Expo Router** - Contains only routing logic, no business logic |
 | `src/features/` | **Feature Modules** - Independent modules following vertical slice architecture (auth, feed, post, profile) |
 | `src/shared/` | **Shared Code** - Components, hooks, utils, types shared across features |
-| `src/lib/` | **Infrastructure** - API client, storage wrappers, Supabase client, error handling |
+| `src/lib/` | **Infrastructure** - API client, storage wrappers, Firebase client, error handling |
 | `src/providers/` | **Context Providers** - React Context for global state (theme, auth, etc.) |
 | `src/config/` | **Configuration** - App config, environment variables, constants |
 
@@ -61,7 +61,7 @@ features/{name}/
 npm install
 
 # Configure environment
-cp .env.example .env  # Add SUPABASE_URL and SUPABASE_ANON_KEY
+cp .env.example .env  # Add Firebase configuration
 
 # Run development server
 npm start
@@ -94,4 +94,4 @@ Create `index.ts` to export only the public API.
 
 ## Resources
 
-- [Expo Docs](https://docs.expo.dev/) • [React Native](https://reactnative.dev/) • [Supabase](https://supabase.com/docs)
+- [Expo Docs](https://docs.expo.dev/) • [React Native](https://reactnative.dev/) • [Firebase](https://firebase.google.com/docs)

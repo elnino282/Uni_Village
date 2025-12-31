@@ -7,9 +7,13 @@ export const env = {
     // API
     API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
 
-    // Supabase
-    SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
-    SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+    // Firebase
+    FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
+    FIREBASE_AUTH_DOMAIN: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+    FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
+    FIREBASE_STORAGE_BUCKET: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+    FIREBASE_MESSAGING_SENDER_ID: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+    FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
 
     // App
     APP_NAME: process.env.EXPO_PUBLIC_APP_NAME || 'Uni Village',
@@ -25,7 +29,7 @@ export const env = {
 
 // Validate required environment variables
 export function validateEnv(): void {
-    const required = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];
+    const required = ['FIREBASE_API_KEY', 'FIREBASE_PROJECT_ID', 'FIREBASE_APP_ID'];
     const missing = required.filter((key) => !env[key as keyof typeof env]);
 
     if (missing.length > 0 && !__DEV__) {
