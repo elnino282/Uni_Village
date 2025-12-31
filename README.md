@@ -29,6 +29,31 @@ uni-village/
 └── assets/                 # Static assets
 ```
 
+### Folder Details
+
+| Folder | Purpose |
+|--------|---------|
+| `app/` | **Expo Router** - Contains only routing logic, no business logic |
+| `src/features/` | **Feature Modules** - Independent modules following vertical slice architecture (auth, feed, post, profile) |
+| `src/shared/` | **Shared Code** - Components, hooks, utils, types shared across features |
+| `src/lib/` | **Infrastructure** - API client, storage wrappers, Supabase client, error handling |
+| `src/providers/` | **Context Providers** - React Context for global state (theme, auth, etc.) |
+| `src/config/` | **Configuration** - App config, environment variables, constants |
+
+### Feature Module Structure
+
+Each feature in `src/features/` follows a consistent structure:
+
+```
+features/{name}/
+├── components/     # Feature-specific UI components
+├── hooks/          # React hooks (useQuery, useMutation)
+├── services/       # Business logic layer
+├── api/            # API calls (endpoints)
+├── types/          # TypeScript types/interfaces
+└── index.ts        # Public API exports
+```
+
 ## Quick Start
 
 ```bash
