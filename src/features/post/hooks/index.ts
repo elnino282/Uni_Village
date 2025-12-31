@@ -1,0 +1,1 @@
+export { useCreatePost } from './useCreatePost';

@@ -1,50 +1,72 @@
-# Welcome to your Expo app 👋
+# Uni Village
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A social networking mobile app for university students built with **React Native** and **Expo**.
 
-## Get started
+## Tech Stack
 
-1. Install dependencies
+| Category | Technology |
+|----------|------------|
+| Framework | React Native + Expo |
+| Routing | Expo Router (file-based) |
+| State | Zustand (global) + React Query (server) |
+| Backend | Supabase |
+| Language | TypeScript (strict mode) |
 
-   ```bash
-   npm install
-   ```
+## Project Structure
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+uni-village/
+├── app/                    # Expo Router - routing only
+│   ├── (auth)/             # Auth routes
+│   ├── (tabs)/             # Tab navigation
+│   └── _layout.tsx         # Root layout
+├── src/
+│   ├── features/           # Feature modules (auth, feed, post, profile)
+│   ├── shared/             # Shared components, hooks, utils, types
+│   ├── lib/                # Infrastructure (api, storage, supabase)
+│   ├── providers/          # React Context providers
+│   └── config/             # Configuration files
+└── assets/                 # Static assets
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Quick Start
 
-## Learn more
+```bash
+# Install dependencies
+npm install
 
-To learn more about developing your project with Expo, look at the following resources:
+# Configure environment
+cp .env.example .env  # Add SUPABASE_URL and SUPABASE_ANON_KEY
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# Run development server
+npm start
 
-## Join the community
+# Platform-specific
+npm run android | ios | web
+```
 
-Join our community of developers creating universal apps.
+## Architecture
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+This project follows **Feature-Based Architecture** with **Clean Architecture** principles.
+
+### Dependency Flow
+```
+app/ → features/ → shared/ → lib/
+```
+
+### Key Rules
+- **Feature Isolation**: Features don't import from each other directly
+- **Services Layer**: Business logic in `services/`, not in screens
+- **Type Safety**: Full TypeScript coverage with explicit types
+
+## Adding a New Feature
+
+```bash
+mkdir -p src/features/{name}/{components,hooks,services,api,types}
+```
+
+Create `index.ts` to export only the public API.
+
+## Resources
+
+- [Expo Docs](https://docs.expo.dev/) • [React Native](https://reactnative.dev/) • [Supabase](https://supabase.com/docs)
