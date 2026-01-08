@@ -4,44 +4,25 @@
  */
 
 import { useEffect } from 'react';
-import { authApi } from '../api/authApi';
-import { authService } from '../services/authService';
 import { useAuthStore } from '../store/authStore';
 
 export function useAuth() {
-    const { user, isAuthenticated, isLoading, setUser, setLoading, logout } = useAuthStore();
+    const { user, authenticated, isLoading, isHydrated, hydrate, clear } = useAuthStore();
 
     // Check for existing session on mount
     useEffect(() => {
-        async function checkAuth() {
-            try {
-                const hasToken = await authService.isAuthenticated();
-
-                if (hasToken) {
-                    // Try to fetch user profile
-                    const profile = await authApi.getProfile();
-                    setUser(profile);
-                } else {
-                    setUser(null);
-                }
-            } catch (error) {
-                // Token invalid or expired
-                setUser(null);
-            } finally {
-                setLoading(false);
-            }
+        if (!isHydrated) {
+            hydrate();
         }
-
-        checkAuth();
-    }, [setUser, setLoading]);
+    }, [hydrate, isHydrated]);
 
     return {
         user,
-        isAuthenticated,
+        isAuthenticated: authenticated,
         isLoading,
+        isHydrated,
         logout: async () => {
-            await authService.logout();
-            logout();
+            await clear();
         },
     };
 }
