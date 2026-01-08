@@ -64,3 +64,102 @@ export const Fonts = Platform.select({
 
 export type ColorScheme = keyof typeof Colors;
 export type ColorName = keyof typeof Colors.light;
+
+/**
+ * Border Radius tokens
+ */
+export const BorderRadius = {
+    none: 0,
+    sm: 4,
+    md: 8,
+    lg: 12,
+    xl: 16,
+    '2xl': 20,
+    pill: 24,
+    full: 9999,
+} as const;
+
+/**
+ * Shadow presets for different elevations
+ */
+export const Shadows = {
+    none: {
+        shadowColor: 'transparent',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+    },
+    sm: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    md: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    lg: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    xl: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        elevation: 12,
+    },
+    card: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 4,
+    },
+    chip: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+} as const;
+
+/**
+ * Map-specific color tokens
+ */
+export const MapColors = {
+    light: {
+        searchBarBackground: '#ffffff',
+        chipBackground: '#ffffff',
+        chipActiveBackground: '#0a7ea4',
+        chipText: '#11181C',
+        chipActiveText: '#ffffff',
+        controlBackground: '#ffffff',
+        suggestionCardBackground: '#ffffff',
+        markerDefault: '#ef4444',
+        markerSelected: '#0a7ea4',
+        userLocationDot: '#3b82f6',
+    },
+    dark: {
+        searchBarBackground: '#1e2225',
+        chipBackground: '#2e3336',
+        chipActiveBackground: '#0a7ea4',
+        chipText: '#ECEDEE',
+        chipActiveText: '#ffffff',
+        controlBackground: '#1e2225',
+        suggestionCardBackground: '#1e2225',
+        markerDefault: '#f87171',
+        markerSelected: '#60a5fa',
+        userLocationDot: '#60a5fa',
+    },
+} as const;

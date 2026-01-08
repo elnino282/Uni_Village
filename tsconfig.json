@@ -3,30 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "skipLibCheck": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./*"
-      ],
-      "@/src/*": [
         "./src/*"
-      ],
-      "@/features/*": [
-        "./src/features/*"
-      ],
-      "@/shared/*": [
-        "./src/shared/*"
-      ],
-      "@/lib/*": [
-        "./src/lib/*"
-      ],
-      "@/config/*": [
-        "./src/config/*"
-      ],
-      "@/store/*": [
-        "./src/store/*"
-      ],
-      "@/providers/*": [
-        "./src/providers/*"
       ]
     }
   },

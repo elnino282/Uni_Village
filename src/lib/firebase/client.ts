@@ -3,7 +3,7 @@
  * Initialize and export Firebase client
  */
 
-import { env } from '@/src/config/env';
+import { env } from '@/config/env';
 import { FirebaseApp, initializeApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
