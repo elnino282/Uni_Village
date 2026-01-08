@@ -4,7 +4,7 @@
  */
 
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { ImageStyle, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
@@ -12,7 +12,7 @@ export interface AvatarProps {
     source?: string | null;
     name?: string;
     size?: AvatarSize;
-    style?: ViewStyle;
+    style?: StyleProp<ViewStyle | ImageStyle>;
 }
 
 const SIZE_MAP: Record<AvatarSize, number> = {
@@ -73,7 +73,7 @@ export function Avatar({ source, name, size = 'md', style }: AvatarProps) {
                         height: dimension,
                         borderRadius: dimension / 2,
                     },
-                    style,
+                    style as StyleProp<ImageStyle>,
                 ]}
                 contentFit="cover"
                 transition={200}
@@ -91,7 +91,7 @@ export function Avatar({ source, name, size = 'md', style }: AvatarProps) {
                     borderRadius: dimension / 2,
                     backgroundColor: getColorFromName(name),
                 },
-                style,
+                style as StyleProp<ViewStyle>,
             ]}
         >
             <Text style={[styles.initials, { fontSize }]}>{getInitials(name)}</Text>
