@@ -2,8 +2,8 @@
  * Profile API
  */
 
-import { apiClient } from '@/lib/api/client';
-import { API_ENDPOINTS } from '@/lib/api/endpoints';
+import { apiClient } from '../../../lib/api/client';
+import { API_ENDPOINTS } from '../../../lib/api/endpoints';
 import type { Profile, UpdateProfileRequest } from '../types';
 
 export const profileApi = {

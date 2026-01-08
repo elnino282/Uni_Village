@@ -2,8 +2,8 @@
  * Post API
  */
 
-import { apiClient } from '@/lib/api/client';
-import { API_ENDPOINTS } from '@/lib/api/endpoints';
+import { apiClient } from '../../../lib/api/client';
+import { API_ENDPOINTS } from '../../../lib/api/endpoints';
 import type { CreatePostRequest, Post, UpdatePostRequest } from '../types';
 
 export const postApi = {
