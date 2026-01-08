@@ -6,11 +6,13 @@
 export const API_ENDPOINTS = {
     // Auth
     AUTH: {
-        LOGIN: '/auth/login',
-        REGISTER: '/auth/register',
-        LOGOUT: '/auth/logout',
-        REFRESH: '/auth/refresh',
-        PROFILE: '/auth/profile',
+        REGISTER: '/api/v1/auth/register',
+        VERIFY_REGISTER_OTP: '/api/v1/auth/verify-otp-register',
+        AUTHENTICATE: '/api/v1/auth/authenticate',
+        FORGOT_PASSWORD: '/api/v1/auth/forget-password',
+        VERIFY_FORGOT_PASSWORD_OTP: '/api/v1/auth/verify-otp-forget-password',
+        REFRESH: '/api/v1/auth/refresh-token',
+        LOGOUT: '/api/v1/auth/logout',
     },
 
     // Users
