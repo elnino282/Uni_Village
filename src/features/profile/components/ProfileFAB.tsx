@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     container: {
         position: 'absolute',
         right: s(16),
-        top: vs(120),
+        top: vs(8),
         zIndex: 10,
     },
     fab: {

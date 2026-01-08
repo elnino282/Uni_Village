@@ -73,33 +73,28 @@ export function ProfileScreen() {
             edges={['top']}
         >
             <View style={styles.content}>
-                {/* Header Icons */}
                 <ProfileHeaderIcons
                     onAnalyticsPress={handleAnalyticsPress}
                     onSearchPress={handleSearchPress}
                     onSettingsPress={handleSettingsPress}
                 />
 
-                {/* FAB - positioned absolutely */}
-                <ProfileFAB onPress={handleFABPress} />
-
                 <ScrollView
                     style={styles.scrollView}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Profile Info */}
-                    <ProfileInfo profile={profile} />
+                    <View style={styles.profileSection}>
+                        <ProfileInfo profile={profile} />
+                        <ProfileFAB onPress={handleFABPress} />
+                    </View>
 
-                    {/* Action Buttons */}
                     <ProfileActionButtons
                         onEditPress={handleEditProfilePress}
                         onSharePress={handleShareProfilePress}
                     />
 
-                    {/* Tabs */}
                     <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-                    {/* Tab Content */}
                     {activeTab === 'my-posts' && (
                         <ProfileEmptyPostCard onCreatePost={handleCreatePost} />
                     )}
@@ -121,5 +116,8 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
+    },
+    profileSection: {
+        position: 'relative',
     },
 });
