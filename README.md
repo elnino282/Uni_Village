@@ -18,15 +18,17 @@ A social networking mobile app for university students built with **React Native
 uni-village/
 ├── app/                    # Expo Router - routing only
 │   ├── (auth)/             # Auth routes
-│   ├── (tabs)/             # Tab navigation
+│   ├── (tabs)/             # Tab navigation (map, itinerary, community, profile)
+│   ├── index.tsx           # Entry point - redirects to (tabs)/map
 │   └── _layout.tsx         # Root layout
 ├── src/
-│   ├── features/           # Feature modules (auth, feed, post, profile)
-│   ├── shared/             # Shared components, hooks, utils, types
-│   ├── lib/                # Infrastructure (api, storage, firebase)
+│   ├── components/         # Reusable UI components
+│   ├── config/             # Configuration files
+│   ├── features/           # Feature modules (feed, map, post, profile)
+│   ├── lib/                # Infrastructure (api, storage, firebase, errors)
 │   ├── providers/          # React Context providers
-│   └── config/             # Configuration files
-└── assets/                 # Static assets
+│   └── shared/             # Shared components, hooks, utils, types, constants
+└── assets/                 # Static assets (images, fonts)
 ```
 
 ### Folder Details
@@ -34,11 +36,12 @@ uni-village/
 | Folder | Purpose |
 |--------|---------|
 | `app/` | **Expo Router** - Contains only routing logic, no business logic |
-| `src/features/` | **Feature Modules** - Independent modules following vertical slice architecture (auth, feed, post, profile) |
-| `src/shared/` | **Shared Code** - Components, hooks, utils, types shared across features |
-| `src/lib/` | **Infrastructure** - API client, storage wrappers, Firebase client, error handling |
-| `src/providers/` | **Context Providers** - React Context for global state (theme, auth, etc.) |
-| `src/config/` | **Configuration** - App config, environment variables, constants |
+| `src/components/` | **UI Components** - Reusable components (themed-text, themed-view, haptic-tab, etc.) |
+| `src/config/` | **Configuration** - App config, environment variables |
+| `src/features/` | **Feature Modules** - Independent modules: feed, map, post, profile |
+| `src/lib/` | **Infrastructure** - API client, storage wrappers, Firebase client, error handling, monitoring |
+| `src/providers/` | **Context Providers** - QueryProvider, ThemeProvider |
+| `src/shared/` | **Shared Code** - Components (ui, layout, feedback), hooks, utils, types, constants |
 
 ### Feature Module Structure
 

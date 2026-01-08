@@ -6,9 +6,9 @@
 import { useAuthStore } from '@/features/auth/store/authStore';
 import type { AuthTokens } from '@/features/auth/types';
 import { isTokenPair, mapTokenPair } from '@/features/auth/types';
-import { env } from '@/src/config/env';
+import { env } from '@/config/env';
+import { ApiError } from '@/lib/errors/ApiError';
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ApiError } from '../errors';
 import { API_ENDPOINTS } from './endpoints';
 
 type RetryableConfig = AxiosRequestConfig & { _retry?: boolean };

@@ -2,9 +2,9 @@
  * Feed API
  */
 
+import { apiClient } from '@/lib/api/client';
+import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import type { PaginationParams } from '@/shared/types';
-import { apiClient } from '../../../lib/api/client';
-import { API_ENDPOINTS } from '../../../lib/api/endpoints';
 import type { FeedResponse } from '../types';
 
 export const feedApi = {
