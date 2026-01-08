@@ -6,10 +6,12 @@
 import { Colors } from '@/shared/constants/theme';
 import React, { forwardRef, useState } from 'react';
 import {
+    StyleProp,
     StyleSheet,
     Text,
     TextInput,
     TextInputProps,
+    TextStyle,
     View,
     ViewStyle
 } from 'react-native';
@@ -20,8 +22,8 @@ export interface InputProps extends Omit<TextInputProps, 'style'> {
     hint?: string;
     leftIcon?: React.ReactNode;
     rightIcon?: React.ReactNode;
-    containerStyle?: ViewStyle;
-    inputStyle?: ViewStyle;
+    containerStyle?: StyleProp<ViewStyle>;
+    inputStyle?: StyleProp<TextStyle>;
     disabled?: boolean;
 }
 
@@ -70,8 +72,8 @@ export const Input = forwardRef<TextInput, InputProps>(
                         ref={ref}
                         style={[
                             styles.input,
-                            leftIcon && styles.inputWithLeftIcon,
-                            rightIcon && styles.inputWithRightIcon,
+                            !!leftIcon && styles.inputWithLeftIcon,
+                            !!rightIcon && styles.inputWithRightIcon,
                             inputStyle,
                         ]}
                         placeholderTextColor={Colors.light.icon}
