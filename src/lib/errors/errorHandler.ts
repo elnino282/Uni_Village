@@ -3,7 +3,7 @@
  * Centralized error handling and reporting
  */
 
-import { logger } from '@/lib/monitoring/logger';
+import { logger } from '../monitoring/logger';
 import { ApiError } from './ApiError';
 import { ValidationError } from './ValidationError';
 
