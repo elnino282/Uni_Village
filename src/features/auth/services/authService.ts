@@ -3,55 +3,40 @@
  * Business logic for authentication
  */
 
-import { logger } from '@/lib/monitoring';
-import { SECURE_KEYS, secureStorage } from '@/lib/storage';
-import type { LoginResponse } from '../types';
+import { logger } from '../../../lib/monitoring';
+import { SECURE_KEYS, secureStorage } from '../../../lib/storage';
+import type { AuthTokens } from '../types';
 
 export const authService = {
     /**
-     * Handle successful login - save tokens and user data
+     * Persist tokens in secure storage
      */
-    async handleLoginSuccess(response: LoginResponse): Promise<void> {
-        const { tokens, user } = response;
-
-        // Save tokens to secure storage
+    async persistTokens(tokens: AuthTokens): Promise<void> {
         await secureStorage.set(SECURE_KEYS.ACCESS_TOKEN, tokens.accessToken);
         await secureStorage.set(SECURE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
-        await secureStorage.set(SECURE_KEYS.USER_ID, user.id);
-
-        logger.info('User logged in successfully', { userId: user.id });
+        logger.info('Auth tokens persisted');
     },
 
     /**
-     * Handle logout - clear all stored data
+     * Clear stored tokens
      */
-    async logout(): Promise<void> {
+    async clearTokens(): Promise<void> {
         await secureStorage.clearTokens();
-        await secureStorage.remove(SECURE_KEYS.USER_ID);
-
-        logger.info('User logged out');
+        logger.info('Auth tokens cleared');
     },
 
     /**
-     * Get current access token
+     * Get stored tokens (if present)
      */
-    async getAccessToken(): Promise<string | null> {
-        return secureStorage.get(SECURE_KEYS.ACCESS_TOKEN);
-    },
+    async getStoredTokens(): Promise<AuthTokens | null> {
+        const accessToken = await secureStorage.get(SECURE_KEYS.ACCESS_TOKEN);
+        const refreshToken = await secureStorage.get(SECURE_KEYS.REFRESH_TOKEN);
 
-    /**
-     * Get current refresh token
-     */
-    async getRefreshToken(): Promise<string | null> {
-        return secureStorage.get(SECURE_KEYS.REFRESH_TOKEN);
-    },
+        if (!accessToken || !refreshToken) {
+            return null;
+        }
 
-    /**
-     * Check if user is authenticated (has valid token)
-     */
-    async isAuthenticated(): Promise<boolean> {
-        const token = await this.getAccessToken();
-        return token !== null;
+        return { accessToken, refreshToken };
     },
 
     /**
