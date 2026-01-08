@@ -5,19 +5,23 @@
 
 import { useMutation } from '@tanstack/react-query';
 import { authApi } from '../api/authApi';
-import { authService } from '../services/authService';
 import { useAuthStore } from '../store/authStore';
 import type { LoginRequest } from '../types';
+import { isTokenPair, mapTokenPair } from '../types';
 
 export function useLogin() {
-    const { login } = useAuthStore();
+    const { setTokens } = useAuthStore();
 
     const mutation = useMutation({
-        mutationFn: (data: LoginRequest) => authApi.login(data),
-        onSuccess: async (response) => {
-            // Handle login success - save tokens, update state
-            await authService.handleLoginSuccess(response);
-            login(response.user);
+        mutationFn: async (data: LoginRequest) => {
+            const response = await authApi.authenticate(data);
+            if (!response.result || !isTokenPair(response.result)) {
+                throw new Error('Invalid authentication response');
+            }
+            return mapTokenPair(response.result);
+        },
+        onSuccess: async (tokens) => {
+            await setTokens(tokens);
         },
     });
 
