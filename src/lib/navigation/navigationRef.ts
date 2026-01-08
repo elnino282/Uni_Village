@@ -3,17 +3,21 @@
  * Navigation ref for use outside React components
  */
 
+import type { ParamListBase } from '@react-navigation/native';
 import { createNavigationContainerRef, StackActions } from '@react-navigation/native';
 
 // Navigation ref for programmatic navigation outside components
-export const navigationRef = createNavigationContainerRef();
+export const navigationRef = createNavigationContainerRef<ParamListBase>();
 
 /**
  * Navigate to a screen from outside React components
  */
 export function navigate(name: string, params?: Record<string, unknown>): void {
     if (navigationRef.isReady()) {
-        navigationRef.navigate(name as never, params as never);
+        navigationRef.navigate(
+            name as keyof ParamListBase,
+            params as ParamListBase[keyof ParamListBase]
+        );
     }
 }
 
