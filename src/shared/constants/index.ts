@@ -2,7 +2,7 @@
  * Shared Constants Barrel Export
  */
 
-export { Colors, Fonts } from './theme';
+export { BorderRadius, Colors, Fonts, Shadows } from './theme';
 export type { ColorName, ColorScheme } from './theme';
 
 export { Spacing } from './spacing';
