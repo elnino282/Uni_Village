@@ -4,11 +4,12 @@
  */
 
 import { Button, Card } from '@/shared/components/ui';
-import { Colors, Spacing, Typography } from '@/shared/constants';
+import { Colors } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { ms, s, vs } from 'react-native-size-matters';
 
 interface ProfileEmptyPostCardProps {
     onCreatePost?: () => void;
@@ -23,7 +24,7 @@ export function ProfileEmptyPostCard({ onCreatePost }: ProfileEmptyPostCardProps
             <Card variant="elevated" padding="lg" style={styles.card}>
                 {/* Icon in soft circle */}
                 <View style={[styles.iconContainer, { backgroundColor: colors.muted }]}>
-                    <MaterialIcons name="edit" size={28} color={colors.tint} />
+                    <MaterialIcons name="edit" size={ms(28)} color={colors.tint} />
                 </View>
 
                 {/* Title */}
@@ -52,34 +53,34 @@ export function ProfileEmptyPostCard({ onCreatePost }: ProfileEmptyPostCardProps
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: Spacing.screenPadding,
-        paddingVertical: Spacing.lg,
+        paddingHorizontal: s(16),
+        paddingVertical: vs(24),
     },
     card: {
         alignItems: 'center',
     },
     iconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
+        width: s(64),
+        height: s(64),
+        borderRadius: ms(32),
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: Spacing.md,
+        marginBottom: vs(16),
     },
     title: {
-        fontSize: Typography.sizes.lg,
-        fontWeight: Typography.weights.semibold,
-        marginBottom: Spacing.xs,
+        fontSize: ms(18),
+        fontWeight: '600',
+        marginBottom: vs(4),
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: Typography.sizes.md,
-        fontWeight: Typography.weights.normal,
+        fontSize: ms(14),
+        fontWeight: '400',
         textAlign: 'center',
-        marginBottom: Spacing.lg,
-        lineHeight: Typography.sizes.md * Typography.lineHeights.normal,
+        marginBottom: vs(24),
+        lineHeight: ms(21),
     },
     button: {
-        marginTop: Spacing.xs,
+        marginTop: vs(4),
     },
 });

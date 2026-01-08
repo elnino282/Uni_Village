@@ -3,10 +3,11 @@
  * Two tabs: "Bài viết của tôi" and "Bài viết yêu thích" with underline indicator
  */
 
-import { Colors, Spacing, Typography } from '@/shared/constants';
+import { Colors } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ms, s, vs } from 'react-native-size-matters';
 
 export type ProfileTabKey = 'my-posts' | 'favorites';
 
@@ -41,9 +42,7 @@ export function ProfileTabs({ activeTab, onTabChange }: ProfileTabsProps) {
                                 styles.tabText,
                                 {
                                     color: isActive ? colors.tint : colors.icon,
-                                    fontWeight: isActive
-                                        ? Typography.weights.semibold
-                                        : Typography.weights.normal,
+                                    fontWeight: isActive ? '600' : '400',
                                 },
                             ]}
                         >
@@ -70,18 +69,18 @@ const styles = StyleSheet.create({
     tab: {
         flex: 1,
         alignItems: 'center',
-        paddingVertical: Spacing.md,
+        paddingVertical: vs(16),
         position: 'relative',
     },
     tabText: {
-        fontSize: Typography.sizes.md,
+        fontSize: ms(14),
     },
     indicator: {
         position: 'absolute',
         bottom: 0,
-        left: Spacing.lg,
-        right: Spacing.lg,
-        height: 3,
-        borderRadius: 2,
+        left: s(24),
+        right: s(24),
+        height: vs(3),
+        borderRadius: ms(2),
     },
 });

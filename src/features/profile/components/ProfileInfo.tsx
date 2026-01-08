@@ -3,10 +3,11 @@
  * Displays user's display name, username, and bio (simplified version for main profile screen)
  */
 
-import { Colors, Spacing, Typography } from '@/shared/constants';
+import { Colors } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { ms, s, vs } from 'react-native-size-matters';
 import type { Profile } from '../types';
 
 interface ProfileInfoProps {
@@ -36,23 +37,23 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: Spacing.screenPadding,
-        paddingTop: Spacing.md,
+        paddingHorizontal: s(16),
+        paddingTop: vs(16),
     },
     displayName: {
-        fontSize: Typography.sizes['2xl'],
-        fontWeight: Typography.weights.bold,
-        marginBottom: Spacing.xs,
+        fontSize: ms(24),
+        fontWeight: '700',
+        marginBottom: vs(4),
     },
     username: {
-        fontSize: Typography.sizes.md,
-        fontWeight: Typography.weights.normal,
-        marginBottom: Spacing.sm,
+        fontSize: ms(14),
+        fontWeight: '400',
+        marginBottom: vs(8),
     },
     bio: {
-        fontSize: Typography.sizes.base,
-        fontWeight: Typography.weights.normal,
-        lineHeight: Typography.sizes.base * Typography.lineHeights.normal,
-        marginTop: Spacing.xs,
+        fontSize: ms(16),
+        fontWeight: '400',
+        lineHeight: ms(24),
+        marginTop: vs(4),
     },
 });

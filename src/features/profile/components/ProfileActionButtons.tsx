@@ -1,12 +1,13 @@
 /**
  * ProfileActionButtons Component
- * Side-by-side Edit and Share profile buttons
+ * Side-by-side Edit and Share profile buttons with responsive scaling
  */
 
-import { Button } from '@/shared/components/ui';
-import { Spacing } from '@/shared/constants';
+import { BorderRadius, Colors } from '@/shared/constants';
+import { useColorScheme } from '@/shared/hooks';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ms, s, vs } from 'react-native-size-matters';
 
 interface ProfileActionButtonsProps {
     onEditPress?: () => void;
@@ -17,26 +18,36 @@ export function ProfileActionButtons({
     onEditPress,
     onSharePress,
 }: ProfileActionButtonsProps) {
+    const colorScheme = useColorScheme() ?? 'light';
+    const colors = Colors[colorScheme];
+
     return (
         <View style={styles.container}>
-            <View style={styles.buttonWrapper}>
-                <Button
-                    title="Chỉnh sửa trang cá nhân"
-                    variant="primary"
-                    size="sm"
-                    fullWidth
-                    onPress={onEditPress}
-                />
-            </View>
-            <View style={styles.buttonWrapper}>
-                <Button
-                    title="Chia sẻ trang cá nhân"
-                    variant="primary"
-                    size="sm"
-                    fullWidth
-                    onPress={onSharePress}
-                />
-            </View>
+            <Pressable
+                style={({ pressed }) => [
+                    styles.button,
+                    { backgroundColor: colors.tint },
+                    pressed && styles.pressed,
+                ]}
+                onPress={onEditPress}
+            >
+                <Text style={styles.buttonText} numberOfLines={1}>
+                    Chỉnh sửa trang cá nhân
+                </Text>
+            </Pressable>
+            <Pressable
+                style={({ pressed }) => [
+                    styles.button,
+                    styles.secondaryButton,
+                    { borderColor: colors.tint },
+                    pressed && styles.pressed,
+                ]}
+                onPress={onSharePress}
+            >
+                <Text style={[styles.buttonText, { color: colors.tint }]} numberOfLines={1}>
+                    Chia sẻ trang cá nhân
+                </Text>
+            </Pressable>
         </View>
     );
 }
@@ -44,11 +55,31 @@ export function ProfileActionButtons({
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        paddingHorizontal: Spacing.screenPadding,
-        paddingVertical: Spacing.md,
-        gap: Spacing.sm,
+        paddingHorizontal: s(16),
+        paddingVertical: vs(12),
+        gap: s(8),
     },
-    buttonWrapper: {
+    button: {
         flex: 1,
+        paddingVertical: vs(10),
+        paddingHorizontal: s(12),
+        borderRadius: ms(BorderRadius.lg),
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: vs(44),
+    },
+    secondaryButton: {
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: ms(13),
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    pressed: {
+        opacity: 0.8,
+        transform: [{ scale: 0.98 }],
     },
 });

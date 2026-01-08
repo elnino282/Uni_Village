@@ -8,13 +8,14 @@ import { useColorScheme } from '@/shared/hooks';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { ms, s, vs } from 'react-native-size-matters';
 
 interface ProfileFABProps {
     onPress?: () => void;
 }
 
-const FAB_SIZE = 56;
-const BADGE_SIZE = 20;
+const FAB_SIZE = s(56);
+const BADGE_SIZE = s(20);
 
 export function ProfileFAB({ onPress }: ProfileFABProps) {
     const colorScheme = useColorScheme() ?? 'light';
@@ -32,10 +33,10 @@ export function ProfileFAB({ onPress }: ProfileFABProps) {
                 accessibilityLabel="Add friend"
                 accessibilityRole="button"
             >
-                <MaterialIcons name="person" size={28} color="#fff" />
+                <MaterialIcons name="person" size={ms(28)} color="#fff" />
                 {/* Plus badge overlay */}
                 <View style={styles.badge}>
-                    <MaterialIcons name="add" size={14} color="#fff" />
+                    <MaterialIcons name="add" size={ms(14)} color="#fff" />
                 </View>
             </Pressable>
         </View>
@@ -45,14 +46,14 @@ export function ProfileFAB({ onPress }: ProfileFABProps) {
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
-        right: 16,
-        top: 120,
+        right: s(16),
+        top: vs(120),
         zIndex: 10,
     },
     fab: {
         width: FAB_SIZE,
         height: FAB_SIZE,
-        borderRadius: FAB_SIZE / 2,
+        borderRadius: ms(FAB_SIZE / 2),
         alignItems: 'center',
         justifyContent: 'center',
         ...Shadows.lg,
@@ -63,11 +64,11 @@ const styles = StyleSheet.create({
     },
     badge: {
         position: 'absolute',
-        bottom: 2,
-        right: 2,
+        bottom: vs(2),
+        right: s(2),
         width: BADGE_SIZE,
         height: BADGE_SIZE,
-        borderRadius: BADGE_SIZE / 2,
+        borderRadius: ms(BADGE_SIZE / 2),
         backgroundColor: '#22c55e',
         alignItems: 'center',
         justifyContent: 'center',
