@@ -4,47 +4,81 @@
  */
 
 import { create } from 'zustand';
-import type { AuthState, User } from '../types';
+import { authService } from '../services/authService';
+import type { AuthState, AuthTokens, User } from '../types';
 
 interface AuthStore extends AuthState {
     // Actions
     setUser: (user: User | null) => void;
     setLoading: (isLoading: boolean) => void;
-    login: (user: User) => void;
-    logout: () => void;
-    reset: () => void;
+    setTokens: (tokens: AuthTokens) => Promise<void>;
+    clear: () => Promise<void>;
+    hydrate: () => Promise<void>;
+    isAuthenticated: () => boolean;
 }
 
 const initialState: AuthState = {
     user: null,
-    isAuthenticated: false,
-    isLoading: true, // Start as loading to check for existing session
+    accessToken: null,
+    refreshToken: null,
+    authenticated: false,
+    isLoading: false,
+    isHydrated: false,
 };
 
-export const useAuthStore = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthStore>((set, get) => ({
     ...initialState,
 
     setUser: (user) =>
         set({
             user,
-            isAuthenticated: user !== null,
         }),
 
     setLoading: (isLoading) => set({ isLoading }),
 
-    login: (user) =>
+    setTokens: async (tokens) => {
+        await authService.persistTokens(tokens);
         set({
-            user,
-            isAuthenticated: true,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            authenticated: true,
             isLoading: false,
-        }),
+            isHydrated: true,
+        });
+    },
 
-    logout: () =>
+    clear: async () => {
+        await authService.clearTokens();
         set({
-            user: null,
-            isAuthenticated: false,
+            ...initialState,
+            isHydrated: true,
             isLoading: false,
-        }),
+        });
+    },
 
-    reset: () => set(initialState),
+    hydrate: async () => {
+        set({ isLoading: true });
+        const tokens = await authService.getStoredTokens();
+
+        if (tokens) {
+            set({
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                authenticated: true,
+                isLoading: false,
+                isHydrated: true,
+            });
+            return;
+        }
+
+        set({
+            accessToken: null,
+            refreshToken: null,
+            authenticated: false,
+            isLoading: false,
+            isHydrated: true,
+        });
+    },
+
+    isAuthenticated: () => get().authenticated,
 }));
