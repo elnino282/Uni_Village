@@ -288,7 +288,7 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top", "bottom"]}
+      edges={["top"]}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
@@ -749,11 +749,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   headerIcon: { padding: 6 },
 
   headerTitle: { fontSize: 18, fontWeight: "800" },
-  skipText: { fontSize: 14, fontWeight: "700" },
+  skipText: { 
+    fontSize: 14, 
+    fontWeight: "700",
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+  },
 
   stepBar: {
     paddingVertical: 12,

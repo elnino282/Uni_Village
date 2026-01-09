@@ -217,7 +217,7 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
 
   return (
     <GestureHandlerRootView style={styles.flex}>
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
         {/* Header - Fixed on top */}
         <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
           <Pressable onPress={handleBack} style={styles.headerIcon}>
@@ -610,6 +610,8 @@ const styles = StyleSheet.create({
   skipText: {
     fontSize: 14,
     fontWeight: "700",
+    paddingHorizontal: 6,
+    paddingVertical: 6,
   },
   mapContainer: {
     position: "absolute",
