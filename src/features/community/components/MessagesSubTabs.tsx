@@ -4,34 +4,35 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
-import type { CommunityTab } from '../types';
+import type { MessagesSubTab } from '../types/message.types';
 
-interface CommunitySegmentedTabsProps {
-  activeTab: CommunityTab;
-  onTabChange: (tab: CommunityTab) => void;
+interface MessagesSubTabsProps {
+  activeTab: MessagesSubTab;
+  onTabChange: (tab: MessagesSubTab) => void;
 }
 
 /**
- * Segmented control for switching between Posts and Messages
+ * Inner segmented control for Hộp thư / Channel
+ * Matches Figma node 204:537 design - 52px height, 44px buttons
  */
-export function CommunitySegmentedTabs({
+export function MessagesSubTabs({
   activeTab,
   onTabChange,
-}: CommunitySegmentedTabsProps) {
+}: MessagesSubTabsProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
-  const tabs: { key: CommunityTab; label: string }[] = [
-    { key: 'posts', label: 'Bài viết' },
-    { key: 'messages', label: 'Tin nhắn' },
+  const tabs: { key: MessagesSubTab; label: string }[] = [
+    { key: 'inbox', label: 'Hộp thư' },
+    { key: 'channels', label: 'Channel' },
   ];
 
-  const handleTabPress = (tab: CommunityTab) => {
+  const handleTabPress = (tab: MessagesSubTab) => {
     if (tab !== activeTab) {
       // Subtle haptic feedback on tab switch only
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -65,6 +66,9 @@ export function CommunitySegmentedTabs({
                   styles.tabText,
                   {
                     color: isActive ? colors.text : colors.textSecondary,
+                    fontWeight: isActive
+                      ? Typography.weights.medium
+                      : Typography.weights.normal,
                   },
                 ]}
               >
@@ -81,17 +85,18 @@ export function CommunitySegmentedTabs({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   tabContainer: {
     flexDirection: 'row',
+    height: 52,
     borderRadius: BorderRadius.full,
     padding: 4,
-    gap: 8,
+    gap: 6,
   },
   tab: {
     flex: 1,
-    height: 48,
+    height: 44,
     borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
@@ -100,8 +105,7 @@ const styles = StyleSheet.create({
     // Shadow applied via Shadows.md
   },
   tabText: {
-    fontSize: Typography.sizes.base, // 16px
-    fontWeight: Typography.weights.normal,
-    lineHeight: 24,
+    fontSize: Typography.sizes.sm, // 14px
+    lineHeight: 20,
   },
 });
