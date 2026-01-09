@@ -3,11 +3,12 @@
  * Top header icons: analytics (left), search + settings (right)
  */
 
-import { Colors, Spacing } from '@/shared/constants';
+import { Colors } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { ms, s, vs } from 'react-native-size-matters';
 
 interface ProfileHeaderIconsProps {
     onAnalyticsPress?: () => void;
@@ -15,7 +16,6 @@ interface ProfileHeaderIconsProps {
     onSettingsPress?: () => void;
 }
 
-const ICON_SIZE = 24;
 const HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 };
 
 export function ProfileHeaderIcons({
@@ -25,6 +25,7 @@ export function ProfileHeaderIcons({
 }: ProfileHeaderIconsProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const iconSize = ms(24);
 
     return (
         <View style={styles.container}>
@@ -36,7 +37,7 @@ export function ProfileHeaderIcons({
                 accessibilityLabel="Analytics"
                 accessibilityRole="button"
             >
-                <MaterialIcons name="bar-chart" size={ICON_SIZE} color={colors.text} />
+                <MaterialIcons name="bar-chart" size={iconSize} color={colors.text} />
             </Pressable>
 
             {/* Right: Search + Settings icons */}
@@ -48,7 +49,7 @@ export function ProfileHeaderIcons({
                     accessibilityLabel="Search"
                     accessibilityRole="button"
                 >
-                    <MaterialIcons name="search" size={ICON_SIZE} color={colors.text} />
+                    <MaterialIcons name="search" size={iconSize} color={colors.text} />
                 </Pressable>
                 <Pressable
                     style={styles.iconButton}
@@ -57,7 +58,7 @@ export function ProfileHeaderIcons({
                     accessibilityLabel="Settings"
                     accessibilityRole="button"
                 >
-                    <MaterialIcons name="settings" size={ICON_SIZE} color={colors.text} />
+                    <MaterialIcons name="settings" size={iconSize} color={colors.text} />
                 </Pressable>
             </View>
         </View>
@@ -69,18 +70,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: Spacing.screenPadding,
-        paddingVertical: Spacing.sm,
+        paddingHorizontal: s(16),
+        paddingVertical: vs(8),
     },
     iconButton: {
-        width: 44,
-        height: 44,
+        width: s(44),
+        height: vs(44),
         alignItems: 'center',
         justifyContent: 'center',
     },
     rightIcons: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.xs,
+        gap: s(4),
     },
 });

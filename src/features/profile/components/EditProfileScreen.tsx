@@ -1,346 +1,404 @@
-/**
- * EditProfileScreen Component
- * Screen for editing user profile information
- */
-
-import { Avatar, Button, Input } from '@/shared/components/ui';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
+    Alert,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     View,
 } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useImagePicker } from '../hooks';
+import { editProfileSchema, type EditProfileFormData } from '../schemas';
 import { mockProfile } from '../services/mockProfile';
-import type { UpdateProfileRequest } from '../types';
+import { EditProfileAvatarFAB } from './EditProfileAvatarFAB';
+import { EditProfileFormRow } from './EditProfileFormRow';
+import { EditProfileFormSection } from './EditProfileFormSection';
+import { EditProfileHeader } from './EditProfileHeader';
+import { InterestChips } from './InterestChips';
+import { InterestsBottomSheet } from './InterestsBottomSheet';
 
 export function EditProfileScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const bottomSheetRef = useRef<BottomSheet>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { showImagePickerOptions } = useImagePicker({ aspect: [1, 1], quality: 0.8 });
 
-    // Form state initialized with current profile data
-    const [formData, setFormData] = useState<UpdateProfileRequest>({
-        displayName: mockProfile.displayName,
-        bio: mockProfile.bio ?? '',
-        avatarUrl: mockProfile.avatarUrl,
-        coverUrl: mockProfile.coverUrl,
+    // React Hook Form setup with zod resolver
+    const {
+        control,
+        handleSubmit,
+        watch,
+        setValue,
+        formState: { errors, isDirty },
+    } = useForm<EditProfileFormData>({
+        resolver: zodResolver(editProfileSchema),
+        defaultValues: {
+            displayName: mockProfile.displayName,
+            bio: mockProfile.bio ?? '',
+            avatarUrl: mockProfile.avatarUrl,
+            coverUrl: mockProfile.coverUrl,
+            interests: [],
+            links: [],
+            podcastUrl: '',
+            isPrivate: false,
+        },
     });
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const rawInterests = watch('interests');
+    const watchedInterests = useMemo(() => rawInterests ?? [], [rawInterests]);
+    const watchedBio = watch('bio') ?? '';
+    const watchedIsPrivate = watch('isPrivate') ?? false;
+    const watchedAvatarUrl = watch('avatarUrl');
 
     // Handlers
-    const handleBack = () => {
-        router.back();
-    };
+    const handleCancel = useCallback(() => {
+        if (isDirty) {
+            Alert.alert(
+                'Hủy thay đổi?',
+                'Bạn có thay đổi chưa được lưu. Bạn có chắc muốn thoát?',
+                [
+                    { text: 'Tiếp tục chỉnh sửa', style: 'cancel' },
+                    {
+                        text: 'Hủy thay đổi',
+                        style: 'destructive',
+                        onPress: () => {
+                            router.back();
+                        },
+                    },
+                ]
+            );
+        } else {
+            router.back();
+        }
+    }, [isDirty]);
 
-    const handleSave = async () => {
+    const onSubmit = async (data: EditProfileFormData) => {
         setIsSubmitting(true);
         try {
-            // TODO: Call API to update profile
-            console.log('Saving profile:', formData);
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            // TODO: Replace with actual API call
+            console.log('Saving profile:', data);
+            await new Promise((resolve) => setTimeout(resolve, 1500));
             router.back();
         } catch (error) {
             console.error('Failed to save profile:', error);
+            Alert.alert(
+                'Lỗi',
+                'Không thể lưu thay đổi. Vui lòng thử lại.',
+                [{ text: 'OK' }]
+            );
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleChangeAvatar = () => {
-        // TODO: Open image picker for avatar
-        console.log('Change avatar pressed');
-    };
+    const handleChangeAvatar = useCallback(async () => {
+        const result = await showImagePickerOptions();
+        if (result) {
+            setValue('avatarUrl', result.uri, { shouldDirty: true });
+        }
+    }, [setValue, showImagePickerOptions]);
 
-    const handleChangeCover = () => {
-        // TODO: Open image picker for cover
-        console.log('Change cover pressed');
-    };
+    const handleOpenInterests = useCallback(() => {
+        bottomSheetRef.current?.expand();
+    }, []);
 
-    const updateField = (field: keyof UpdateProfileRequest, value: string) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
+    const handleAddInterest = useCallback(
+        (interest: string) => {
+            const current = watchedInterests;
+            if (!current.includes(interest) && current.length < 10) {
+                setValue('interests', [...current, interest], { shouldDirty: true });
+            }
+        },
+        [watchedInterests, setValue]
+    );
+
+    const handleRemoveInterest = useCallback(
+        (interest: string) => {
+            const current = watchedInterests;
+            setValue(
+                'interests',
+                current.filter((i) => i !== interest),
+                { shouldDirty: true }
+            );
+        },
+        [watchedInterests, setValue]
+    );
+
+    const handleLinksPress = useCallback(() => {
+        Alert.alert('Liên kết', 'Tính năng đang phát triển');
+    }, []);
+
+    const handlePodcastPress = useCallback(() => {
+        Alert.alert('Podcast', 'Tính năng đang phát triển');
+    }, []);
+
+    const handlePrivacyPress = useCallback(() => {
+        setValue('isPrivate', !watchedIsPrivate, { shouldDirty: true });
+    }, [setValue, watchedIsPrivate]);
 
     return (
-        <SafeAreaView
-            style={[styles.container, { backgroundColor: colors.background }]}
-            edges={['top']}
-        >
-            {/* Header */}
-            <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                <Pressable
-                    style={styles.backButton}
-                    onPress={handleBack}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                    <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-                </Pressable>
-                <Text style={[styles.headerTitle, { color: colors.text }]}>
-                    Chỉnh sửa trang cá nhân
-                </Text>
-                <View style={styles.headerRight} />
-            </View>
-
-            <KeyboardAvoidingView
-                style={styles.flex}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        <GestureHandlerRootView style={styles.flex}>
+            <SafeAreaView
+                style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
+                edges={['top']}
             >
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                >
-                    {/* Cover Photo Section */}
-                    <Pressable
-                        style={[styles.coverSection, { backgroundColor: colors.muted }]}
-                        onPress={handleChangeCover}
-                    >
-                        {formData.coverUrl ? (
-                            <View style={styles.coverImage}>
-                                {/* TODO: Add actual cover image */}
-                            </View>
-                        ) : (
-                            <View style={styles.coverPlaceholder}>
-                                <MaterialIcons name="add-a-photo" size={32} color={colors.icon} />
-                                <Text style={[styles.coverText, { color: colors.icon }]}>
-                                    Thêm ảnh bìa
-                                </Text>
-                            </View>
-                        )}
-                        <View style={[styles.editBadge, { backgroundColor: colors.tint }]}>
-                            <MaterialIcons name="edit" size={16} color="#fff" />
-                        </View>
-                    </Pressable>
-
-                    {/* Avatar Section */}
-                    <View style={styles.avatarSection}>
-                        <Pressable style={styles.avatarWrapper} onPress={handleChangeAvatar}>
-                            <Avatar
-                                source={formData.avatarUrl}
-                                name={formData.displayName}
-                                size="xl"
-                                style={styles.avatar}
-                            />
-                            <View style={[styles.avatarEditBadge, { backgroundColor: colors.tint }]}>
-                                <MaterialIcons name="camera-alt" size={18} color="#fff" />
-                            </View>
-                        </Pressable>
-                        <Text style={[styles.changePhotoText, { color: colors.tint }]}>
-                            Thay đổi ảnh đại diện
-                        </Text>
-                    </View>
-
-                    {/* Form Fields */}
-                    <View style={styles.formSection}>
-                        {/* Display Name */}
-                        <Input
-                            label="Tên hiển thị"
-                            value={formData.displayName}
-                            onChangeText={(text) => updateField('displayName', text)}
-                            placeholder="Nhập tên hiển thị"
-                            maxLength={50}
-                            containerStyle={styles.inputContainer}
-                        />
-
-                        {/* Username (read-only) */}
-                        <View style={styles.inputContainer}>
-                            <Text style={[styles.inputLabel, { color: colors.text }]}>
-                                Tên người dùng
-                            </Text>
-                            <View
-                                style={[
-                                    styles.readOnlyField,
-                                    { backgroundColor: colors.muted, borderColor: colors.border },
-                                ]}
-                            >
-                                <Text style={[styles.readOnlyText, { color: colors.icon }]}>
-                                    @{mockProfile.username}
-                                </Text>
-                                <MaterialIcons name="lock" size={18} color={colors.icon} />
-                            </View>
-                            <Text style={[styles.hintText, { color: colors.icon }]}>
-                                Tên người dùng không thể thay đổi
-                            </Text>
-                        </View>
-
-                        {/* Bio */}
-                        <Input
-                            label="Tiểu sử"
-                            value={formData.bio}
-                            onChangeText={(text) => updateField('bio', text)}
-                            placeholder="Viết gì đó về bản thân..."
-                            multiline
-                            numberOfLines={4}
-                            maxLength={200}
-                            containerStyle={styles.inputContainer}
-                            inputStyle={styles.bioInput}
-                        />
-                        <Text style={[styles.charCount, { color: colors.icon }]}>
-                            {formData.bio?.length ?? 0}/200
-                        </Text>
-                    </View>
-                </ScrollView>
-
-                {/* Save Button */}
-                <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-                    <Button
-                        title="Lưu thay đổi"
-                        variant="primary"
-                        size="lg"
-                        fullWidth
-                        loading={isSubmitting}
-                        onPress={handleSave}
+                {/* Header */}
+                <View style={[styles.headerWrapper, { backgroundColor: colors.card }]}>
+                    <EditProfileHeader
+                        title="Chỉnh sửa trang cá nhân"
+                        onCancel={handleCancel}
+                        onDone={handleSubmit(onSubmit)}
+                        isLoading={isSubmitting}
+                        isDoneDisabled={!isDirty}
                     />
                 </View>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+
+                {/* Main Content */}
+                <View style={styles.mainContent}>
+                    <KeyboardAvoidingView
+                        style={styles.flex}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    >
+                        <ScrollView
+                            style={styles.scrollView}
+                            contentContainerStyle={styles.scrollContent}
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                        >
+                            {/* Form Card */}
+                            <View
+                                style={[
+                                    styles.formCard,
+                                    { backgroundColor: colors.card },
+                                ]}
+                            >
+                                {/* Name Section - Read Only */}
+                                <EditProfileFormSection label="Tên">
+                                    <View
+                                        style={[
+                                            styles.nameField,
+                                            { backgroundColor: colors.muted },
+                                        ]}
+                                    >
+                                        <MaterialIcons
+                                            name="lock"
+                                            size={16}
+                                            color={colors.textSecondary}
+                                        />
+                                        <Controller
+                                            control={control}
+                                            name="displayName"
+                                            render={({ field: { value } }) => (
+                                                <Text
+                                                    style={[
+                                                        styles.nameText,
+                                                        { color: colors.textPrimary },
+                                                    ]}
+                                                >
+                                                    {value} (@{mockProfile.username})
+                                                </Text>
+                                            )}
+                                        />
+                                    </View>
+                                </EditProfileFormSection>
+
+                                {/* Bio Section - Editable */}
+                                <EditProfileFormSection label="Tiểu sử">
+                                    <Controller
+                                        control={control}
+                                        name="bio"
+                                        render={({ field: { onChange, onBlur, value } }) => (
+                                            <View>
+                                                <TextInput
+                                                    style={[
+                                                        styles.bioInput,
+                                                        {
+                                                            color: colors.textPrimary,
+                                                            backgroundColor: 'transparent',
+                                                        },
+                                                    ]}
+                                                    placeholder="Viết tiểu sử..."
+                                                    placeholderTextColor={colors.textSecondary}
+                                                    multiline
+                                                    maxLength={150}
+                                                    value={value}
+                                                    onChangeText={onChange}
+                                                    onBlur={onBlur}
+                                                    textAlignVertical="top"
+                                                />
+                                                <Text
+                                                    style={[
+                                                        styles.charCount,
+                                                        { color: colors.textSecondary },
+                                                    ]}
+                                                >
+                                                    {watchedBio.length}/150
+                                                </Text>
+                                            </View>
+                                        )}
+                                    />
+                                    {errors.bio && (
+                                        <Text style={[styles.errorText, { color: colors.error }]}>
+                                            {errors.bio.message}
+                                        </Text>
+                                    )}
+                                </EditProfileFormSection>
+
+                                {/* Interests Section */}
+                                <EditProfileFormSection label="Sở thích">
+                                    <InterestChips
+                                        interests={watchedInterests}
+                                        onRemove={handleRemoveInterest}
+                                        onAddPress={handleOpenInterests}
+                                    />
+                                </EditProfileFormSection>
+
+                                {/* Links Section */}
+                                <EditProfileFormRow
+                                    label="Liên kết"
+                                    onPress={handleLinksPress}
+                                />
+
+                                {/* Podcast Section */}
+                                <EditProfileFormSection label="Podcast" showBorder>
+                                    <Pressable onPress={handlePodcastPress}>
+                                        <Text
+                                            style={[
+                                                styles.addActionText,
+                                                { color: colors.textSecondary },
+                                            ]}
+                                        >
+                                            + Liên kết đến podcast của bạn
+                                        </Text>
+                                    </Pressable>
+                                </EditProfileFormSection>
+
+                                {/* Privacy Section */}
+                                <View style={styles.privacySection}>
+                                    <EditProfileFormRow
+                                        label="Quyền riêng tư trang cá nhân"
+                                        value={watchedIsPrivate ? 'Riêng tư' : 'Công khai'}
+                                        onPress={handlePrivacyPress}
+                                        showBorder={false}
+                                    />
+                                    <Text
+                                        style={[
+                                            styles.privacyHint,
+                                            { color: colors.textSecondary },
+                                        ]}
+                                    >
+                                        {watchedIsPrivate
+                                            ? 'Chỉ những người theo dõi mới có thể xem nội dung của bạn'
+                                            : 'Mọi người đều có thể xem nội dung của bạn'}
+                                    </Text>
+                                </View>
+                            </View>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
+
+                    {/* Avatar FAB - Positioned relative to mainContent */}
+                    <View style={styles.avatarContainer} pointerEvents="box-none">
+                        <EditProfileAvatarFAB
+                            avatarUrl={watchedAvatarUrl ?? mockProfile.avatarUrl}
+                            displayName={mockProfile.displayName}
+                            onPress={handleChangeAvatar}
+                        />
+                    </View>
+                </View>
+
+                {/* Interests Bottom Sheet */}
+                <InterestsBottomSheet
+                    ref={bottomSheetRef}
+                    selectedInterests={watchedInterests}
+                    onSelect={handleAddInterest}
+                    onRemove={handleRemoveInterest}
+                />
+            </SafeAreaView>
+        </GestureHandlerRootView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
     flex: {
         flex: 1,
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: Spacing.screenPadding,
-        paddingVertical: Spacing.md,
-        borderBottomWidth: 1,
+    container: {
+        flex: 1,
     },
-    backButton: {
-        width: 44,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: -Spacing.sm,
+    headerWrapper: {
+        zIndex: 1,
     },
-    headerTitle: {
-        fontSize: Typography.sizes.lg,
-        fontWeight: Typography.weights.semibold,
-    },
-    headerRight: {
-        width: 44,
+    mainContent: {
+        flex: 1,
+        position: 'relative',
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
+        paddingTop: Spacing.xl + Spacing['2xl'], // More space for avatar
+        paddingHorizontal: Spacing.screenPadding,
         paddingBottom: Spacing.xl,
     },
-    coverSection: {
-        height: 140,
-        justifyContent: 'center',
-        alignItems: 'center',
-        position: 'relative',
-    },
-    coverImage: {
-        width: '100%',
-        height: '100%',
-    },
-    coverPlaceholder: {
-        alignItems: 'center',
-        gap: Spacing.xs,
-    },
-    coverText: {
-        fontSize: Typography.sizes.md,
-        fontWeight: Typography.weights.medium,
-    },
-    editBadge: {
+    avatarContainer: {
         position: 'absolute',
-        bottom: Spacing.sm,
-        right: Spacing.sm,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        ...Shadows.sm,
+        top: Spacing.md,
+        right: Spacing.screenPadding,
+        zIndex: 10,
     },
-    avatarSection: {
-        alignItems: 'center',
-        marginTop: -40,
-        marginBottom: Spacing.lg,
+    formCard: {
+        borderRadius: BorderRadius.lg,
+        ...Shadows.card,
     },
-    avatarWrapper: {
-        position: 'relative',
-    },
-    avatar: {
-        borderWidth: 4,
-        borderColor: '#fff',
-        ...Shadows.md,
-    },
-    avatarEditBadge: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: '#fff',
-    },
-    changePhotoText: {
-        fontSize: Typography.sizes.md,
-        fontWeight: Typography.weights.medium,
-        marginTop: Spacing.sm,
-    },
-    formSection: {
-        paddingHorizontal: Spacing.screenPadding,
-    },
-    inputContainer: {
-        marginBottom: Spacing.md,
-    },
-    inputLabel: {
-        fontSize: Typography.sizes.md,
-        fontWeight: Typography.weights.medium,
-        marginBottom: Spacing.xs,
-    },
-    readOnlyField: {
+    nameField: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.inputPadding,
-        borderRadius: BorderRadius.lg,
-        borderWidth: 1,
+        gap: Spacing.sm,
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.sm,
+        borderRadius: BorderRadius.md,
     },
-    readOnlyText: {
-        fontSize: Typography.sizes.base,
-    },
-    hintText: {
-        fontSize: Typography.sizes.sm,
-        marginTop: Spacing.xs,
+    nameText: {
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.normal,
     },
     bioInput: {
-        height: 100,
-        textAlignVertical: 'top',
-        paddingTop: Spacing.sm,
+        fontSize: Typography.sizes.md,
+        minHeight: 80,
+        padding: 0,
     },
     charCount: {
         fontSize: Typography.sizes.sm,
         textAlign: 'right',
-        marginTop: -Spacing.sm,
+        marginTop: Spacing.xs,
     },
-    footer: {
-        paddingHorizontal: Spacing.screenPadding,
-        paddingVertical: Spacing.md,
-        borderTopWidth: 1,
+    errorText: {
+        fontSize: Typography.sizes.sm,
+        marginTop: Spacing.xs,
+    },
+    addActionText: {
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.normal,
+    },
+    privacySection: {
+        paddingBottom: Spacing.sm,
+    },
+    privacyHint: {
+        fontSize: Typography.sizes.sm,
+        paddingHorizontal: Spacing.md,
+        marginTop: -Spacing.sm,
     },
 });
