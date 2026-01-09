@@ -1,5 +1,4 @@
-import { useColorScheme } from '@/shared';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { Providers } from '@/providers';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -9,23 +8,14 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <Providers>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="(modals)"
-          options={{
-            presentation: 'modal',
-            headerShown: false,
-          }}
-        />
       </Stack>
       <StatusBar style="auto" />
-    </ThemeProvider>
+    </Providers>
   );
 }

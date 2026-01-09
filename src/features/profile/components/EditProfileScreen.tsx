@@ -22,12 +22,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useImagePicker } from '../hooks';
 import { editProfileSchema, type EditProfileFormData } from '../schemas';
 import { mockProfile } from '../services/mockProfile';
-import { EditProfileAvatarFAB } from './EditProfileAvatarFAB';
 import { EditProfileFormRow } from './EditProfileFormRow';
 import { EditProfileFormSection } from './EditProfileFormSection';
 import { EditProfileHeader } from './EditProfileHeader';
 import { InterestChips } from './InterestChips';
 import { InterestsBottomSheet } from './InterestsBottomSheet';
+import { ProfileFAB } from './ProfileFAB';
 
 export function EditProfileScreen() {
     const colorScheme = useColorScheme() ?? 'light';
@@ -185,33 +185,37 @@ export function EditProfileScreen() {
                                     { backgroundColor: colors.card },
                                 ]}
                             >
-                                {/* Name Section - Read Only */}
+                                {/* Name Section - Read Only with FAB */}
                                 <EditProfileFormSection label="Tên">
-                                    <View
-                                        style={[
-                                            styles.nameField,
-                                            { backgroundColor: colors.muted },
-                                        ]}
-                                    >
-                                        <MaterialIcons
-                                            name="lock"
-                                            size={16}
-                                            color={colors.textSecondary}
-                                        />
-                                        <Controller
-                                            control={control}
-                                            name="displayName"
-                                            render={({ field: { value } }) => (
-                                                <Text
-                                                    style={[
-                                                        styles.nameText,
-                                                        { color: colors.textPrimary },
-                                                    ]}
-                                                >
-                                                    {value} (@{mockProfile.username})
-                                                </Text>
-                                            )}
-                                        />
+                                    <View style={styles.nameRow}>
+                                        <View
+                                            style={[
+                                                styles.nameField,
+                                                styles.nameFieldFlex,
+                                                { backgroundColor: colors.muted },
+                                            ]}
+                                        >
+                                            <MaterialIcons
+                                                name="lock"
+                                                size={16}
+                                                color={colors.textSecondary}
+                                            />
+                                            <Controller
+                                                control={control}
+                                                name="displayName"
+                                                render={({ field: { value } }) => (
+                                                    <Text
+                                                        style={[
+                                                            styles.nameText,
+                                                            { color: colors.textPrimary },
+                                                        ]}
+                                                    >
+                                                        {value} (@{mockProfile.username})
+                                                    </Text>
+                                                )}
+                                            />
+                                        </View>
+                                        <ProfileFAB onPress={handleChangeAvatar} absolute={false} />
                                     </View>
                                 </EditProfileFormSection>
 
@@ -308,15 +312,6 @@ export function EditProfileScreen() {
                             </View>
                         </ScrollView>
                     </KeyboardAvoidingView>
-
-                    {/* Avatar FAB - Positioned relative to mainContent */}
-                    <View style={styles.avatarContainer} pointerEvents="box-none">
-                        <EditProfileAvatarFAB
-                            avatarUrl={watchedAvatarUrl ?? mockProfile.avatarUrl}
-                            displayName={mockProfile.displayName}
-                            onPress={handleChangeAvatar}
-                        />
-                    </View>
                 </View>
 
                 {/* Interests Bottom Sheet */}
@@ -349,15 +344,18 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingTop: Spacing.xl + Spacing['2xl'], // More space for avatar
+        paddingTop: Spacing.md,
         paddingHorizontal: Spacing.screenPadding,
         paddingBottom: Spacing.xl,
     },
-    avatarContainer: {
-        position: 'absolute',
-        top: Spacing.md,
-        right: Spacing.screenPadding,
-        zIndex: 10,
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: Spacing.md,
+    },
+    nameFieldFlex: {
+        flex: 1,
     },
     formCard: {
         borderRadius: BorderRadius.lg,

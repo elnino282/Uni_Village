@@ -12,17 +12,19 @@ import { ms, s, vs } from 'react-native-size-matters';
 
 interface ProfileFABProps {
     onPress?: () => void;
+    /** If true (default), uses absolute positioning. Set to false when using in flexbox layout. */
+    absolute?: boolean;
 }
 
 const FAB_SIZE = s(56);
 const BADGE_SIZE = s(20);
 
-export function ProfileFAB({ onPress }: ProfileFABProps) {
+export function ProfileFAB({ onPress, absolute = true }: ProfileFABProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
 
     return (
-        <View style={styles.container}>
+        <View style={absolute ? styles.containerAbsolute : styles.containerInline}>
             <Pressable
                 style={({ pressed }) => [
                     styles.fab,
@@ -44,11 +46,14 @@ export function ProfileFAB({ onPress }: ProfileFABProps) {
 }
 
 const styles = StyleSheet.create({
-    container: {
+    containerAbsolute: {
         position: 'absolute',
         right: s(16),
         top: vs(8),
         zIndex: 10,
+    },
+    containerInline: {
+        // No positioning - uses parent flexbox layout
     },
     fab: {
         width: FAB_SIZE,
