@@ -4,6 +4,7 @@
  */
 
 export * from './auth';
+export * from './community';
 export * from './feed';
 export * from './map';
 export * from './post';

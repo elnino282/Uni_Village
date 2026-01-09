@@ -1,0 +1,83 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+import { Colors, Spacing, Typography } from '@/shared/constants';
+import { useColorScheme } from '@/shared/hooks';
+
+interface PostActionsProps {
+  likesCount: number;
+  commentsCount: number;
+  isLiked: boolean;
+  onLikePress: () => void;
+  onCommentPress: () => void;
+}
+
+/**
+ * Post action row with like and comment buttons
+ */
+export function PostActions({
+  likesCount,
+  commentsCount,
+  isLiked,
+  onLikePress,
+  onCommentPress,
+}: PostActionsProps) {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme];
+
+  return (
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onLikePress}
+        activeOpacity={0.7}
+      >
+        <MaterialIcons
+          name={isLiked ? 'favorite' : 'favorite-border'}
+          size={20}
+          color={isLiked ? colors.error : colors.textSecondary}
+        />
+        <Text style={[styles.actionText, { color: colors.textSecondary }]}>
+          {likesCount}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onCommentPress}
+        activeOpacity={0.7}
+      >
+        <MaterialIcons
+          name="chat-bubble-outline"
+          size={20}
+          color={colors.textSecondary}
+        />
+        <Text style={[styles.actionText, { color: colors.textSecondary }]}>
+          {commentsCount}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.cardPadding,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.cardPadding,
+    gap: 16,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionText: {
+    fontSize: Typography.sizes.base, // 16px
+    fontWeight: Typography.weights.normal,
+    lineHeight: 24,
+  },
+});
