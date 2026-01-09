@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
@@ -15,6 +15,7 @@ interface PostCardProps {
   onLikePress: (postId: string) => void;
   onCommentPress: (postId: string) => void;
   onLocationPress?: (location: PostLocation) => void;
+  onPress?: (postId: string) => void;
 }
 
 /**
@@ -26,12 +27,24 @@ export function PostCard({
   onLikePress,
   onCommentPress,
   onLocationPress,
+  onPress,
 }: PostCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
+  const handlePress = () => {
+    if (onPress) {
+      onPress(post.id);
+    } else {
+      // Default to comment press for navigation
+      onCommentPress(post.id);
+    }
+  };
+
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={handlePress}
       style={[
         styles.container,
         {
@@ -70,7 +83,7 @@ export function PostCard({
         onLikePress={() => onLikePress(post.id)}
         onCommentPress={() => onCommentPress(post.id)}
       />
-    </View>
+    </TouchableOpacity>
   );
 }
 

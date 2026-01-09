@@ -1,0 +1,135 @@
+/**
+ * PostAuthorRow Component
+ * Author info with avatar, online indicator, name, badge, and timestamp
+ */
+
+import { MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+import { Avatar } from '@/shared/components/ui';
+import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
+import { useColorScheme } from '@/shared/hooks';
+import type { PostDetailAuthor, PostVisibility } from '../types';
+
+interface PostAuthorRowProps {
+  author: PostDetailAuthor;
+  createdAtText: string;
+  visibility: PostVisibility;
+  onMenuPress?: () => void;
+}
+
+const VISIBILITY_LABELS: Record<PostVisibility, string> = {
+  public: 'Công khai',
+  friends: 'Bạn bè',
+  private: 'Riêng tư',
+};
+
+export function PostAuthorRow({
+  author,
+  createdAtText,
+  visibility,
+  onMenuPress,
+}: PostAuthorRowProps) {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme];
+
+  return (
+    <View style={styles.container}>
+      {/* Avatar with online indicator */}
+      <View style={styles.avatarContainer}>
+        <Avatar
+          size="md"
+          source={author.avatarUrl}
+          name={author.displayName}
+          style={styles.avatar}
+        />
+        {author.isOnline && (
+          <View
+            style={[
+              styles.onlineIndicator,
+              { backgroundColor: colors.onlineIndicator, borderColor: colors.background },
+            ]}
+          />
+        )}
+      </View>
+
+      {/* Author info */}
+      <View style={styles.info}>
+        <View style={styles.nameRow}>
+          <Text style={[styles.name, { color: colors.textPrimary }]}>
+            {author.displayName}
+          </Text>
+          {author.isVerified && (
+            <MaterialIcons name="verified" size={14} color="#fbbf24" style={styles.badge} />
+          )}
+        </View>
+        <Text style={[styles.meta, { color: colors.textSecondary }]}>
+          {createdAtText} • {VISIBILITY_LABELS[visibility]}
+        </Text>
+      </View>
+
+      {/* Menu button */}
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={onMenuPress}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <MaterialIcons name="more-horiz" size={20} color={colors.textSecondary} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.cardPadding - 4, // 12px
+    paddingVertical: Spacing.sm,
+  },
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatar: {
+    borderWidth: 2,
+    borderColor: '#dbeafe',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    width: 14,
+    height: 14,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.6,
+    right: -2,
+    bottom: -2,
+  },
+  info: {
+    flex: 1,
+    marginLeft: Spacing.sm + 2, // 10px gap
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  name: {
+    fontSize: Typography.sizes['15'], // 15px
+    fontWeight: Typography.weights.bold,
+    lineHeight: 22.5,
+  },
+  badge: {
+    marginTop: 1,
+  },
+  meta: {
+    fontSize: Typography.sizes.xs + 1, // 11px
+    fontWeight: Typography.weights.normal,
+    lineHeight: 16.5,
+  },
+  menuButton: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

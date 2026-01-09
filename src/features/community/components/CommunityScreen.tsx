@@ -64,10 +64,18 @@ export function CommunityScreen() {
 
   const handleCommentPress = useCallback(
     (postId: string) => {
-      // Navigate to comments or open comment sheet
-      console.log('Comment pressed for post:', postId);
+      // Navigate to post detail screen
+      router.push(`/post/${postId}` as any);
     },
-    []
+    [router]
+  );
+
+  const handlePostPress = useCallback(
+    (postId: string) => {
+      // Navigate to post detail screen
+      router.push(`/post/${postId}` as any);
+    },
+    [router]
   );
 
   const handleLocationPress = useCallback(
