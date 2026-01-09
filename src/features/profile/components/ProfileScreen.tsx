@@ -1,8 +1,3 @@
-/**
- * ProfileScreen Component
- * Main profile screen composing all sub-components
- */
-
 import { Colors } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import { router } from 'expo-router';

@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@gorhom/bottom-sheet": "^5.2.8",
+    "@hookform/resolvers": "^5.2.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-firebase/app": "^21.8.1",
     "@react-native-firebase/auth": "^21.8.1",
@@ -39,6 +41,7 @@
     "firebase": "^11.2.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-hook-form": "^7.70.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-maps": "1.20.1",

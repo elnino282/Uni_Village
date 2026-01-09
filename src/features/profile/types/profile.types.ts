@@ -4,6 +4,12 @@
 
 import type { BaseEntity } from '@/shared/types';
 
+export interface ProfileLink {
+    id: string;
+    title: string;
+    url: string;
+}
+
 export interface Profile extends BaseEntity {
     userId: string;
     username: string;
@@ -15,6 +21,10 @@ export interface Profile extends BaseEntity {
     followersCount: number;
     followingCount: number;
     isFollowing?: boolean;
+    interests?: string[];
+    links?: ProfileLink[];
+    podcastUrl?: string;
+    isPrivate?: boolean;
 }
 
 export interface UpdateProfileRequest {
@@ -22,4 +32,8 @@ export interface UpdateProfileRequest {
     bio?: string;
     avatarUrl?: string;
     coverUrl?: string;
+    interests?: string[];
+    links?: ProfileLink[];
+    podcastUrl?: string;
+    isPrivate?: boolean;
 }
