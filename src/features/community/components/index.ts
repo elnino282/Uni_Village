@@ -12,3 +12,11 @@ export { PostLocations } from './PostLocations';
 export { PostMedia } from './PostMedia';
 export { PostOverflowMenu } from './PostOverflowMenu';
 
+// Messages components
+export { ChannelItem } from './ChannelItem';
+export { ChannelList } from './ChannelList';
+export { ConversationItem } from './ConversationItem';
+export { InboxList } from './InboxList';
+export { MessagesSearchRow } from './MessagesSearchRow';
+export { MessagesSubTabs } from './MessagesSubTabs';
+
