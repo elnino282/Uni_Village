@@ -1,5 +1,5 @@
 import { Avatar } from '@/shared/components/ui';
-import { Colors, Shadows, Spacing } from '@/shared/constants';
+import { Colors, Shadows } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
@@ -44,10 +44,7 @@ export function EditProfileAvatarFAB({
 
 const styles = StyleSheet.create({
     container: {
-        position: 'absolute',
-        top: Spacing.md,
-        right: Spacing.screenPadding,
-        zIndex: 10,
+        // Positioning handled by parent avatarContainer
     },
     outerRing: {
         width: 72,

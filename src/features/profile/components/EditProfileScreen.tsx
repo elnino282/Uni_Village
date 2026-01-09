@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
+    Alert,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -18,6 +19,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useImagePicker } from '../hooks';
 import { editProfileSchema, type EditProfileFormData } from '../schemas';
 import { mockProfile } from '../services/mockProfile';
 import { EditProfileAvatarFAB } from './EditProfileAvatarFAB';
@@ -32,6 +34,7 @@ export function EditProfileScreen() {
     const colors = Colors[colorScheme];
     const bottomSheetRef = useRef<BottomSheet>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { showImagePickerOptions } = useImagePicker({ aspect: [1, 1], quality: 0.8 });
 
     // React Hook Form setup with zod resolver
     const {
@@ -39,7 +42,7 @@ export function EditProfileScreen() {
         handleSubmit,
         watch,
         setValue,
-        formState: { errors },
+        formState: { errors, isDirty },
     } = useForm<EditProfileFormData>({
         resolver: zodResolver(editProfileSchema),
         defaultValues: {
@@ -58,31 +61,55 @@ export function EditProfileScreen() {
     const watchedInterests = useMemo(() => rawInterests ?? [], [rawInterests]);
     const watchedBio = watch('bio') ?? '';
     const watchedIsPrivate = watch('isPrivate') ?? false;
+    const watchedAvatarUrl = watch('avatarUrl');
 
     // Handlers
-    const handleBack = () => {
-        router.back();
-    };
+    const handleCancel = useCallback(() => {
+        if (isDirty) {
+            Alert.alert(
+                'Hủy thay đổi?',
+                'Bạn có thay đổi chưa được lưu. Bạn có chắc muốn thoát?',
+                [
+                    { text: 'Tiếp tục chỉnh sửa', style: 'cancel' },
+                    {
+                        text: 'Hủy thay đổi',
+                        style: 'destructive',
+                        onPress: () => {
+                            router.back();
+                        },
+                    },
+                ]
+            );
+        } else {
+            router.back();
+        }
+    }, [isDirty]);
 
     const onSubmit = async (data: EditProfileFormData) => {
         setIsSubmitting(true);
         try {
-            // TODO: Call API to update profile
+            // TODO: Replace with actual API call
             console.log('Saving profile:', data);
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1500));
             router.back();
         } catch (error) {
             console.error('Failed to save profile:', error);
+            Alert.alert(
+                'Lỗi',
+                'Không thể lưu thay đổi. Vui lòng thử lại.',
+                [{ text: 'OK' }]
+            );
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleChangeAvatar = () => {
-        // TODO: Open image picker for avatar
-        console.log('Change avatar pressed');
-    };
+    const handleChangeAvatar = useCallback(async () => {
+        const result = await showImagePickerOptions();
+        if (result) {
+            setValue('avatarUrl', result.uri, { shouldDirty: true });
+        }
+    }, [setValue, showImagePickerOptions]);
 
     const handleOpenInterests = useCallback(() => {
         bottomSheetRef.current?.expand();
@@ -110,20 +137,17 @@ export function EditProfileScreen() {
         [watchedInterests, setValue]
     );
 
-    const handleLinksPress = () => {
-        // TODO: Navigate to links management screen
-        console.log('Links pressed');
-    };
+    const handleLinksPress = useCallback(() => {
+        Alert.alert('Liên kết', 'Tính năng đang phát triển');
+    }, []);
 
-    const handlePodcastPress = () => {
-        // TODO: Open podcast URL input
-        console.log('Podcast pressed');
-    };
+    const handlePodcastPress = useCallback(() => {
+        Alert.alert('Podcast', 'Tính năng đang phát triển');
+    }, []);
 
-    const handlePrivacyPress = () => {
-        // TODO: Navigate to privacy settings
+    const handlePrivacyPress = useCallback(() => {
         setValue('isPrivate', !watchedIsPrivate, { shouldDirty: true });
-    };
+    }, [setValue, watchedIsPrivate]);
 
     return (
         <GestureHandlerRootView style={styles.flex}>
@@ -131,159 +155,169 @@ export function EditProfileScreen() {
                 style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
                 edges={['top']}
             >
-                {/* Header - white background */}
-                <View style={{ backgroundColor: colors.card }}>
+                {/* Header */}
+                <View style={[styles.headerWrapper, { backgroundColor: colors.card }]}>
                     <EditProfileHeader
                         title="Chỉnh sửa trang cá nhân"
-                        onCancel={handleBack}
+                        onCancel={handleCancel}
                         onDone={handleSubmit(onSubmit)}
                         isLoading={isSubmitting}
+                        isDoneDisabled={!isDirty}
                     />
                 </View>
 
-                <KeyboardAvoidingView
-                    style={styles.flex}
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                >
-                    <ScrollView
-                        style={styles.scrollView}
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
+                {/* Main Content */}
+                <View style={styles.mainContent}>
+                    <KeyboardAvoidingView
+                        style={styles.flex}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     >
-                        {/* Avatar FAB */}
-                        <EditProfileAvatarFAB
-                            avatarUrl={mockProfile.avatarUrl}
-                            displayName={mockProfile.displayName}
-                            onPress={handleChangeAvatar}
-                        />
-
-                        {/* Form Card */}
-                        <View
-                            style={[
-                                styles.formCard,
-                                { backgroundColor: colors.card },
-                            ]}
+                        <ScrollView
+                            style={styles.scrollView}
+                            contentContainerStyle={styles.scrollContent}
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
                         >
-                            {/* Name Section */}
-                            <EditProfileFormSection label="Tên">
-                                <View
-                                    style={[
-                                        styles.nameField,
-                                        { backgroundColor: colors.muted },
-                                    ]}
-                                >
-                                    <MaterialIcons
-                                        name="lock"
-                                        size={16}
-                                        color={colors.textSecondary}
-                                    />
+                            {/* Form Card */}
+                            <View
+                                style={[
+                                    styles.formCard,
+                                    { backgroundColor: colors.card },
+                                ]}
+                            >
+                                {/* Name Section - Read Only */}
+                                <EditProfileFormSection label="Tên">
+                                    <View
+                                        style={[
+                                            styles.nameField,
+                                            { backgroundColor: colors.muted },
+                                        ]}
+                                    >
+                                        <MaterialIcons
+                                            name="lock"
+                                            size={16}
+                                            color={colors.textSecondary}
+                                        />
+                                        <Controller
+                                            control={control}
+                                            name="displayName"
+                                            render={({ field: { value } }) => (
+                                                <Text
+                                                    style={[
+                                                        styles.nameText,
+                                                        { color: colors.textPrimary },
+                                                    ]}
+                                                >
+                                                    {value} (@{mockProfile.username})
+                                                </Text>
+                                            )}
+                                        />
+                                    </View>
+                                </EditProfileFormSection>
+
+                                {/* Bio Section - Editable */}
+                                <EditProfileFormSection label="Tiểu sử">
                                     <Controller
                                         control={control}
-                                        name="displayName"
-                                        render={({ field: { value } }) => (
-                                            <Text
-                                                style={[
-                                                    styles.nameText,
-                                                    { color: colors.textPrimary },
-                                                ]}
-                                            >
-                                                {value} (@{mockProfile.username})
-                                            </Text>
+                                        name="bio"
+                                        render={({ field: { onChange, onBlur, value } }) => (
+                                            <View>
+                                                <TextInput
+                                                    style={[
+                                                        styles.bioInput,
+                                                        {
+                                                            color: colors.textPrimary,
+                                                            backgroundColor: 'transparent',
+                                                        },
+                                                    ]}
+                                                    placeholder="Viết tiểu sử..."
+                                                    placeholderTextColor={colors.textSecondary}
+                                                    multiline
+                                                    maxLength={150}
+                                                    value={value}
+                                                    onChangeText={onChange}
+                                                    onBlur={onBlur}
+                                                    textAlignVertical="top"
+                                                />
+                                                <Text
+                                                    style={[
+                                                        styles.charCount,
+                                                        { color: colors.textSecondary },
+                                                    ]}
+                                                >
+                                                    {watchedBio.length}/150
+                                                </Text>
+                                            </View>
                                         )}
                                     />
-                                </View>
-                            </EditProfileFormSection>
-
-                            {/* Bio Section */}
-                            <EditProfileFormSection label="Tiểu sử">
-                                <Controller
-                                    control={control}
-                                    name="bio"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <View>
-                                            <TextInput
-                                                style={[
-                                                    styles.bioInput,
-                                                    { color: colors.textPrimary },
-                                                ]}
-                                                placeholder="Viết tiểu sử..."
-                                                placeholderTextColor={colors.textSecondary}
-                                                multiline
-                                                maxLength={150}
-                                                value={value}
-                                                onChangeText={onChange}
-                                                onBlur={onBlur}
-                                            />
-                                            <Text
-                                                style={[
-                                                    styles.charCount,
-                                                    { color: colors.textSecondary },
-                                                ]}
-                                            >
-                                                {watchedBio.length}/150
-                                            </Text>
-                                        </View>
+                                    {errors.bio && (
+                                        <Text style={[styles.errorText, { color: colors.error }]}>
+                                            {errors.bio.message}
+                                        </Text>
                                     )}
+                                </EditProfileFormSection>
+
+                                {/* Interests Section */}
+                                <EditProfileFormSection label="Sở thích">
+                                    <InterestChips
+                                        interests={watchedInterests}
+                                        onRemove={handleRemoveInterest}
+                                        onAddPress={handleOpenInterests}
+                                    />
+                                </EditProfileFormSection>
+
+                                {/* Links Section */}
+                                <EditProfileFormRow
+                                    label="Liên kết"
+                                    onPress={handleLinksPress}
                                 />
-                                {errors.bio && (
-                                    <Text style={[styles.errorText, { color: colors.error }]}>
-                                        {errors.bio.message}
-                                    </Text>
-                                )}
-                            </EditProfileFormSection>
 
-                            {/* Interests Section */}
-                            <EditProfileFormSection label="Sở thích">
-                                <InterestChips
-                                    interests={watchedInterests}
-                                    onRemove={handleRemoveInterest}
-                                    onAddPress={handleOpenInterests}
-                                />
-                            </EditProfileFormSection>
+                                {/* Podcast Section */}
+                                <EditProfileFormSection label="Podcast" showBorder>
+                                    <Pressable onPress={handlePodcastPress}>
+                                        <Text
+                                            style={[
+                                                styles.addActionText,
+                                                { color: colors.textSecondary },
+                                            ]}
+                                        >
+                                            + Liên kết đến podcast của bạn
+                                        </Text>
+                                    </Pressable>
+                                </EditProfileFormSection>
 
-                            {/* Links Section */}
-                            <EditProfileFormRow
-                                label="Liên kết"
-                                onPress={handleLinksPress}
-                            />
-
-                            {/* Podcast Section */}
-                            <EditProfileFormSection label="Podcast" showBorder>
-                                <Pressable onPress={handlePodcastPress}>
+                                {/* Privacy Section */}
+                                <View style={styles.privacySection}>
+                                    <EditProfileFormRow
+                                        label="Quyền riêng tư trang cá nhân"
+                                        value={watchedIsPrivate ? 'Riêng tư' : 'Công khai'}
+                                        onPress={handlePrivacyPress}
+                                        showBorder={false}
+                                    />
                                     <Text
                                         style={[
-                                            styles.addActionText,
+                                            styles.privacyHint,
                                             { color: colors.textSecondary },
                                         ]}
                                     >
-                                        + Liên kết đến podcast của bạn
+                                        {watchedIsPrivate
+                                            ? 'Chỉ những người theo dõi mới có thể xem nội dung của bạn'
+                                            : 'Mọi người đều có thể xem nội dung của bạn'}
                                     </Text>
-                                </Pressable>
-                            </EditProfileFormSection>
-
-                            {/* Privacy Section */}
-                            <View style={styles.privacySection}>
-                                <EditProfileFormRow
-                                    label="Quyền riêng tư trang cá nhân"
-                                    value={watchedIsPrivate ? 'Riêng tư' : 'Công khai'}
-                                    onPress={handlePrivacyPress}
-                                    showBorder={false}
-                                />
-                                <Text
-                                    style={[
-                                        styles.privacyHint,
-                                        { color: colors.textSecondary },
-                                    ]}
-                                >
-                                    {watchedIsPrivate
-                                        ? 'Chỉ những người theo dõi mới có thể xem nội dung của bạn'
-                                        : 'Mọi người đều có thể xem nội dung của bạn'}
-                                </Text>
+                                </View>
                             </View>
-                        </View>
-                    </ScrollView>
-                </KeyboardAvoidingView>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
+
+                    {/* Avatar FAB - Positioned relative to mainContent */}
+                    <View style={styles.avatarContainer} pointerEvents="box-none">
+                        <EditProfileAvatarFAB
+                            avatarUrl={watchedAvatarUrl ?? mockProfile.avatarUrl}
+                            displayName={mockProfile.displayName}
+                            onPress={handleChangeAvatar}
+                        />
+                    </View>
+                </View>
 
                 {/* Interests Bottom Sheet */}
                 <InterestsBottomSheet
@@ -304,17 +338,29 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    headerWrapper: {
+        zIndex: 1,
+    },
+    mainContent: {
+        flex: 1,
+        position: 'relative',
+    },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        paddingTop: Spacing.xl + Spacing.lg,
+        paddingTop: Spacing.xl + Spacing['2xl'], // More space for avatar
         paddingHorizontal: Spacing.screenPadding,
         paddingBottom: Spacing.xl,
     },
+    avatarContainer: {
+        position: 'absolute',
+        top: Spacing.md,
+        right: Spacing.screenPadding,
+        zIndex: 10,
+    },
     formCard: {
         borderRadius: BorderRadius.lg,
-        overflow: 'hidden',
         ...Shadows.card,
     },
     nameField: {
@@ -331,8 +377,7 @@ const styles = StyleSheet.create({
     },
     bioInput: {
         fontSize: Typography.sizes.md,
-        minHeight: 60,
-        textAlignVertical: 'top',
+        minHeight: 80,
         padding: 0,
     },
     charCount: {

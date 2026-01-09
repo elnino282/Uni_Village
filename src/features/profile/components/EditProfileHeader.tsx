@@ -1,7 +1,7 @@
 import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export interface EditProfileHeaderProps {
     title: string;
@@ -33,7 +33,13 @@ export function EditProfileHeader({
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 disabled={isLoading}
             >
-                <Text style={[styles.cancelText, { color: colors.textPrimary }]}>
+                <Text
+                    style={[
+                        styles.cancelText,
+                        { color: colors.textPrimary },
+                        isLoading && styles.disabledText,
+                    ]}
+                >
                     {cancelText}
                 </Text>
             </Pressable>
@@ -48,15 +54,23 @@ export function EditProfileHeader({
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 disabled={isDoneDisabled || isLoading}
             >
-                <Text
-                    style={[
-                        styles.doneText,
-                        { color: colors.actionBlue },
-                        (isDoneDisabled || isLoading) && styles.disabledText,
-                    ]}
-                >
-                    {doneText}
-                </Text>
+                {isLoading ? (
+                    <ActivityIndicator
+                        size="small"
+                        color={colors.actionBlue}
+                        style={styles.loadingIndicator}
+                    />
+                ) : (
+                    <Text
+                        style={[
+                            styles.doneText,
+                            { color: colors.actionBlue },
+                            isDoneDisabled && styles.disabledText,
+                        ]}
+                    >
+                        {doneText}
+                    </Text>
+                )}
             </Pressable>
         </View>
     );
@@ -74,6 +88,8 @@ const styles = StyleSheet.create({
     headerButton: {
         minWidth: 44,
         paddingVertical: Spacing.xs,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     headerTitle: {
         fontSize: Typography.sizes['17'],
@@ -92,5 +108,8 @@ const styles = StyleSheet.create({
     },
     disabledText: {
         opacity: 0.5,
+    },
+    loadingIndicator: {
+        alignSelf: 'flex-end',
     },
 });
