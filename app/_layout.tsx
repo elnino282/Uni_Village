@@ -28,6 +28,18 @@ export default function RootLayout() {
             animation: 'slide_from_right',
           }}
         />
+        <Stack.Screen
+          name="chat/[threadId]"
+          options={{
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="chat/new"
+          options={{
+            presentation: 'modal',
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </Providers>
