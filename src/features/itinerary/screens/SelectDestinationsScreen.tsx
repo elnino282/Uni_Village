@@ -5,20 +5,20 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    BackHandler,
-    Easing,
-    Image,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  Animated,
+  BackHandler,
+  Easing,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SelectDestinationsMap, SelectDestinationsMapRef } from "@/features/itinerary/components/SelectDestinationsMap";
 import { MOCK_PLACES } from "@/features/map/services/mockPlaces";
@@ -45,6 +45,7 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const secondaryTextColor = colors.textSecondary || (colors as any).icon;
+  const insets = useSafeAreaInsets();
   const mapRef = useRef<SelectDestinationsMapRef>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['30%', '65%', '90%'], []);
@@ -217,27 +218,7 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
 
   return (
     <GestureHandlerRootView style={styles.flex}>
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
-        {/* Header - Fixed on top */}
-        <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-          <Pressable onPress={handleBack} style={styles.headerIcon}>
-            <Ionicons name="arrow-back" size={22} color={colors.icon} />
-          </Pressable>
-
-          <View style={styles.headerCenter}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              {tripData?.tripName || "Chuyến đi #4"}
-            </Text>
-            <Text style={[styles.headerSubtitle, { color: secondaryTextColor }]}>
-              Bước 2/2: Chọn điểm đến
-            </Text>
-          </View>
-
-          <Pressable onPress={requestClose} hitSlop={10}>
-            <Text style={[styles.skipText, { color: colors.info }]}>Bỏ qua</Text>
-          </Pressable>
-        </View>
-
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Map - Full screen background */}
         <View style={styles.mapContainer}>
           <SelectDestinationsMap
@@ -248,6 +229,36 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
             onMarkerPress={handleMarkerPress}
             colorScheme={colorScheme}
           />
+        </View>
+
+        {/* Header - Overlay on top */}
+        <View style={[
+          styles.headerSafeArea,
+          {
+            paddingTop: insets.top,
+            backgroundColor: colors.background,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: colors.border,
+          }
+        ]}>
+          <View style={styles.header}>
+            <Pressable onPress={handleBack} style={styles.headerIcon}>
+              <Ionicons name="arrow-back" size={22} color={colors.icon} />
+            </Pressable>
+
+            <View style={styles.headerCenter}>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                {tripData?.tripName || "Chuyến đi #4"}
+              </Text>
+              <Text style={[styles.headerSubtitle, { color: secondaryTextColor }]}>
+                Bước 2/2: Chọn điểm đến
+              </Text>
+            </View>
+
+            <Pressable onPress={requestClose} hitSlop={10}>
+              <Text style={[styles.skipText, { color: colors.info }]}>Bỏ qua</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Bottom Sheet with destinations list */}
@@ -571,7 +582,7 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
           )}
         </Modal>
       )}
-      </SafeAreaView>
+      </View>
     </GestureHandlerRootView>
   );
 }
@@ -583,14 +594,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerSafeArea: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    zIndex: 100,
   },
   headerIcon: {
     padding: 6,
@@ -615,7 +631,7 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     position: "absolute",
-    top: 60,
+    top: 0,
     left: 0,
     right: 0,
     bottom: 0,

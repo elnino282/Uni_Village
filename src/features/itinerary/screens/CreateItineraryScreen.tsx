@@ -290,22 +290,22 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["top"]}
     >
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={handleBack} style={styles.headerIcon}>
+          <Ionicons name="arrow-back" size={22} color={colors.icon} />
+        </Pressable>
+
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          Tạo chuyến đi
+        </Text>
+
+        <Pressable onPress={handleBack} hitSlop={10}>
+          <Text style={[styles.skipText, { color: colors.info }]}>Bỏ qua</Text>
+        </Pressable>
+      </View>
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={handleBack} style={styles.headerIcon}>
-            <Ionicons name="arrow-back" size={22} color={colors.icon} />
-          </Pressable>
-
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Tạo chuyến đi
-          </Text>
-
-          <Pressable onPress={handleBack} hitSlop={10}>
-            <Text style={[styles.skipText, { color: colors.info }]}>Bỏ qua</Text>
-          </Pressable>
-        </View>
-
         {/* Step */}
         <View style={[styles.stepBar, { borderColor: colors.border }]}>
           <Text style={[styles.stepText, { color: colors.text }]}>

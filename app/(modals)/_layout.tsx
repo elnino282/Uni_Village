@@ -13,6 +13,7 @@ export default function ModalsLayout() {
             <Stack.Screen 
                 name="create-itinerary" 
                 options={{
+                    headerShown: false,
                     gestureEnabled: false,
                     presentation: 'fullScreenModal', // Full screen to hide previous screen
                 }}
@@ -20,6 +21,7 @@ export default function ModalsLayout() {
             <Stack.Screen 
                 name="select-destinations" 
                 options={{
+                    headerShown: false,
                     gestureEnabled: false,
                     presentation: 'fullScreenModal', // Full screen to hide previous screen
                 }}
@@ -27,6 +29,7 @@ export default function ModalsLayout() {
             <Stack.Screen 
                 name="itinerary-success" 
                 options={{
+                    headerShown: false,
                     gestureEnabled: false,
                     presentation: 'fullScreenModal',
                 }}
