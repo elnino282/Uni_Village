@@ -1,7 +1,8 @@
 /**
  * MessageBubble Component
  * Renders a single text message bubble (incoming or outgoing)
- * Matches Figma node 317:2269
+ * Supports group chat sender labels
+ * Matches Figma node 317:2269 (DM) and 317:2919 (Group)
  */
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -11,27 +12,38 @@ import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 
 import type { MessageSender, MessageStatus } from '../types';
+import { SenderLabel } from './SenderLabel';
 
 interface MessageBubbleProps {
   text: string;
   sender: MessageSender;
   timeLabel: string;
   status?: MessageStatus;
+  /** For group chats: sender name to display above bubble */
+  senderName?: string;
+  /** For group chats: sender avatar URL */
+  senderAvatar?: string;
+  /** Whether this is a group chat (affects layout) */
+  isGroupChat?: boolean;
 }
 
 /**
- * Chat message bubble with timestamp
+ * Chat message bubble with timestamp and optional sender label
  */
 export function MessageBubble({
   text,
   sender,
   timeLabel,
   status,
+  senderName,
+  senderAvatar,
+  isGroupChat = false,
 }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
   const isMe = sender === 'me';
+  const showSenderLabel = isGroupChat && !isMe && senderName;
 
   // Figma colors
   const bubbleBackgroundColor = isMe ? colors.fabBlue : colors.chipBackground;
@@ -40,6 +52,11 @@ export function MessageBubble({
 
   return (
     <View style={[styles.container, isMe && styles.containerMe]}>
+      {/* Sender label for group chat incoming messages */}
+      {showSenderLabel && (
+        <SenderLabel senderName={senderName!} senderAvatar={senderAvatar} />
+      )}
+      
       <View
         style={[
           styles.bubble,

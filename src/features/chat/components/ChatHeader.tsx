@@ -1,6 +1,7 @@
 /**
  * ChatHeader Component
  * Custom header with back button, avatar, name, online status, and info button
+ * For DM (1:1) chat threads
  * Matches Figma node 317:2269
  */
 import { Ionicons } from '@expo/vector-icons';
@@ -18,20 +19,28 @@ import { Avatar } from '@/shared/components/ui';
 import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 
-import type { ChatThread } from '../types';
+import type { ChatThread, Thread } from '../types';
+import { isGroupThread } from '../types';
 
 interface ChatHeaderProps {
-  thread: ChatThread;
+  thread: Thread;
   onInfoPress?: () => void;
 }
 
 /**
- * Chat header with peer info and actions
+ * Chat header with peer info and actions (for DM threads)
  */
 export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
+
+  // Only render for DM threads
+  if (isGroupThread(thread)) {
+    return null;
+  }
+
+  const dmThread = thread as ChatThread;
 
   const handleBack = () => {
     router.back();
@@ -42,12 +51,12 @@ export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
       onInfoPress();
     } else {
        
-      console.log('Info pressed for thread:', thread.id);
+      console.log('Info pressed for thread:', dmThread.id);
     }
   };
 
   // Online status color from Figma: #00A63E
-  const onlineStatusColor = thread.onlineStatus === 'online' ? '#00A63E' : colors.textSecondary;
+  const onlineStatusColor = dmThread.onlineStatus === 'online' ? '#00A63E' : colors.textSecondary;
 
   return (
     <View
@@ -75,8 +84,8 @@ export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
         {/* Avatar + Name + Status */}
         <View style={styles.userInfo}>
           <Avatar
-            source={thread.peer.avatarUrl}
-            name={thread.peer.displayName}
+            source={dmThread.peer.avatarUrl}
+            name={dmThread.peer.displayName}
             size="md"
           />
           <View style={styles.textContainer}>
@@ -84,13 +93,13 @@ export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
               style={[styles.name, { color: colors.text }]}
               numberOfLines={1}
             >
-              {thread.peer.displayName}
+              {dmThread.peer.displayName}
             </Text>
             <Text
               style={[styles.status, { color: onlineStatusColor }]}
               numberOfLines={1}
             >
-              {thread.onlineStatusText}
+              {dmThread.onlineStatusText}
             </Text>
           </View>
         </View>
