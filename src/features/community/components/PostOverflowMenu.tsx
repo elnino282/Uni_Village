@@ -109,11 +109,11 @@ export function PostOverflowMenu({
       onChange={handleSheetChanges}
       backgroundStyle={[
         styles.sheetBackground,
-        { backgroundColor: colors.card },
+        { backgroundColor: colors.card ?? '#ffffff' },
       ]}
       handleIndicatorStyle={[
         styles.handleIndicator,
-        { backgroundColor: colors.border },
+        { backgroundColor: colors.border ?? '#e2e8f0' },
       ]}
     >
       <BottomSheetView style={styles.contentContainer}>
