@@ -1,6 +1,8 @@
 /**
  * Chat services barrel export
  */
+export * from './mockCreateChannel';
+export * from './mockFriends';
 export * from './mockGroupMessages';
 export * from './mockGroupThread';
 export * from './mockMembers';
