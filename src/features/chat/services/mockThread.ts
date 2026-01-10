@@ -9,6 +9,7 @@ import type { ChatThread, ThreadResponse } from '../types';
 const MOCK_THREADS: Record<string, ChatThread> = {
   'thread-huong': {
     id: 'thread-huong',
+    type: 'dm',
     peer: {
       id: 'user-huong',
       displayName: 'Lê Thị Hương',
@@ -20,6 +21,7 @@ const MOCK_THREADS: Record<string, ChatThread> = {
   },
   'conv-1': {
     id: 'conv-1',
+    type: 'dm',
     peer: {
       id: 'user-1',
       displayName: 'Nguyễn Minh Anh',
@@ -31,6 +33,7 @@ const MOCK_THREADS: Record<string, ChatThread> = {
   },
   'conv-2': {
     id: 'conv-2',
+    type: 'dm',
     peer: {
       id: 'user-2',
       displayName: 'Trần Văn Hùng',
@@ -42,6 +45,7 @@ const MOCK_THREADS: Record<string, ChatThread> = {
   },
   'conv-3': {
     id: 'conv-3',
+    type: 'dm',
     peer: {
       id: 'user-3',
       displayName: 'Lê Thị Mai',
@@ -69,6 +73,7 @@ export function getThread(threadId: string): ThreadResponse {
   return {
     thread: {
       id: threadId,
+      type: 'dm',
       peer: {
         id: `user-${threadId}`,
         displayName: 'Người dùng',
