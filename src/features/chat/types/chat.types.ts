@@ -4,6 +4,11 @@
  */
 
 /**
+ * Thread type discriminator
+ */
+export type ThreadType = 'dm' | 'group';
+
+/**
  * Message sender type
  */
 export type MessageSender = 'me' | 'other';
@@ -28,6 +33,9 @@ interface BaseMessage {
   /** Formatted time label: "10:30", "10:31" */
   timeLabel: string;
   status?: MessageStatus;
+  /** Sender info for group chats */
+  senderName?: string;
+  senderAvatar?: string;
 }
 
 /**
@@ -82,6 +90,7 @@ export type OnlineStatus = 'online' | 'offline' | 'away';
  */
 export interface ChatThread {
   id: string;
+  type: ThreadType;
   peer: ThreadPeer;
   onlineStatus: OnlineStatus;
   /** Localized online status text: "Đang hoạt động", "Offline", etc. */
@@ -89,10 +98,65 @@ export interface ChatThread {
 }
 
 /**
+ * Pinned message in a group chat
+ */
+export interface PinnedMessage {
+  id: string;
+  text: string;
+  pinnedBy: string;
+  pinnedAt: string;
+}
+
+/**
+ * Group chat thread extends base ChatThread
+ */
+export interface GroupThread extends Omit<ChatThread, 'peer' | 'onlineStatus' | 'onlineStatusText'> {
+  type: 'group';
+  name: string;
+  avatarUrl?: string;
+  memberCount: number;
+  onlineCount: number;
+  pinnedMessage?: PinnedMessage;
+}
+
+/**
+ * Group member info
+ */
+export interface GroupMember {
+  id: string;
+  displayName: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+  role: 'admin' | 'member';
+}
+
+/**
+ * User preview for search/suggestions
+ */
+export interface UserPreview {
+  id: string;
+  displayName: string;
+  avatarUrl?: string;
+  phone?: string;
+}
+
+/**
+ * Union type for thread (DM or Group)
+ */
+export type Thread = ChatThread | GroupThread;
+
+/**
+ * Type guard for group thread
+ */
+export function isGroupThread(thread: Thread): thread is GroupThread {
+  return thread.type === 'group';
+}
+
+/**
  * Response type for fetching thread info
  */
 export interface ThreadResponse {
-  thread: ChatThread;
+  thread: Thread;
 }
 
 /**
