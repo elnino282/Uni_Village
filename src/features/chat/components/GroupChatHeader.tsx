@@ -4,7 +4,7 @@
  * Matches Figma node 317:2919
  */
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,9 +34,15 @@ export function GroupChatHeader({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   const handleBack = () => {
-    router.back();
+    // Check if we can go back, otherwise navigate to home
+    if (navigation.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/community');
+    }
   };
 
   const handleNotification = () => {

@@ -16,4 +16,13 @@ export { PinnedMessageBar } from './PinnedMessageBar';
 export { SelectableUserRow } from './SelectableUserRow';
 export { SelectedMemberChip } from './SelectedMemberChip';
 export { SenderLabel } from './SenderLabel';
+// Channel creation components
+export { ChannelTypeChip } from './ChannelTypeChip';
+export { CreateChannelModal } from './CreateChannelModal';
+export type { CreateChannelModalRef } from './CreateChannelModal';
+export { CreateChannelStep1 } from './CreateChannelStep1';
+export { CreateChannelStep2 } from './CreateChannelStep2';
+export { MemberSelectRow } from './MemberSelectRow';
+export { StepIndicator } from './StepIndicator';
+export { ToggleSettingRow } from './ToggleSettingRow';
 

@@ -5,7 +5,7 @@
  * Matches Figma node 317:2269
  */
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import React from 'react';
 import {
     Pressable,
@@ -34,6 +34,7 @@ export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   // Only render for DM threads
   if (isGroupThread(thread)) {
@@ -43,7 +44,12 @@ export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
   const dmThread = thread as ChatThread;
 
   const handleBack = () => {
-    router.back();
+    // Check if we can go back, otherwise navigate to home
+    if (navigation.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/community');
+    }
   };
 
   const handleInfo = () => {
