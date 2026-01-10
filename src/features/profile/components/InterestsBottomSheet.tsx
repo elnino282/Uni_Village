@@ -79,8 +79,8 @@ export const InterestsBottomSheet = forwardRef<BottomSheet, InterestsBottomSheet
                 snapPoints={snapPoints}
                 enablePanDownToClose
                 backdropComponent={renderBackdrop}
-                backgroundStyle={[styles.background, { backgroundColor: colors.card }]}
-                handleIndicatorStyle={[styles.indicator, { backgroundColor: colors.border }]}
+                backgroundStyle={[styles.background, { backgroundColor: colors.card ?? '#ffffff' }]}
+                handleIndicatorStyle={[styles.indicator, { backgroundColor: colors.border ?? '#e2e8f0' }]}
             >
                 <View style={styles.header}>
                     <Text style={[styles.title, { color: colors.textPrimary }]}>

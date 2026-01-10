@@ -16,6 +16,18 @@ const MOCK_PINNED_MESSAGES: Record<string, PinnedMessage> = {
 };
 
 /**
+ * Dynamic group threads storage (for newly created channels)
+ */
+const DYNAMIC_GROUP_THREADS: Record<string, GroupThread> = {};
+
+/**
+ * Add a dynamically created group thread
+ */
+export function addDynamicGroupThread(id: string, thread: GroupThread): void {
+  DYNAMIC_GROUP_THREADS[id] = thread;
+}
+
+/**
  * Mock group threads database
  * Note: Channel IDs from community feature also map to group threads
  */
@@ -121,7 +133,30 @@ const MOCK_GROUP_THREADS: Record<string, GroupThread> = {
  * @returns Group thread info or null
  */
 export function getGroupThread(threadId: string): GroupThread | null {
-  return MOCK_GROUP_THREADS[threadId] || null;
+  // Check if it's in the mock database
+  if (MOCK_GROUP_THREADS[threadId]) {
+    return MOCK_GROUP_THREADS[threadId];
+  }
+  
+  // Check if it's in the dynamic database (newly created channels)
+  if (DYNAMIC_GROUP_THREADS[threadId]) {
+    return DYNAMIC_GROUP_THREADS[threadId];
+  }
+  
+  // Handle dynamically created channels (from createChannel mutation)
+  if (threadId.startsWith('channel-') && !MOCK_GROUP_THREADS[threadId]) {
+    // Create a default thread for newly created channels
+    return {
+      id: threadId,
+      type: 'group',
+      name: 'Channel mới',
+      avatarUrl: undefined,
+      memberCount: 1,
+      onlineCount: 1,
+    };
+  }
+  
+  return null;
 }
 
 /**

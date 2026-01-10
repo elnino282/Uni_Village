@@ -1,5 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useRef } from 'react';
 import {
     StyleSheet,
     TextInput,
@@ -13,7 +13,7 @@ import { useColorScheme } from '@/shared/hooks';
 interface MessagesSearchRowProps {
   value: string;
   onChangeText: (text: string) => void;
-  onPressCreate?: () => void;
+  onPressCreate?: (x: number, y: number) => void;
 }
 
 /**
@@ -27,6 +27,16 @@ export function MessagesSearchRow({
 }: MessagesSearchRowProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
+  const fabRef = useRef<View>(null);
+
+  const handleFabPress = () => {
+    if (fabRef.current && onPressCreate) {
+      fabRef.current.measureInWindow((x, y, width, height) => {
+        // Pass center-bottom of FAB as anchor
+        onPressCreate(x + width / 2, y + height);
+      });
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -76,8 +86,9 @@ export function MessagesSearchRow({
 
       {/* Create Button (FAB) */}
       <TouchableOpacity
+        ref={fabRef}
         style={[styles.fabButton, { backgroundColor: colors.fabBlue }]}
-        onPress={onPressCreate}
+        onPress={handleFabPress}
         activeOpacity={0.8}
       >
         <MaterialIcons name="add" size={24} color="#FFFFFF" />

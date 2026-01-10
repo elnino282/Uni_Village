@@ -4,6 +4,7 @@
  */
 
 import { ErrorBoundary } from '@/shared/components/feedback';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -20,7 +21,9 @@ function InnerProviders({ children }: ProvidersProps) {
 
     return (
         <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            {children}
+            <BottomSheetModalProvider>
+                {children}
+            </BottomSheetModalProvider>
         </NavigationThemeProvider>
     );
 }

@@ -2,6 +2,8 @@
  * Chat hooks barrel export
  */
 export * from './useAddMembers';
+export * from './useCreateChannel';
+export * from './useFriends';
 export * from './useGroupMembers';
 export * from './useMessages';
 export * from './useSearchUsers';

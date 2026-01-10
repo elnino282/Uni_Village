@@ -184,8 +184,8 @@ export const ItineraryShareSheet = forwardRef<BottomSheet, ItineraryShareSheetPr
         snapPoints={snapPoints}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
-        backgroundStyle={[styles.sheetBackground, { backgroundColor: colors.card }]}
-        handleIndicatorStyle={[styles.indicator, { backgroundColor: colors.border }]}
+        backgroundStyle={[styles.sheetBackground, { backgroundColor: colors.card ?? '#ffffff' }]}
+        handleIndicatorStyle={[styles.indicator, { backgroundColor: colors.border ?? '#e2e8f0' }]}
       >
         {/* Header */}
         <View style={styles.header}>

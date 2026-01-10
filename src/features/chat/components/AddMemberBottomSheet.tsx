@@ -143,8 +143,8 @@ export const AddMemberBottomSheet = forwardRef<
       snapPoints={snapPoints}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
-      backgroundStyle={{ backgroundColor: colors.card }}
-      handleIndicatorStyle={{ backgroundColor: colors.border, width: 40 }}
+      backgroundStyle={{ backgroundColor: colors.card ?? '#ffffff' }}
+      handleIndicatorStyle={{ backgroundColor: colors.border ?? '#e2e8f0', width: 40 }}
     >
       <View style={styles.container}>
         {/* Header */}
