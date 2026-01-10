@@ -4,13 +4,14 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)',
+  initialRouteName: 'index',
 };
 
 export default function RootLayout() {
   return (
     <Providers>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(modals)" options={{ headerShown: false }} />
@@ -39,6 +40,13 @@ export default function RootLayout() {
           name="chat/new"
           options={{
             presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="friends/add"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
           }}
         />
       </Stack>
