@@ -6,6 +6,7 @@
 import { ErrorBoundary } from '@/shared/components/feedback';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryProvider } from './QueryProvider';
 import { ThemeProvider, useTheme } from './ThemeProvider';
 
@@ -27,14 +28,16 @@ function InnerProviders({ children }: ProvidersProps) {
 // Main providers wrapper
 export function Providers({ children }: ProvidersProps) {
     return (
-        <ErrorBoundary>
-            <QueryProvider>
-                <ThemeProvider>
-                    <InnerProviders>
-                        {children}
-                    </InnerProviders>
-                </ThemeProvider>
-            </QueryProvider>
-        </ErrorBoundary>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <ErrorBoundary>
+                <QueryProvider>
+                    <ThemeProvider>
+                        <InnerProviders>
+                            {children}
+                        </InnerProviders>
+                    </ThemeProvider>
+                </QueryProvider>
+            </ErrorBoundary>
+        </GestureHandlerRootView>
     );
 }

@@ -5,6 +5,21 @@ import type { Conversation, ConversationsResponse } from '../types/message.types
  */
 export const MOCK_CONVERSATIONS: Conversation[] = [
   {
+    id: 'thread-huong',
+    participant: {
+      id: 'user-huong',
+      displayName: 'Lê Thị Hương',
+      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face',
+    },
+    lastMessage: {
+      content: 'Wow, cảm ơn bạn! Mình sẽ xem ngay 👍',
+      timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+      isRead: false,
+    },
+    unreadCount: 1,
+    timeLabel: '10:35',
+  },
+  {
     id: 'conv-1',
     participant: {
       id: 'user-1',

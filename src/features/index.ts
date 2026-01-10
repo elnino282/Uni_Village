@@ -4,9 +4,11 @@
  */
 
 export * from './auth';
+export * from './chat';
 export * from './community';
 export * from './feed';
+export * from './itinerary';
 export * from './map';
 export * from './post';
 export * from './profile';
-export * from './itinerary';
+
