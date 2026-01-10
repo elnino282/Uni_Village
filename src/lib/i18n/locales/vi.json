@@ -1,0 +1,42 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Đã có lỗi xảy ra",
+    "retry": "Thử lại",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "save": "Lưu",
+    "delete": "Xóa",
+    "edit": "Chỉnh sửa",
+    "close": "Đóng",
+    "search": "Tìm kiếm",
+    "noResults": "Không có kết quả",
+    "viewDetails": "Xem chi tiết →"
+  },
+  "chat": {
+    "selectItinerary": "Chọn Lịch Trình",
+    "noItineraries": "Bạn chưa có lịch trình nào",
+    "createItineraryPrompt": "Tạo lịch trình đầu tiên để chia sẻ với bạn bè",
+    "shareItinerary": "Chia sẻ lịch trình",
+    "messagePlaceholder": "Nhập tin nhắn...",
+    "online": "Đang hoạt động",
+    "offline": "Offline",
+    "away": "Vắng mặt"
+  },
+  "itinerary": {
+    "destinations": "{{count}} điểm",
+    "destinations_plural": "{{count}} điểm",
+    "duration": "{{hours}} giờ",
+    "duration_plural": "{{hours}} giờ",
+    "ongoing": "Đang diễn ra",
+    "upcoming": "Sắp tới",
+    "past": "Đã kết thúc",
+    "noDestinations": "Chưa có điểm đến",
+    "noDuration": "Chưa xác định"
+  },
+  "time": {
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "justNow": "Vừa xong"
+  }
+}
