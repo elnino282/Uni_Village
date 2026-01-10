@@ -1,11 +1,12 @@
 // ItineraryScreen.tsx
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 
-import { Colors, useColorScheme } from '@/shared';
+import { Colors } from '@/shared/constants/theme';
+import { useColorScheme } from '@/shared/hooks/useColorScheme';
 
 type ItineraryTab = 'ongoing' | 'upcoming' | 'past';
 
@@ -18,8 +19,8 @@ const TABS: { key: ItineraryTab; label: string }[] = [
 const SUGGESTIONS = ['Quán cà phê gần đây', 'Quán cá viên chiên gần đây', 'Khám phá quanh đây'];
 
 export function ItineraryScreen() {
-    const colorScheme = useColorScheme() ?? 'light';
-    const colors = Colors[colorScheme];
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme] as (typeof Colors)['light'];
     const [activeTab, setActiveTab] = useState<ItineraryTab>('ongoing');
 
     const tabStyles = useMemo(() => ({
