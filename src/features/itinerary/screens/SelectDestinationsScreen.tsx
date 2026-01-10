@@ -5,17 +5,17 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  BackHandler,
-  Easing,
-  Image,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    Animated,
+    BackHandler,
+    Easing,
+    Image,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -266,8 +266,8 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
           ref={bottomSheetRef}
           index={0}
           snapPoints={snapPoints}
-          backgroundStyle={{ backgroundColor: colors.background }}
-          handleIndicatorStyle={{ backgroundColor: colors.border }}
+          backgroundStyle={{ backgroundColor: colors.background ?? '#ffffff' }}
+          handleIndicatorStyle={{ backgroundColor: colors.border ?? '#e2e8f0' }}
           enablePanDownToClose={false}
         >
           <BottomSheetScrollView
