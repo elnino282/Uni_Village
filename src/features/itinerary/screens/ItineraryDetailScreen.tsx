@@ -1,14 +1,14 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
-    Image,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -23,6 +23,14 @@ interface Destination {
   reviewCount?: number;
   distance?: number;
   departureTime?: string;
+  time?: string;
+}
+
+interface TripData {
+  tripName: string;
+  startDate: Date;
+  startTime: Date;
+  destinations: Destination[];
 }
 
 export function ItineraryDetailScreen() {
@@ -32,26 +40,56 @@ export function ItineraryDetailScreen() {
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
 
-  const tripData = useMemo(() => {
+  const [tripData, setTripData] = useState<TripData>({
+    tripName: "Chuyến đi #4",
+    startDate: new Date(),
+    startTime: new Date(),
+    destinations: [],
+  });
+
+  // Load trip data from AsyncStorage when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadTripData();
+    }, [params.tripId])
+  );
+
+  const loadTripData = async () => {
     try {
-      return {
+      const tripId = params.tripId as string;
+      
+      if (tripId) {
+        // Load from AsyncStorage
+        const tripsJson = await AsyncStorage.getItem('@trips');
+        if (tripsJson) {
+          const trips = JSON.parse(tripsJson);
+          const trip = trips.find((t: any) => t.id === tripId);
+          
+          if (trip) {
+            setTripData({
+              tripName: trip.tripName,
+              startDate: new Date(trip.startDate),
+              startTime: new Date(trip.startTime),
+              destinations: trip.destinations || [],
+            });
+            return;
+          }
+        }
+      }
+      
+      // Fallback to params if not found in AsyncStorage
+      setTripData({
         tripName: params.tripName as string || "Chuyến đi #4",
         startDate: params.startDate ? new Date(params.startDate as string) : new Date(),
         startTime: params.startTime ? new Date(params.startTime as string) : new Date(),
         destinations: params.destinations 
           ? JSON.parse(params.destinations as string) as Destination[]
           : [],
-      };
+      });
     } catch (error) {
-      console.error('Failed to parse trip data:', error);
-      return {
-        tripName: "Chuyến đi #4",
-        startDate: new Date(),
-        startTime: new Date(),
-        destinations: [],
-      };
+      console.error('Failed to load trip data:', error);
     }
-  }, [params]);
+  };
 
   const formatDate = (date: Date) => {
     const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
@@ -209,6 +247,29 @@ export function ItineraryDetailScreen() {
         {/* Actions Section */}
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 12 }]}>Thao tác</Text>
+          
+          <Pressable 
+            style={styles.actionRow}
+            onPress={() => {
+              router.push({
+                pathname: "/(modals)/select-destinations" as any,
+                params: {
+                  tripId: params.tripId as string,
+                  tripName: tripData.tripName,
+                  startDate: tripData.startDate.toString(),
+                  startTime: tripData.startTime.toString(),
+                  existingDestinations: JSON.stringify(tripData.destinations),
+                  isAddingToExisting: 'true',
+                }
+              });
+            }}
+          >
+            <Ionicons name="add-circle-outline" size={20} color={colors.info} />
+            <Text style={[styles.actionText, { color: colors.text }]}>Thêm địa điểm mới</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+          </Pressable>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
           
           <Pressable style={styles.actionRow}>
             <Ionicons name="share-social-outline" size={20} color={colors.icon} />
@@ -376,6 +437,11 @@ const styles = StyleSheet.create({
   actionText: {
     flex: 1,
     fontSize: 15,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 16,
+    marginVertical: 8,
   },
   bottomBar: {
     paddingHorizontal: 16,
