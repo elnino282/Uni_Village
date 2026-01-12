@@ -1,0 +1,323 @@
+/**
+ * Gemini AI Service
+ * 
+ * CURRENT STATUS: Using MOCK RESPONSES
+ * This service provides AI-generated itinerary suggestions
+ * 
+ * TO ENABLE REAL GEMINI AI:
+ * 1. Get your API key from: https://ai.google.dev/
+ * 2. Add to .env file: EXPO_PUBLIC_GEMINI_API_KEY=your_key_here
+ * 3. Uncomment the "REAL API CALL" section below
+ * 4. Comment out or remove the "MOCK RESPONSE" section
+ * 5. Restart your Expo app: npm start -- --clear
+ * 
+ * See full setup guide: docs/GEMINI_SETUP.md
+ */
+
+
+export interface ItineraryRequest {
+  activity: 'deadline' | 'food-tour' | 'date-chill' | 'hangout';
+  transport: 'walking-bus' | 'motorbike';
+  budget: 'low' | 'high';
+}
+
+export interface Destination {
+  id: string;
+  name: string;
+  description: string;
+  time: string;
+  duration?: string;
+  category: string;
+  budget?: string;
+  place: {
+    name: string;
+    address: string;
+    rating: number;
+    lat: number;
+    lng: number;
+  };
+  isCheckedIn: boolean;
+  isSkipped: boolean;
+}
+
+export interface ItineraryResponse {
+  title: string;
+  destinations: Destination[];
+}
+
+/**
+ * Generate an itinerary based on user preferences
+ */
+export async function generateItinerary(request: ItineraryRequest): Promise<ItineraryResponse> {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  // ============================================================
+  // MOCK RESPONSE (Currently Active)
+  // This returns fake data so you can test the UI immediately
+  // ============================================================
+
+  const mockDestinations: Destination[] = [
+    {
+      id: '1',
+      name: 'Thư Viện Tổng Hợp',
+      description: 'Vừa học bài vừa có điểm tốt lành Bạt Học',
+      time: '14:00',
+      duration: 'Hoàn tất',
+      category: 'Học tập',
+      budget: request.budget === 'low' ? '~50k' : '~100k',
+      place: {
+        name: 'Thư Viện Tổng Hợp',
+        address: 'Khu A, Đại học Quốc Gia',
+        rating: 4.5,
+        lat: 10.7630,
+        lng: 106.6830,
+      },
+      isCheckedIn: false,
+      isSkipped: false,
+    },
+    {
+      id: '2',
+      name: 'Canteen Khu A',
+      description: 'Căn tin ăn vừa, cơm tấm 25k ngon',
+      time: '18:30',
+      duration: '250m tới Thư ngm',
+      category: 'Ăn uống',
+      budget: request.budget === 'low' ? '~30k' : '~80k',
+      place: {
+        name: 'Canteen Khu A',
+        address: 'Khu A, Đại học Quốc Gia',
+        rating: 4.0,
+        lat: 10.7640,
+        lng: 106.6840,
+      },
+      isCheckedIn: false,
+      isSkipped: false,
+    },
+  ];
+
+  // Customize based on activity type
+  const activityTitles: Record<string, string> = {
+    'deadline': 'Chạy deadline cực căng 🔥',
+    'food-tour': 'Tour ăn ngon Sài Gòn 😋',
+    'date-chill': 'Hẹn hò lãng mạn 💖',
+    'hangout': 'Tụ tập bạn bè vui vẻ 🎮',
+  };
+
+  return {
+    title: activityTitles[request.activity] || 'Lịch trình gợi ý',
+    destinations: mockDestinations,
+  };
+
+  // ============================================================
+  // REAL API CALL (Currently Commented Out)
+  // Uncomment this section when you have your Gemini API key
+  // ============================================================
+
+  /*
+  try {
+    const apiKey = env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY not found. Please add it to your .env file.');
+    }
+
+    // Build the prompt based on user preferences
+    const prompt = buildPrompt(request);
+
+    // Call Gemini API
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Parse the AI response
+    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!aiText) {
+      throw new Error('No response from Gemini AI');
+    }
+
+    // Parse the JSON response from AI
+    const itinerary = parseAIResponse(aiText, request);
+    
+    return itinerary;
+    
+  } catch (error) {
+    console.error('Gemini API Error:', error);
+    
+    // Fallback to mock data if API fails
+    console.warn('Using mock data as fallback');
+    return generateMockItinerary(request);
+  }
+  */
+}
+
+/**
+ * Build a detailed prompt for Gemini AI
+ */
+function buildPrompt(request: ItineraryRequest): string {
+  const activityDescriptions: Record<string, string> = {
+    'deadline': 'chạy deadline, cần nơi yên tĩnh để làm việc và học tập',
+    'food-tour': 'đi ăn uống, khám phá ẩm thực',
+    'date-chill': 'hẹn hò, cần không gian riêng tư và lãng mạn',
+    'hangout': 'tụ tập bạn bè, vui chơi giải trí',
+  };
+
+  const transportDescriptions: Record<string, string> = {
+    'walking-bus': 'đi bộ hoặc xe buýt, các địa điểm nên gần nhau',
+    'motorbike': 'xe máy, có thể đi xa hơn',
+  };
+
+  const budgetDescriptions: Record<string, string> = {
+    'low': 'ngân sách thấp, các địa điểm giá rẻ, sinh viên',
+    'high': 'ngân sách cao hơn, có thể đến các nơi cao cấp',
+  };
+
+  return `
+Bạn là trợ lý AI chuyên tạo lịch trình du lịch cho sinh viên ở Sài Gòn.
+
+Yêu cầu của người dùng:
+- Mục đích: ${activityDescriptions[request.activity]}
+- Phương tiện: ${transportDescriptions[request.transport]}
+- Ngân sách: ${budgetDescriptions[request.budget]}
+
+Hãy đề xuất một lịch trình từ 2-4 địa điểm phù hợp ở khu vực Đại học Quốc Gia TP.HCM hoặc các khu vực gần đó.
+
+Trả về kết quả dưới dạng JSON với format sau:
+{
+  "title": "Tên lịch trình ngắn gọn",
+  "destinations": [
+    {
+      "id": "1",
+      "name": "Tên địa điểm",
+      "description": "Mô tả ngắn gọn 10-15 từ",
+      "time": "14:00",
+      "duration": "~30 phút",
+      "category": "Học tập/Ăn uống/Giải trí",
+      "budget": "~50k",
+      "place": {
+        "name": "Tên địa điểm đầy đủ",
+        "address": "Địa chỉ cụ thể",
+        "rating": 4.5,
+        "lat": 10.7630,
+        "lng": 106.6830
+      },
+      "isCheckedIn": false,
+      "isSkipped": false
+    }
+  ]
+}
+
+Lưu ý:
+- Thời gian bắt đầu từ 14:00
+- Khoảng cách giữa các điểm phù hợp với phương tiện di chuyển
+- Mô tả ngắn gọn, có emoji phù hợp
+- Tọa độ chính xác của địa điểm thực tế
+`;
+}
+
+/**
+ * Parse AI response and convert to ItineraryResponse
+ */
+function parseAIResponse(aiText: string, request: ItineraryRequest): ItineraryResponse {
+  try {
+    // Try to extract JSON from markdown code blocks if present
+    const jsonMatch = aiText.match(/```json\n?([\s\S]*?)\n?```/);
+    const jsonText = jsonMatch ? jsonMatch[1] : aiText;
+    
+    const parsed = JSON.parse(jsonText);
+    
+    // Validate the response structure
+    if (!parsed.title || !Array.isArray(parsed.destinations)) {
+      throw new Error('Invalid response structure');
+    }
+    
+    return parsed as ItineraryResponse;
+  } catch (error) {
+    console.error('Failed to parse AI response:', error);
+    // Return fallback mock data
+    return generateMockItinerary(request);
+  }
+}
+
+/**
+ * Generate mock itinerary as fallback
+ */
+function generateMockItinerary(request: ItineraryRequest): ItineraryResponse {
+  // Same as the mock response above
+  const mockDestinations: Destination[] = [
+    {
+      id: '1',
+      name: 'Thư Viện Tổng Hợp',
+      description: 'Vừa học bài vừa có điểm tốt lành Bạt Học',
+      time: '14:00',
+      duration: 'Hoàn tất',
+      category: 'Học tập',
+      budget: request.budget === 'low' ? '~50k' : '~100k',
+      place: {
+        name: 'Thư Viện Tổng Hợp',
+        address: 'Khu A, Đại học Quốc Gia',
+        rating: 4.5,
+        lat: 10.7630,
+        lng: 106.6830,
+      },
+      isCheckedIn: false,
+      isSkipped: false,
+    },
+    {
+      id: '2',
+      name: 'Canteen Khu A',
+      description: 'Căn tin ăn vừa, cơm tấm 25k ngon',
+      time: '18:30',
+      duration: '250m tới Thư ngm',
+      category: 'Ăn uống',
+      budget: request.budget === 'low' ? '~30k' : '~80k',
+      place: {
+        name: 'Canteen Khu A',
+        address: 'Khu A, Đại học Quốc Gia',
+        rating: 4.0,
+        lat: 10.7640,
+        lng: 106.6840,
+      },
+      isCheckedIn: false,
+      isSkipped: false,
+    },
+  ];
+
+  const activityTitles: Record<string, string> = {
+    'deadline': 'Chạy deadline cực căng 🔥',
+    'food-tour': 'Tour ăn ngon Sài Gòn 😋',
+    'date-chill': 'Hẹn hò lãng mạn 💖',
+    'hangout': 'Tụ tập bạn bè vui vẻ 🎮',
+  };
+
+  return {
+    title: activityTitles[request.activity] || 'Lịch trình gợi ý',
+    destinations: mockDestinations,
+  };
+}

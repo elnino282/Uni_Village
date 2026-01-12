@@ -3,10 +3,11 @@
  * Infrastructure layer barrel export
  */
 
+export * from './ai';
 export * from './api';
 export * from './errors';
 export * from './firebase';
-export * from './i18n';
+export * from './maps';
 export * from './monitoring';
 export * from './navigation';
 export * from './storage';
