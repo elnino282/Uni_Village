@@ -26,3 +26,11 @@ export { MemberSelectRow } from './MemberSelectRow';
 export { StepIndicator } from './StepIndicator';
 export { ToggleSettingRow } from './ToggleSettingRow';
 
+// Thread Info / Info screen components
+export { SentMediaGalleryScreen } from './SentMediaGalleryScreen';
+export { SentMediaPreviewGrid } from './SentMediaPreviewGrid';
+export { ThreadInfoActionsRow } from './ThreadInfoActionsRow';
+export { ThreadInfoHeader } from './ThreadInfoHeader';
+export { ThreadInfoOptionRow } from './ThreadInfoOptionRow';
+export { ThreadInfoScreen } from './ThreadInfoScreen';
+

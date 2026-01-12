@@ -4,6 +4,7 @@
  * Matches Figma node 317:2269 (DM) and 317:2919 (Group)
  */
 import BottomSheet from "@gorhom/bottom-sheet";
+import { router } from "expo-router";
 import React, { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
@@ -96,8 +97,8 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   );
 
   const handleInfoPress = useCallback(() => {
-    // TODO: Navigate to thread info screen
-    console.log("Thread info pressed:", threadId);
+    if (!threadId) return;
+    router.push(`/chat/${threadId}/info`);
   }, [threadId]);
 
   // Group-specific handlers
