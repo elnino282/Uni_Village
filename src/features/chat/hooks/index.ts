@@ -9,6 +9,8 @@ export * from './useMessages';
 export * from './useSearchUsers';
 export * from './useSendMessage';
 export * from './useSendSharedCard';
+export * from './useSentMedia';
 export * from './useSuggestedUsers';
 export * from './useThread';
+export * from './useThreadInfo';
 
