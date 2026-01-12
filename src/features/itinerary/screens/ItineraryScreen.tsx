@@ -40,6 +40,7 @@ export function ItineraryScreen() {
     const [activeTab, setActiveTab] = useState<ItineraryTab>('ongoing');
     const [trips, setTrips] = useState<SavedTrip[]>([]);
     const [showNewTripBanner, setShowNewTripBanner] = useState(false);
+    const [newlyCreatedTrip, setNewlyCreatedTrip] = useState<SavedTrip | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -56,11 +57,17 @@ export function ItineraryScreen() {
                 
                 // Check if there's a newly created trip (within last 5 seconds)
                 const now = Date.now();
-                const hasNewTrip = loadedTrips.some(trip => {
+                const newestTrip = loadedTrips.find(trip => {
                     const createdAt = new Date(trip.createdAt).getTime();
                     return now - createdAt < 5000; // 5 seconds
                 });
-                setShowNewTripBanner(hasNewTrip);
+                if (newestTrip) {
+                    setShowNewTripBanner(true);
+                    setNewlyCreatedTrip(newestTrip);
+                } else {
+                    setShowNewTripBanner(false);
+                    setNewlyCreatedTrip(null);
+                }
             }
         } catch (error) {
             console.error('Failed to load trips:', error);
@@ -85,7 +92,7 @@ export function ItineraryScreen() {
             return (
                 <View>
                     {/* New Trip Banner */}
-                    {showNewTripBanner && activeTab === 'ongoing' && (
+                    {showNewTripBanner && activeTab === 'upcoming' && newlyCreatedTrip && (
                         <View style={[styles.bannerCard, { backgroundColor: '#E3F2FD', borderColor: '#2196F3' }]}>
                             <Ionicons name="information-circle" size={20} color="#2196F3" />
                             <View style={{ flex: 1 }}>
@@ -93,9 +100,21 @@ export function ItineraryScreen() {
                                     Lịch trình mới tạo gần đây
                                 </Text>
                                 <Text style={[styles.bannerSubtitle, { color: '#1976D2' }]}>
-                                    Đã calo • {new Date().toLocaleDateString('vi-VN')} • 1 điểm đến
+                                    {newlyCreatedTrip.destinations[0]?.name || 'Điểm đến'} • {new Date(newlyCreatedTrip.startDate).toLocaleDateString('vi-VN')} • {newlyCreatedTrip.destinations.length} điểm đến
                                 </Text>
-                                <Pressable onPress={() => setShowNewTripBanner(false)}>
+                                <Pressable onPress={() => {
+                                    setShowNewTripBanner(false);
+                                    router.push({
+                                        pathname: "/(modals)/itinerary-detail" as any,
+                                        params: {
+                                            tripId: newlyCreatedTrip.id,
+                                            tripName: newlyCreatedTrip.tripName,
+                                            startDate: newlyCreatedTrip.startDate,
+                                            startTime: newlyCreatedTrip.startTime,
+                                            destinations: JSON.stringify(newlyCreatedTrip.destinations),
+                                        }
+                                    });
+                                }}>
                                     <Text style={[styles.bannerLink, { color: '#2196F3' }]}>
                                         Xem lại lịch trình
                                     </Text>
@@ -115,7 +134,7 @@ export function ItineraryScreen() {
                         <Pressable style={styles.aiButton}>
                             <Ionicons name="sparkles" size={16} color="#FF6B6B" />
                             <Text style={[styles.aiButtonText, { color: colors.info }]}>
-                                Gửi ý bảng AI
+                                Gợi ý bằng AI
                             </Text>
                         </Pressable>
                     </View>
@@ -129,23 +148,42 @@ export function ItineraryScreen() {
                             <Pressable
                                 key={trip.id}
                                 style={[styles.tripCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-                                onPress={() => router.push({
-                                    pathname: "/(modals)/itinerary-detail" as any,
-                                    params: {
-                                        tripName: trip.tripName,
-                                        startDate: trip.startDate,
-                                        startTime: trip.startTime,
-                                        destinations: JSON.stringify(trip.destinations),
+                                onPress={() => {
+                                    // If trip is ongoing, go to active trip screen
+                                    if (trip.status === 'ongoing') {
+                                        router.push({
+                                            pathname: "/(modals)/active-trip" as any,
+                                            params: { tripId: trip.id }
+                                        });
+                                    } else {
+                                        // Otherwise go to detail screen
+                                        router.push({
+                                            pathname: "/(modals)/itinerary-detail" as any,
+                                            params: {
+                                                tripId: trip.id,
+                                                tripName: trip.tripName,
+                                                startDate: trip.startDate,
+                                                startTime: trip.startTime,
+                                                destinations: JSON.stringify(trip.destinations),
+                                            }
+                                        });
                                     }
-                                })}
+                                }}
                             >
                                 <View style={styles.tripCardHeader}>
                                     <Text style={[styles.tripCardTitle, { color: colors.text }]}>
                                         {trip.tripName}
                                     </Text>
-                                    <View style={[styles.statusBadge, { backgroundColor: '#FFE5E5' }]}>
-                                        <Text style={[styles.statusBadgeText, { color: '#FF4444' }]}>MỚI</Text>
-                                    </View>
+                                    {activeTab === 'upcoming' && (
+                                        <View style={[styles.statusBadge, { backgroundColor: '#FFE5E5' }]}>
+                                            <Text style={[styles.statusBadgeText, { color: '#FF4444' }]}>MỚI</Text>
+                                        </View>
+                                    )}
+                                    {activeTab === 'past' && (
+                                        <View style={[styles.statusBadge, { backgroundColor: '#E8F5E9' }]}>
+                                            <Text style={[styles.statusBadgeText, { color: '#4CAF50' }]}>Hoàn thành</Text>
+                                        </View>
+                                    )}
                                 </View>
 
                                 <View style={styles.tripCardMeta}>
@@ -165,14 +203,8 @@ export function ItineraryScreen() {
 
                                 <View style={styles.tripCardMeta}>
                                     <View style={styles.metaItem}>
-                                        <Ionicons name="time" size={14} color="#FF9800" />
                                         <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                                            ~3.5 giờ
-                                        </Text>
-                                    </View>
-                                    <View style={styles.metaItem}>
-                                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                                            • {trip.destinations.length} điểm đến
+                                            {trip.destinations.length} điểm đến
                                         </Text>
                                     </View>
                                 </View>

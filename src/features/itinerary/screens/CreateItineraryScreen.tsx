@@ -3,17 +3,17 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    BackHandler,
-    Easing,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Animated,
+  BackHandler,
+  Easing,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -418,7 +418,7 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
         {/* Categories */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: secondaryTextColor }]}>
-            Bộ dạ chuyến đi?
+            Bạn muốn chuyến đi kiểu gì ?
           </Text>
 
           <View style={styles.chipRow}>
@@ -677,7 +677,7 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
             style={[styles.primaryButton, { backgroundColor: colors.info, marginHorizontal: 16, marginBottom: 16 }]}
             onPress={handleSaveDateTime}
           >
-            <Text style={styles.primaryButtonText}>Luu</Text>
+            <Text style={styles.primaryButtonText}>Lưu</Text>
           </Pressable>
         </Animated.View>
       </Modal>
@@ -1019,14 +1019,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     overflow: "hidden",
-  },
-  pickerDoneBtn: {
-    margin: 12,
-    borderRadius: 12,
-    paddingVertical: 12,
     alignItems: "center",
   },
-  pickerDoneText: { color: "#fff", fontWeight: "900" },
+  pickerDoneBtn: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pickerDoneText: { 
+    color: "#fff", 
+    fontWeight: "700",
+    fontSize: 16,
+  },
 });
 
 

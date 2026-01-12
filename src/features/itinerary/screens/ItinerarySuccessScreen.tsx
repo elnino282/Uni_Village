@@ -1,5 +1,6 @@
 import { Colors } from "@/shared/constants";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
@@ -42,9 +43,25 @@ export default function ItinerarySuccessScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   
-  const [countdown, setCountdown] = useState(10);
   const [scaleAnim] = useState(new Animated.Value(0));
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [tripNumber, setTripNumber] = useState(1);
+
+  // Load trip count
+  useEffect(() => {
+    const loadTripCount = async () => {
+      try {
+        const tripsJson = await AsyncStorage.getItem('@trips');
+        if (tripsJson) {
+          const trips = JSON.parse(tripsJson);
+          setTripNumber(trips.length);
+        }
+      } catch (error) {
+        console.error('Failed to load trip count:', error);
+      }
+    };
+    loadTripCount();
+  }, []);
 
   useEffect(() => {
     // Scale animation for check icon
@@ -62,29 +79,13 @@ export default function ItinerarySuccessScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Countdown timer
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // Defer navigation to avoid setState during render
-          setTimeout(() => {
-            router.replace("/(tabs)/itinerary");
-          }, 0);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [router, scaleAnim, fadeAnim]);
+  }, [scaleAnim, fadeAnim]);
 
   const handleViewItinerary = () => {
     router.push({
       pathname: "/(modals)/itinerary-detail" as any,
       params: {
+        tripId: params.tripId as string,
         tripName: params.tripName as string || "Chuyến đi #4",
         startDate: params.startDate as string || new Date().toISOString(),
         startTime: params.startTime as string || new Date().toISOString(),
@@ -142,21 +143,21 @@ export default function ItinerarySuccessScreen() {
           <View style={styles.cardHeader}>
             <View style={styles.cardBadge}>
               <Ionicons name="calendar" size={14} color="#007AFF" />
-              <Text style={styles.cardBadgeText}>Chuyến đi #4</Text>
+              <Text style={styles.cardBadgeText}>Chuyến đi #{tripNumber}</Text>
             </View>
           </View>
 
           <View style={styles.cardRow}>
             <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
             <Text style={[styles.cardText, { color: colors.text }]}>
-              25/1/2025 • 18:06
+              {params.startDate ? new Date(params.startDate as string).toLocaleDateString('vi-VN') : ''} • {params.startTime ? new Date(params.startTime as string).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
             </Text>
           </View>
 
           <View style={styles.cardRow}>
             <Ionicons name="location-outline" size={16} color={colors.textSecondary} />
             <Text style={[styles.cardText, { color: colors.text }]}>
-              Điểm đến
+              {destinations[0]?.name || 'Điểm đến'}
             </Text>
           </View>
           <Text style={[styles.cardDestinations, { color: colors.textSecondary }]}>
@@ -194,23 +195,22 @@ export default function ItinerarySuccessScreen() {
           </Text>
         </Animated.View>
 
-        {/* Action Button */}
-        <Animated.View style={{ opacity: fadeAnim, width: "100%" }}>
+        {/* Action Buttons */}
+        <Animated.View style={{ opacity: fadeAnim, width: "100%", gap: 12 }}>
           <Pressable
-            style={[styles.button, { backgroundColor: "#007AFF" }]}
+            style={[styles.button, styles.primaryButton]}
             onPress={handleViewItinerary}
           >
             <Ionicons name="eye-outline" size={20} color="#FFFFFF" />
             <Text style={styles.buttonText}>Xem lịch trình chi tiết</Text>
           </Pressable>
-        </Animated.View>
 
-        {/* Auto redirect info */}
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <Pressable onPress={handleGoHome}>
-            <Text style={[styles.autoRedirect, { color: colors.textSecondary }]}>
-              Tự động về trang chủ sau {countdown}s
-            </Text>
+          <Pressable
+            style={[styles.button, styles.secondaryButton, { borderColor: colors.border, backgroundColor: colors.background }]}
+            onPress={handleGoHome}
+          >
+            <Ionicons name="home-outline" size={20} color={colors.text} />
+            <Text style={[styles.buttonText, { color: colors.text }]}>Quay về trang chủ</Text>
           </Pressable>
         </Animated.View>
       </View>
@@ -320,14 +320,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
+  primaryButton: {
+    backgroundColor: "#007AFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  secondaryButton: {
+    borderWidth: 1.5,
+  },
   buttonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
-  },
-  autoRedirect: {
-    fontSize: 14,
-    marginTop: 16,
-    textAlign: "center",
   },
 });

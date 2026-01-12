@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import {
@@ -65,6 +66,36 @@ export function ItineraryDetailScreen() {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     return `${hours}:${minutes}`;
+  };
+
+  const handleStartTrip = async () => {
+    try {
+      // Get tripId from params
+      const tripId = params.tripId as string;
+      
+      if (!tripId) {
+        console.error('No tripId provided');
+        return;
+      }
+
+      // Update trip status to 'ongoing' in AsyncStorage
+      const tripsJson = await AsyncStorage.getItem('@trips');
+      if (tripsJson) {
+        const trips = JSON.parse(tripsJson);
+        const updatedTrips = trips.map((t: any) => 
+          t.id === tripId ? { ...t, status: 'ongoing' } : t
+        );
+        await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
+      }
+
+      // Navigate to active trip screen
+      router.push({
+        pathname: "/(modals)/active-trip" as any,
+        params: { tripId }
+      });
+    } catch (error) {
+      console.error('Failed to start trip:', error);
+    }
   };
 
   return (
@@ -136,29 +167,37 @@ export function ItineraryDetailScreen() {
                 </Text>
 
                 <View style={styles.destinationMeta}>
-                  <View style={styles.ratingRow}>
-                    <Ionicons name="star" size={14} color="#FFB800" />
-                    <Text style={[styles.ratingText, { color: colors.text }]}>
-                      {dest.rating || 4.5}
-                    </Text>
-                    <Text style={[styles.reviewText, { color: colors.textSecondary }]}>
-                      ({dest.reviewCount || 234})
-                    </Text>
-                  </View>
+                  {dest.rating && (
+                    <View style={styles.ratingRow}>
+                      <Ionicons name="star" size={14} color="#FFB800" />
+                      <Text style={[styles.ratingText, { color: colors.text }]}>
+                        {dest.rating}
+                      </Text>
+                      {dest.reviewCount && (
+                        <Text style={[styles.reviewText, { color: colors.textSecondary }]}>
+                          ({dest.reviewCount})
+                        </Text>
+                      )}
+                    </View>
+                  )}
 
-                  <View style={styles.metaItem}>
-                    <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                    <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                      Cách {dest.distance || 1.2} km
-                    </Text>
-                  </View>
+                  {dest.distance && (
+                    <View style={styles.metaItem}>
+                      <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                      <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                        Cách {dest.distance} km
+                      </Text>
+                    </View>
+                  )}
 
-                  <View style={styles.metaItem}>
-                    <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-                    <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                      Xuất phát: {dest.departureTime || "18:08"}
-                    </Text>
-                  </View>
+                  {dest.departureTime && (
+                    <View style={styles.metaItem}>
+                      <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                      <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                        Xuất phát: {dest.departureTime}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -181,7 +220,7 @@ export function ItineraryDetailScreen() {
 
       {/* Bottom Button */}
       <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-        <Pressable style={styles.startButton}>
+        <Pressable style={styles.startButton} onPress={handleStartTrip}>
           <Ionicons name="play-circle" size={20} color="#FFFFFF" />
           <Text style={styles.startButtonText}>Bắt đầu chuyến đi</Text>
         </Pressable>

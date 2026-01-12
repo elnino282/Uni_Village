@@ -3,6 +3,7 @@
  */
 
 // Screens
+export { ActiveTripScreen } from './screens/ActiveTripScreen';
 export { CreateItineraryScreen } from './screens/CreateItineraryScreen';
 export { ItineraryDetailScreen } from './screens/ItineraryDetailScreen';
 export { ItineraryScreen } from './screens/ItineraryScreen';
@@ -23,3 +24,4 @@ export { fetchItineraries } from './services/itineraryService';
 
 // Types
 export type { Itinerary, ItineraryStatus } from './types/itinerary.types';
+

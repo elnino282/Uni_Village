@@ -42,6 +42,14 @@ export default function ModalsLayout() {
                     presentation: 'fullScreenModal',
                 }}
             />
+            <Stack.Screen 
+                name="active-trip" 
+                options={{
+                    headerShown: false,
+                    gestureEnabled: false,
+                    presentation: 'fullScreenModal',
+                }}
+            />
         </Stack>
     );
 }

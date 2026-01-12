@@ -413,6 +413,7 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
                     name: d.place.name,
                     thumbnail: d.place.thumbnail,
                     order: d.order,
+                    time: d.visitTime ? d.visitTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : undefined,
                   }));
 
                   // Save trip to AsyncStorage
@@ -425,7 +426,7 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
                       startTime: tripData?.startTime?.toISOString() || new Date().toISOString(),
                       destinations: destinationsData,
                       createdAt: new Date().toISOString(),
-                      status: 'ongoing' as const, // Default to ongoing
+                      status: 'upcoming' as const, // Default to upcoming
                     };
 
                     // Get existing trips
@@ -437,19 +438,21 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
                     
                     // Save back to AsyncStorage
                     await AsyncStorage.setItem('@trips', JSON.stringify(trips));
+
+                    // Navigate to success screen with tripId
+                    router.replace({
+                      pathname: "/(modals)/itinerary-success",
+                      params: {
+                        tripId: tripId,
+                        tripName: tripData?.tripName || "Chuyến đi #4",
+                        startDate: tripData?.startDate?.toISOString() || new Date().toISOString(),
+                        startTime: tripData?.startTime?.toISOString() || new Date().toISOString(),
+                        destinations: JSON.stringify(destinationsData),
+                      },
+                    });
                   } catch (error) {
                     console.error('Failed to save trip:', error);
                   }
-                  
-                  router.replace({
-                    pathname: "/(modals)/itinerary-success",
-                    params: {
-                      tripName: tripData?.tripName || "Chuyến đi #4",
-                      startDate: tripData?.startDate?.toISOString() || new Date().toISOString(),
-                      startTime: tripData?.startTime?.toISOString() || new Date().toISOString(),
-                      destinations: JSON.stringify(destinationsData),
-                    },
-                  });
                 }}
               >
                 <Text style={styles.continueButtonText}>
@@ -539,10 +542,10 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
 
               <View style={styles.timePickerBody}>
                 <Text style={[styles.timePickerLabel, { color: secondaryTextColor }]}>
-                  Địa điểm: {selectedDestinations.find(d => d.place.id === showTimePickerFor)?.place.name}
+                  Địa điểm xuất phát: {selectedDestinations.find(d => d.place.id === showTimePickerFor)?.place.name}
                 </Text>
                 <Text style={[styles.timePickerHint, { color: secondaryTextColor }]}>
-                  Bạn muốn đến đây lúc mấy giờ?
+                  Thời gian xuất phát
                 </Text>
 
                 {Platform.OS === 'ios' ? (
