@@ -7,6 +7,7 @@ import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LanguageCode, useSettingsStore } from '../store/settings.store';
 import { BottomSheetModal } from './BottomSheetModal';
@@ -34,6 +35,7 @@ interface LanguageModalProps {
 }
 
 export function LanguageModal({ visible, onClose }: LanguageModalProps) {
+    const { t } = useTranslation();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme];
 
@@ -48,7 +50,7 @@ export function LanguageModal({ visible, onClose }: LanguageModalProps) {
         <BottomSheetModal
             visible={visible}
             onClose={onClose}
-            title="Chọn ngôn ngữ"
+            title={t('settings.languageModal.title')}
             icon={
                 <MaterialIcons
                     name="language"

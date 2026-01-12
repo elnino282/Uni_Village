@@ -9,6 +9,7 @@ import { useColorScheme } from '@/shared/hooks';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Href, router } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LogoutCard } from '../components/LogoutCard';
@@ -37,6 +38,7 @@ const ICON_TINTS = {
 };
 
 export function SettingsScreen() {
+    const { t } = useTranslation();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme];
 
@@ -81,17 +83,17 @@ export function SettingsScreen() {
 
     // Get subtitle for dark mode based on current state
     const darkModeSubtitle = darkMode
-        ? 'Giao diện tối đang bật'
-        : 'Giao diện sáng đang bật';
+        ? t('settings.rows.darkModeOn')
+        : t('settings.rows.darkModeOff');
 
     // Get subtitle for privacy based on current state
     const privacySubtitle = privatePosts
-        ? 'Bài viết của bạn ở chế độ riêng tư'
-        : 'Mọi người có thể xem bài viết đã lưu';
+        ? t('settings.rows.privatePostsOn')
+        : t('settings.rows.privatePostsOff');
 
     // Get subtitle for language
-    const languageSubtitle =
-        language === 'vi' ? 'Hiện tại: Tiếng Việt' : 'Current: English';
+    const languageName = language === 'vi' ? 'Tiếng Việt' : 'English';
+    const languageSubtitle = t('settings.rows.languageCurrent', { language: languageName });
 
     return (
         <SafeAreaView
@@ -108,7 +110,7 @@ export function SettingsScreen() {
                     <MaterialIcons name="chevron-left" size={28} color={colors.text} />
                 </Pressable>
                 <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-                    Cài đặt
+                    {t('settings.title')}
                 </Text>
                 <View style={styles.headerSpacer} />
             </View>
@@ -123,7 +125,7 @@ export function SettingsScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Section A: TÀI KHOẢN & BẢO MẬT */}
-                <SettingsSectionCard title="TÀI KHOẢN & BẢO MẬT">
+                <SettingsSectionCard title={t('settings.sections.account')}>
                     <SettingsRow
                         type="navigation"
                         icon={
@@ -134,8 +136,8 @@ export function SettingsScreen() {
                             />
                         }
                         iconBackgroundColor={ICON_COLORS.password}
-                        title="Đổi mật khẩu"
-                        subtitle="Cập nhật mật khẩu của bạn"
+                        title={t('settings.rows.changePassword')}
+                        subtitle={t('settings.rows.changePasswordDesc')}
                         onPress={handleChangePassword}
                     />
                     <SettingsRow
@@ -148,14 +150,14 @@ export function SettingsScreen() {
                             />
                         }
                         iconBackgroundColor={ICON_COLORS.language}
-                        title="Ngôn ngữ"
+                        title={t('settings.rows.language')}
                         subtitle={languageSubtitle}
                         onPress={handleLanguage}
                     />
                 </SettingsSectionCard>
 
                 {/* Section B: GIAO DIỆN & HIỂN THỊ */}
-                <SettingsSectionCard title="GIAO DIỆN & HIỂN THỊ">
+                <SettingsSectionCard title={t('settings.sections.display')}>
                     <SettingsRow
                         type="toggle"
                         icon={
@@ -166,7 +168,7 @@ export function SettingsScreen() {
                             />
                         }
                         iconBackgroundColor={ICON_COLORS.darkMode}
-                        title="Chế độ tối"
+                        title={t('settings.rows.darkMode')}
                         subtitle={darkModeSubtitle}
                         value={darkMode}
                         onValueChange={setDarkMode}
@@ -174,7 +176,7 @@ export function SettingsScreen() {
                 </SettingsSectionCard>
 
                 {/* Section C: QUYỀN RIÊNG TƯ */}
-                <SettingsSectionCard title="QUYỀN RIÊNG TƯ">
+                <SettingsSectionCard title={t('settings.sections.privacy')}>
                     <SettingsRow
                         type="toggle"
                         icon={
@@ -185,7 +187,7 @@ export function SettingsScreen() {
                             />
                         }
                         iconBackgroundColor={ICON_COLORS.privacy}
-                        title="Bài viết ở chế độ riêng tư"
+                        title={t('settings.rows.privatePosts')}
                         subtitle={privacySubtitle}
                         value={privatePosts}
                         onValueChange={setPrivatePosts}
@@ -193,7 +195,7 @@ export function SettingsScreen() {
                 </SettingsSectionCard>
 
                 {/* Section D: HỖ TRỢ */}
-                <SettingsSectionCard title="HỖ TRỢ">
+                <SettingsSectionCard title={t('settings.sections.support')}>
                     <SettingsRow
                         type="navigation"
                         icon={
@@ -204,8 +206,8 @@ export function SettingsScreen() {
                             />
                         }
                         iconBackgroundColor={ICON_COLORS.help}
-                        title="Trợ giúp"
-                        subtitle="Câu hỏi thường gặp và hỗ trợ"
+                        title={t('settings.rows.help')}
+                        subtitle={t('settings.rows.helpDesc')}
                         onPress={handleHelp}
                     />
                     <SettingsRow
@@ -218,8 +220,8 @@ export function SettingsScreen() {
                             />
                         }
                         iconBackgroundColor={ICON_COLORS.about}
-                        title="Giới thiệu"
-                        subtitle="Thông tin về ứng dụng"
+                        title={t('settings.rows.about')}
+                        subtitle={t('settings.rows.aboutDesc')}
                         onPress={handleAbout}
                     />
                 </SettingsSectionCard>
