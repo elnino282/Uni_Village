@@ -6,17 +6,17 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    BackHandler,
-    Easing,
-    Image,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  Animated,
+  BackHandler,
+  Easing,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -39,10 +39,28 @@ interface SelectDestinationsScreenProps {
     startTime: Date;
     categories: string[];
   };
+  tripId?: string;
+  existingDestinations?: Array<{
+    id: string;
+    name: string;
+    thumbnail: string;
+    order: number;
+    time?: string;
+    isCheckedIn?: boolean;
+    isSkipped?: boolean;
+    checkedInAt?: string;
+  }>;
+  isAddingToExisting?: boolean;
   onBack?: () => void;
 }
 
-export function SelectDestinationsScreen({ tripData, onBack }: SelectDestinationsScreenProps) {
+export function SelectDestinationsScreen({ 
+  tripData, 
+  tripId, 
+  existingDestinations, 
+  isAddingToExisting,
+  onBack 
+}: SelectDestinationsScreenProps) {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const secondaryTextColor = colors.textSecondary || (colors as any).icon;
@@ -51,7 +69,35 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['30%', '65%', '90%'], []);
 
-  const [selectedDestinations, setSelectedDestinations] = useState<SelectedDestination[]>([]);
+  // Initialize with existing destinations if adding to existing trip
+  const [selectedDestinations, setSelectedDestinations] = useState<SelectedDestination[]>(() => {
+    if (isAddingToExisting && existingDestinations) {
+      // Map existing destinations to SelectedDestination format
+      const mapped = existingDestinations
+        .map(dest => {
+          const place = MOCK_PLACES.find(p => p.id === dest.id);
+          if (!place) return null;
+          
+          return {
+            place,
+            order: dest.order,
+            visitTime: dest.time ? (() => {
+              const [hours, minutes] = dest.time.split(':');
+              const date = new Date();
+              date.setHours(parseInt(hours), parseInt(minutes));
+              return date;
+            })() : undefined,
+          } as SelectedDestination;
+        })
+        .filter((d): d is SelectedDestination => d !== null);
+      return mapped;
+    }
+    return [];
+  });
+
+  // Store initial count to track if user made changes
+  const initialDestinationCount = useRef(existingDestinations?.length || 0);
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [showTimePickerFor, setShowTimePickerFor] = useState<string | null>(null);
   const [tempTime, setTempTime] = useState(new Date());
@@ -124,8 +170,13 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
   }, []);
 
   const isDirty = useMemo(() => {
+    // If adding to existing trip, check if selection changed from initial
+    if (isAddingToExisting) {
+      return selectedDestinations.length !== initialDestinationCount.current;
+    }
+    // For new trips, any selection is considered dirty
     return selectedDestinations.length > 0;
-  }, [selectedDestinations]);
+  }, [selectedDestinations, isAddingToExisting]);
 
   const requestClose = useCallback(() => {
     if (showTimePickerFor) {
@@ -252,7 +303,7 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
                 {tripData?.tripName || "Chuyến đi #4"}
               </Text>
               <Text style={[styles.headerSubtitle, { color: secondaryTextColor }]}>
-                Bước 2/2: Chọn điểm đến
+                {isAddingToExisting ? "Thêm địa điểm mới" : "Bước 2/2: Chọn điểm đến"}
               </Text>
             </View>
 
@@ -414,49 +465,69 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
                     thumbnail: d.place.thumbnail,
                     order: d.order,
                     time: d.visitTime ? d.visitTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : undefined,
+                    lat: d.place.lat,
+                    lng: d.place.lng,
                   }));
 
-                  // Save trip to AsyncStorage
                   try {
-                    const tripId = Date.now().toString();
-                    const newTrip = {
-                      id: tripId,
-                      tripName: tripData?.tripName || "Chuyến đi #4",
-                      startDate: tripData?.startDate?.toISOString() || new Date().toISOString(),
-                      startTime: tripData?.startTime?.toISOString() || new Date().toISOString(),
-                      destinations: destinationsData,
-                      createdAt: new Date().toISOString(),
-                      status: 'upcoming' as const, // Default to upcoming
-                    };
-
-                    // Get existing trips
-                    const tripsJson = await AsyncStorage.getItem('@trips');
-                    const trips = tripsJson ? JSON.parse(tripsJson) : [];
-                    
-                    // Add new trip
-                    trips.push(newTrip);
-                    
-                    // Save back to AsyncStorage
-                    await AsyncStorage.setItem('@trips', JSON.stringify(trips));
-
-                    // Navigate to success screen with tripId
-                    router.replace({
-                      pathname: "/(modals)/itinerary-success",
-                      params: {
-                        tripId: tripId,
+                    if (isAddingToExisting && tripId) {
+                      // Update existing trip
+                      const tripsJson = await AsyncStorage.getItem('@trips');
+                      const trips = tripsJson ? JSON.parse(tripsJson) : [];
+                      
+                      const tripIndex = trips.findIndex((t: any) => t.id === tripId);
+                      if (tripIndex !== -1) {
+                        trips[tripIndex].destinations = destinationsData;
+                        await AsyncStorage.setItem('@trips', JSON.stringify(trips));
+                        
+                        // Navigate back to itinerary detail
+                        router.back();
+                      }
+                    } else {
+                      // Create new trip
+                      const newTripId = Date.now().toString();
+                      const newTrip = {
+                        id: newTripId,
                         tripName: tripData?.tripName || "Chuyến đi #4",
                         startDate: tripData?.startDate?.toISOString() || new Date().toISOString(),
                         startTime: tripData?.startTime?.toISOString() || new Date().toISOString(),
-                        destinations: JSON.stringify(destinationsData),
-                      },
-                    });
+                        destinations: destinationsData,
+                        createdAt: new Date().toISOString(),
+                        status: 'upcoming' as const,
+                      };
+
+                      // Get existing trips
+                      const tripsJson = await AsyncStorage.getItem('@trips');
+                      const trips = tripsJson ? JSON.parse(tripsJson) : [];
+                      
+                      // Add new trip
+                      trips.push(newTrip);
+                      
+                      // Save back to AsyncStorage
+                      await AsyncStorage.setItem('@trips', JSON.stringify(trips));
+
+                      // Navigate to success screen with tripId
+                      router.replace({
+                        pathname: "/(modals)/itinerary-success",
+                        params: {
+                          tripId: newTripId,
+                          tripName: tripData?.tripName || "Chuyến đi #4",
+                          startDate: tripData?.startDate?.toISOString() || new Date().toISOString(),
+                          startTime: tripData?.startTime?.toISOString() || new Date().toISOString(),
+                          destinations: JSON.stringify(destinationsData),
+                        },
+                      });
+                    }
                   } catch (error) {
                     console.error('Failed to save trip:', error);
                   }
                 }}
               >
                 <Text style={styles.continueButtonText}>
-                  Hoàn tất lịch trình ({selectedDestinations.length}) →
+                  {isAddingToExisting 
+                    ? `Cập nhật lịch trình (${selectedDestinations.length}) →`
+                    : `Hoàn tất lịch trình (${selectedDestinations.length}) →`
+                  }
                 </Text>
               </Pressable>
             </View>
