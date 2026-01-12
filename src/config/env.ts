@@ -15,6 +15,16 @@ export const env = {
     FIREBASE_MESSAGING_SENDER_ID: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
     FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
 
+    // Google Maps
+    // TODO: Add your Google Maps API key here
+    // Get it from: https://console.cloud.google.com/google/maps-apis
+    GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+
+    // Gemini AI
+    // TODO: Add your Gemini API key here
+    // Get it from: https://ai.google.dev/
+    GEMINI_API_KEY: process.env.EXPO_PUBLIC_GEMINI_API_KEY || '',
+
     // App
     APP_NAME: process.env.EXPO_PUBLIC_APP_NAME || 'Uni Village',
     APP_VERSION: process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0',
