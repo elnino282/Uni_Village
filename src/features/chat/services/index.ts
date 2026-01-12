@@ -7,5 +7,7 @@ export * from './mockGroupMessages';
 export * from './mockGroupThread';
 export * from './mockMembers';
 export * from './mockMessages';
+export * from './mockSentMedia';
 export * from './mockThread';
+export * from './mockThreadInfo';
 
