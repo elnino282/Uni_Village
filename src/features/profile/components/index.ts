@@ -14,4 +14,8 @@ export { ProfileInfo } from './ProfileInfo';
 export { ProfileScreen } from './ProfileScreen';
 export { ProfileTabs } from './ProfileTabs';
 export type { ProfileTabKey } from './ProfileTabs';
+export { ProfilePostCard } from './ProfilePostCard';
+export { PublicProfileHeader } from './PublicProfileHeader';
+export { PublicProfileScreen } from './PublicProfileScreen';
+export { PublicProfileTabs } from './PublicProfileTabs';
 

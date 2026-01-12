@@ -1,10 +1,12 @@
 // Components
+export { AddFriendScreen } from './AddFriendScreen';
 export { CommunityFAB } from './CommunityFAB';
 export { CommunityHeader } from './CommunityHeader';
 export { CommunityScreen } from './CommunityScreen';
 export { CommunitySearchBar } from './CommunitySearchBar';
 export { CommunitySegmentedTabs } from './CommunitySegmentedTabs';
 export { MessagesTab } from './MessagesTab';
+export { PlusActionMenu } from './PlusActionMenu';
 export { PostActions } from './PostActions';
 export { PostCard } from './PostCard';
 export { PostHeader } from './PostHeader';

@@ -1,11 +1,11 @@
 /**
  * useThread hook
- * Fetches chat thread metadata (peer info, online status)
+ * Fetches chat thread metadata (peer info, online status) for DM or Group
  */
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchThread } from '../services';
-import type { ChatThread } from '../types';
+import { fetchGroupThread, fetchThread, isGroupThreadId } from '../services';
+import type { Thread } from '../types';
 
 /**
  * Query key factory for thread queries
@@ -16,13 +16,23 @@ export const threadKeys = {
 };
 
 /**
- * Fetch and cache thread info
+ * Fetch and cache thread info (DM or Group)
  * @param threadId - Thread identifier
  */
 export function useThread(threadId: string) {
-  return useQuery<ChatThread, Error>({
+  return useQuery<Thread, Error>({
     queryKey: threadKeys.detail(threadId),
     queryFn: async () => {
+      // Check if it's a group thread
+      if (isGroupThreadId(threadId)) {
+        const response = await fetchGroupThread(threadId);
+        if (response) {
+          return response.thread;
+        }
+        throw new Error('Group thread not found');
+      }
+      
+      // DM thread
       const response = await fetchThread(threadId);
       return response.thread;
     },

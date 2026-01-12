@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { ChannelInviteCard } from '@/shared/components/channel';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import type { CommunityPost, PostLocation } from '../types';
@@ -19,7 +20,7 @@ interface PostCardProps {
 }
 
 /**
- * Complete post card component
+ * Complete post card component with optional channel invite support
  */
 export function PostCard({
   post,
@@ -66,6 +67,11 @@ export function PostCard({
         </Text>
       </View>
 
+      {/* Channel invite card (if present) */}
+      {post.channelInvite && (
+        <ChannelInviteCard invite={post.channelInvite} />
+      )}
+
       {/* Post image */}
       {post.imageUrl && <PostMedia imageUrl={post.imageUrl} />}
 
@@ -75,10 +81,11 @@ export function PostCard({
         onLocationPress={onLocationPress}
       />
 
-      {/* Like and comment actions */}
+      {/* Like, comment, and share actions */}
       <PostActions
         likesCount={post.likesCount}
         commentsCount={post.commentsCount}
+        sharesCount={post.sharesCount}
         isLiked={post.isLiked}
         onLikePress={() => onLikePress(post.id)}
         onCommentPress={() => onCommentPress(post.id)}
@@ -104,3 +111,4 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
 });
+

@@ -1,7 +1,8 @@
 /**
  * MessageList Component
  * Virtualized list of chat messages
- * Matches Figma node 317:2269
+ * Supports both DM and Group chat layouts
+ * Matches Figma node 317:2269 (DM) and 317:2919 (Group)
  */
 import React, { useCallback, useRef } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
@@ -17,12 +18,14 @@ import { SharedCardMessage } from './SharedCardMessage';
 interface MessageListProps {
   messages: Message[];
   isLoading?: boolean;
+  /** Whether this is a group chat (affects message layout) */
+  isGroupChat?: boolean;
 }
 
 /**
  * Renders individual message item
  */
-function MessageItem({ message }: { message: Message }) {
+function MessageItem({ message, isGroupChat }: { message: Message; isGroupChat: boolean }) {
   if (message.type === 'sharedCard') {
     return (
       <SharedCardMessage
@@ -39,6 +42,9 @@ function MessageItem({ message }: { message: Message }) {
       sender={message.sender}
       timeLabel={message.timeLabel}
       status={message.status}
+      senderName={message.senderName}
+      senderAvatar={message.senderAvatar}
+      isGroupChat={isGroupChat}
     />
   );
 }
@@ -46,14 +52,14 @@ function MessageItem({ message }: { message: Message }) {
 /**
  * Chat message list with auto-scroll
  */
-export function MessageList({ messages, isLoading }: MessageListProps) {
+export function MessageList({ messages, isLoading, isGroupChat = false }: MessageListProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const flatListRef = useRef<FlatList<Message>>(null);
 
   const renderItem = useCallback(({ item }: { item: Message }) => {
-    return <MessageItem message={item} />;
-  }, []);
+    return <MessageItem message={item} isGroupChat={isGroupChat} />;
+  }, [isGroupChat]);
 
   const keyExtractor = useCallback((item: Message) => item.id, []);
 

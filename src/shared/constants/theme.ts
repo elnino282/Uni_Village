@@ -48,6 +48,13 @@ export const Colors = {
         separatorDot: '#99a1af',
         sendButton: '#155dfc',
         sendButtonGradientEnd: '#1447e6',
+        // Group Chat specific colors (from Figma)
+        pinnedBackground: '#fffbeb',
+        pinnedBorder: '#fef3c6',
+        pinnedLabel: '#bb4d00',
+        selectedChipBg: '#eff6ff',
+        selectedChipBorder: '#bedbff',
+        checkboxBorder: '#d1d5dc',
     },
     dark: {
         text: '#ECEDEE',
@@ -88,6 +95,13 @@ export const Colors = {
         separatorDot: '#6b7280',
         sendButton: '#3b82f6',
         sendButtonGradientEnd: '#2563eb',
+        // Group Chat specific colors (from Figma - dark mode variants)
+        pinnedBackground: '#422006',
+        pinnedBorder: '#713f12',
+        pinnedLabel: '#fbbf24',
+        selectedChipBg: '#1e3a5f',
+        selectedChipBorder: '#3b82f6',
+        checkboxBorder: '#4a5056',
     },
 } as const;
 

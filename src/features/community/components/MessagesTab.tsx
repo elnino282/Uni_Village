@@ -1,7 +1,11 @@
 import { Href, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import {
+    CreateChannelModal,
+    type CreateChannelModalRef,
+} from '@/features/chat/components/CreateChannelModal';
 import { Colors } from '@/shared/constants';
 import { useColorScheme, useDebounce } from '@/shared/hooks';
 import type { MessagesSubTab } from '../types/message.types';
@@ -9,6 +13,7 @@ import { ChannelList } from './ChannelList';
 import { InboxList } from './InboxList';
 import { MessagesSearchRow } from './MessagesSearchRow';
 import { MessagesSubTabs } from './MessagesSubTabs';
+import { PlusActionMenu } from './PlusActionMenu';
 
 /**
  * Messages tab content with search, sub-tabs, and lists
@@ -22,13 +27,33 @@ export function MessagesTab() {
   // Local state for sub-tab and search
   const [activeSubTab, setActiveSubTab] = useState<MessagesSubTab>('inbox');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Plus menu state
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
+
+  // Create channel modal ref
+  const createChannelRef = useRef<CreateChannelModalRef>(null);
   
   // Debounce search for performance
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  const handleCreatePress = () => {
-    router.push('/chat/new' as Href);
-  };
+  const handleCreatePress = useCallback((x: number, y: number) => {
+    setMenuAnchor({ x, y });
+    setMenuVisible(true);
+  }, []);
+
+  const handleMenuClose = useCallback(() => {
+    setMenuVisible(false);
+  }, []);
+
+  const handleAddFriend = useCallback(() => {
+    router.push('/friends/add' as Href);
+  }, [router]);
+
+  const handleCreateChannel = useCallback(() => {
+    createChannelRef.current?.open();
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
@@ -53,6 +78,18 @@ export function MessagesTab() {
       ) : (
         <ChannelList searchQuery={debouncedSearch} />
       )}
+
+      {/* Plus Action Menu */}
+      <PlusActionMenu
+        visible={menuVisible}
+        onClose={handleMenuClose}
+        anchorPosition={menuAnchor}
+        onAddFriend={handleAddFriend}
+        onCreateChannel={handleCreateChannel}
+      />
+
+      {/* Create Channel Modal */}
+      <CreateChannelModal ref={createChannelRef} />
     </View>
   );
 }
