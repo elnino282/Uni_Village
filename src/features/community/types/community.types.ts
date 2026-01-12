@@ -2,6 +2,8 @@
  * Community feature types
  */
 
+import type { ChannelInvite } from '@/shared/types';
+
 export type CommunityTab = 'posts' | 'messages';
 
 export interface PostLocation {
@@ -25,9 +27,12 @@ export interface CommunityPost {
   locations: PostLocation[];
   likesCount: number;
   commentsCount: number;
+  sharesCount?: number;
   isLiked: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Optional channel invite embedded in post */
+  channelInvite?: ChannelInvite;
 }
 
 export interface OverflowMenuItem {
