@@ -8,23 +8,35 @@ import { useColorScheme } from '@/shared/hooks';
 interface PostActionsProps {
   likesCount: number;
   commentsCount: number;
+  sharesCount?: number;
   isLiked: boolean;
   onLikePress: () => void;
   onCommentPress: () => void;
+  onSharePress?: () => void;
 }
 
 /**
- * Post action row with like and comment buttons
+ * Post action row with like, comment, and share buttons
  */
 export function PostActions({
   likesCount,
   commentsCount,
+  sharesCount,
   isLiked,
   onLikePress,
   onCommentPress,
+  onSharePress,
 }: PostActionsProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
+
+  const handleSharePress = () => {
+    if (onSharePress) {
+      onSharePress();
+    } else {
+      console.log('Share pressed');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -57,6 +69,23 @@ export function PostActions({
           {commentsCount}
         </Text>
       </TouchableOpacity>
+
+      {sharesCount !== undefined && (
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleSharePress}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons
+            name="share"
+            size={20}
+            color={colors.textSecondary}
+          />
+          <Text style={[styles.actionText, { color: colors.textSecondary }]}>
+            {sharesCount}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -81,3 +110,4 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 });
+
