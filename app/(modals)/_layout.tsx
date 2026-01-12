@@ -34,6 +34,14 @@ export default function ModalsLayout() {
                     presentation: 'fullScreenModal',
                 }}
             />
+            <Stack.Screen 
+                name="itinerary-detail" 
+                options={{
+                    headerShown: false,
+                    gestureEnabled: false,
+                    presentation: 'fullScreenModal',
+                }}
+            />
         </Stack>
     );
 }

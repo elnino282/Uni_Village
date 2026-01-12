@@ -4,15 +4,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-    Animated,
-    Easing,
-    Image,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    useColorScheme,
-    View,
+  Animated,
+  Easing,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -82,7 +82,15 @@ export default function ItinerarySuccessScreen() {
   }, [router, scaleAnim, fadeAnim]);
 
   const handleViewItinerary = () => {
-    router.replace("/(tabs)/itinerary");
+    router.push({
+      pathname: "/(modals)/itinerary-detail" as any,
+      params: {
+        tripName: params.tripName as string || "Chuyến đi #4",
+        startDate: params.startDate as string || new Date().toISOString(),
+        startTime: params.startTime as string || new Date().toISOString(),
+        destinations: params.destinations as string || JSON.stringify([]),
+      }
+    });
   };
 
   const handleGoHome = () => {

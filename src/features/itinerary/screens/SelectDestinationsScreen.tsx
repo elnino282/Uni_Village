@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -401,7 +402,7 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
             <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
               <Pressable
                 style={[styles.continueButton, { backgroundColor: colors.info }]}
-                onPress={() => {
+                onPress={async () => {
                   if (selectedDestinations.length === 0) {
                     alert("Vui lòng chọn ít nhất một địa điểm");
                     return;
@@ -413,10 +414,39 @@ export function SelectDestinationsScreen({ tripData, onBack }: SelectDestination
                     thumbnail: d.place.thumbnail,
                     order: d.order,
                   }));
+
+                  // Save trip to AsyncStorage
+                  try {
+                    const tripId = Date.now().toString();
+                    const newTrip = {
+                      id: tripId,
+                      tripName: tripData?.tripName || "Chuyến đi #4",
+                      startDate: tripData?.startDate?.toISOString() || new Date().toISOString(),
+                      startTime: tripData?.startTime?.toISOString() || new Date().toISOString(),
+                      destinations: destinationsData,
+                      createdAt: new Date().toISOString(),
+                      status: 'ongoing' as const, // Default to ongoing
+                    };
+
+                    // Get existing trips
+                    const tripsJson = await AsyncStorage.getItem('@trips');
+                    const trips = tripsJson ? JSON.parse(tripsJson) : [];
+                    
+                    // Add new trip
+                    trips.push(newTrip);
+                    
+                    // Save back to AsyncStorage
+                    await AsyncStorage.setItem('@trips', JSON.stringify(trips));
+                  } catch (error) {
+                    console.error('Failed to save trip:', error);
+                  }
                   
                   router.replace({
                     pathname: "/(modals)/itinerary-success",
                     params: {
+                      tripName: tripData?.tripName || "Chuyến đi #4",
+                      startDate: tripData?.startDate?.toISOString() || new Date().toISOString(),
+                      startTime: tripData?.startTime?.toISOString() || new Date().toISOString(),
                       destinations: JSON.stringify(destinationsData),
                     },
                   });

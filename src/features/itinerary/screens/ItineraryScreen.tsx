@@ -1,7 +1,8 @@
 // ItineraryScreen.tsx
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +10,21 @@ import { Colors } from '@/shared/constants/theme';
 import { useColorScheme } from '@/shared/hooks/useColorScheme';
 
 type ItineraryTab = 'ongoing' | 'upcoming' | 'past';
+
+interface SavedTrip {
+  id: string;
+  tripName: string;
+  startDate: string;
+  startTime: string;
+  destinations: Array<{
+    id: string;
+    name: string;
+    thumbnail: string;
+    order: number;
+  }>;
+  createdAt: string;
+  status: ItineraryTab;
+}
 
 const TABS: { key: ItineraryTab; label: string }[] = [
     { key: 'ongoing', label: 'Đang diễn ra' },
@@ -22,6 +38,38 @@ export function ItineraryScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme] as (typeof Colors)['light'];
     const [activeTab, setActiveTab] = useState<ItineraryTab>('ongoing');
+    const [trips, setTrips] = useState<SavedTrip[]>([]);
+    const [showNewTripBanner, setShowNewTripBanner] = useState(false);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadTrips();
+        }, [])
+    );
+
+    const loadTrips = async () => {
+        try {
+            const tripsJson = await AsyncStorage.getItem('@trips');
+            if (tripsJson) {
+                const loadedTrips: SavedTrip[] = JSON.parse(tripsJson);
+                setTrips(loadedTrips);
+                
+                // Check if there's a newly created trip (within last 5 seconds)
+                const now = Date.now();
+                const hasNewTrip = loadedTrips.some(trip => {
+                    const createdAt = new Date(trip.createdAt).getTime();
+                    return now - createdAt < 5000; // 5 seconds
+                });
+                setShowNewTripBanner(hasNewTrip);
+            }
+        } catch (error) {
+            console.error('Failed to load trips:', error);
+        }
+    };
+
+    const filteredTrips = useMemo(() => {
+        return trips.filter(trip => trip.status === activeTab);
+    }, [trips, activeTab]);
 
     const tabStyles = useMemo(() => ({
         activeBg: colors.info,
@@ -32,6 +80,122 @@ export function ItineraryScreen() {
     }), [colors]);
 
     const renderContent = () => {
+        // Show trip list if there are trips for this tab
+        if (filteredTrips.length > 0) {
+            return (
+                <View>
+                    {/* New Trip Banner */}
+                    {showNewTripBanner && activeTab === 'ongoing' && (
+                        <View style={[styles.bannerCard, { backgroundColor: '#E3F2FD', borderColor: '#2196F3' }]}>
+                            <Ionicons name="information-circle" size={20} color="#2196F3" />
+                            <View style={{ flex: 1 }}>
+                                <Text style={[styles.bannerTitle, { color: '#1976D2' }]}>
+                                    Lịch trình mới tạo gần đây
+                                </Text>
+                                <Text style={[styles.bannerSubtitle, { color: '#1976D2' }]}>
+                                    Đã calo • {new Date().toLocaleDateString('vi-VN')} • 1 điểm đến
+                                </Text>
+                                <Pressable onPress={() => setShowNewTripBanner(false)}>
+                                    <Text style={[styles.bannerLink, { color: '#2196F3' }]}>
+                                        Xem lại lịch trình
+                                    </Text>
+                                </Pressable>
+                            </View>
+                            <Pressable onPress={() => setShowNewTripBanner(false)}>
+                                <Ionicons name="close" size={20} color="#1976D2" />
+                            </Pressable>
+                        </View>
+                    )}
+
+                    {/* Trip List Header */}
+                    <View style={styles.listHeader}>
+                        <Text style={[styles.listHeaderTitle, { color: colors.text }]}>
+                            Danh sách chuyến đi
+                        </Text>
+                        <Pressable style={styles.aiButton}>
+                            <Ionicons name="sparkles" size={16} color="#FF6B6B" />
+                            <Text style={[styles.aiButtonText, { color: colors.info }]}>
+                                Gửi ý bảng AI
+                            </Text>
+                        </Pressable>
+                    </View>
+
+                    {/* Trip Cards */}
+                    {filteredTrips.map((trip) => {
+                        const tripDate = new Date(trip.startDate);
+                        const tripTime = new Date(trip.startTime);
+                        
+                        return (
+                            <Pressable
+                                key={trip.id}
+                                style={[styles.tripCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                                onPress={() => router.push({
+                                    pathname: "/(modals)/itinerary-detail" as any,
+                                    params: {
+                                        tripName: trip.tripName,
+                                        startDate: trip.startDate,
+                                        startTime: trip.startTime,
+                                        destinations: JSON.stringify(trip.destinations),
+                                    }
+                                })}
+                            >
+                                <View style={styles.tripCardHeader}>
+                                    <Text style={[styles.tripCardTitle, { color: colors.text }]}>
+                                        {trip.tripName}
+                                    </Text>
+                                    <View style={[styles.statusBadge, { backgroundColor: '#FFE5E5' }]}>
+                                        <Text style={[styles.statusBadgeText, { color: '#FF4444' }]}>MỚI</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.tripCardMeta}>
+                                    <View style={styles.metaItem}>
+                                        <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+                                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                                            {tripDate.toLocaleDateString('vi-VN')}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.metaItem}>
+                                        <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                                            {tripTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.tripCardMeta}>
+                                    <View style={styles.metaItem}>
+                                        <Ionicons name="time" size={14} color="#FF9800" />
+                                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                                            ~3.5 giờ
+                                        </Text>
+                                    </View>
+                                    <View style={styles.metaItem}>
+                                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                                            • {trip.destinations.length} điểm đến
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.tripCardMeta}>
+                                    <Ionicons name="location" size={14} color="#4CAF50" />
+                                    <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                                        Vị trí hiện tại
+                                    </Text>
+                                </View>
+
+                                <Pressable style={[styles.viewButton, { backgroundColor: colors.info }]}>
+                                    <Ionicons name="eye-outline" size={16} color="#FFFFFF" />
+                                    <Text style={styles.viewButtonText}>Xem lại lịch trình</Text>
+                                </Pressable>
+                            </Pressable>
+                        );
+                    })}
+                </View>
+            );
+        }
+
+        // Empty states
         if (activeTab === 'upcoming') {
             return (
                 <View style={styles.emptyContainer}>
@@ -153,6 +317,14 @@ export function ItineraryScreen() {
 
                 {renderContent()}
             </ScrollView>
+
+            {/* Floating Action Button */}
+            <Pressable
+                style={[styles.fab, { backgroundColor: colors.info }]}
+                onPress={() => router.push('/(modals)/create-itinerary')}
+            >
+                <Ionicons name="add" size={28} color="#FFFFFF" />
+            </Pressable>
         </SafeAreaView>
     );
 }
@@ -267,5 +439,116 @@ const styles = StyleSheet.create({
         borderRadius: 40,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    bannerCard: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginBottom: 16,
+        gap: 10,
+    },
+    bannerTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    bannerSubtitle: {
+        fontSize: 12,
+        marginBottom: 4,
+    },
+    bannerLink: {
+        fontSize: 12,
+        fontWeight: '600',
+        textDecorationLine: 'underline',
+    },
+    listHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+    listHeaderTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    aiButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    aiButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    tripCard: {
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginBottom: 12,
+        gap: 8,
+    },
+    tripCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    tripCardTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        flex: 1,
+    },
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8,
+    },
+    statusBadgeText: {
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    tripCardMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+    },
+    metaItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    metaText: {
+        fontSize: 13,
+    },
+    viewButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 10,
+        borderRadius: 8,
+        marginTop: 4,
+    },
+    viewButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    fab: {
+        position: 'absolute',
+        right: 20,
+        bottom: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
     },
 });

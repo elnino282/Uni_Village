@@ -4,6 +4,7 @@
 
 // Screens
 export { CreateItineraryScreen } from './screens/CreateItineraryScreen';
+export { ItineraryDetailScreen } from './screens/ItineraryDetailScreen';
 export { ItineraryScreen } from './screens/ItineraryScreen';
 export { default as ItinerarySuccessScreen } from './screens/ItinerarySuccessScreen';
 export { SelectDestinationsScreen } from './screens/SelectDestinationsScreen';
