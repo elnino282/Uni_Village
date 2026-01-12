@@ -5,6 +5,29 @@ import type { CommunityPost, CommunityPostsResponse } from '../types';
  */
 export const MOCK_POSTS: CommunityPost[] = [
   {
+    id: 'post-channel-invite',
+    author: {
+      id: 'user-linh-chi',
+      displayName: 'Linh Chi',
+      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face',
+    },
+    content: 'Channel Cà Phê Homestay đang tìm thêm thành viên! Nơi chia sẻ những quán cafe phong cách ấm cúng, vintage ở làng đại học 🏡☕',
+    locations: [],
+    likesCount: 42,
+    commentsCount: 15,
+    sharesCount: 8,
+    isLiked: false,
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    channelInvite: {
+      channelId: 'coffee-homestay',
+      name: 'Cà Phê Homestay',
+      emoji: '🏡',
+      description: 'Khám phá những quán cafe phong cách homestay, ấm cúng',
+      memberCount: 856,
+    },
+  },
+  {
     id: '1',
     author: {
       id: 'user-1',
@@ -71,12 +94,12 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export const communityService = {
   getPosts: async (params: { page: number; limit: number }): Promise<CommunityPostsResponse> => {
     await delay(500); // Simulate network delay
-    
+
     const { page, limit } = params;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
     const paginatedData = MOCK_POSTS.slice(startIndex, endIndex);
-    
+
     return {
       data: paginatedData,
       pagination: {
