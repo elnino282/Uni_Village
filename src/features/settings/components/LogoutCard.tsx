@@ -7,6 +7,7 @@ import { BorderRadius, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 // Settings-specific danger colors
@@ -30,20 +31,21 @@ interface LogoutCardProps {
 }
 
 export function LogoutCard({ onLogout }: LogoutCardProps) {
+    const { t } = useTranslation();
     const colorScheme = useColorScheme();
     const dangerColors = DANGER_COLORS[colorScheme];
 
     const handlePress = () => {
         Alert.alert(
-            'Đăng xuất',
-            'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?',
+            t('settings.rows.logout'),
+            t('settings.logoutConfirm'),
             [
                 {
-                    text: 'Hủy',
+                    text: t('common.cancel'),
                     style: 'cancel',
                 },
                 {
-                    text: 'Đăng xuất',
+                    text: t('settings.rows.logout'),
                     style: 'destructive',
                     onPress: onLogout,
                 },
@@ -78,10 +80,10 @@ export function LogoutCard({ onLogout }: LogoutCardProps) {
             {/* Text Content */}
             <View style={styles.textContainer}>
                 <Text style={[styles.title, { color: dangerColors.text }]}>
-                    Đăng xuất
+                    {t('settings.rows.logout')}
                 </Text>
                 <Text style={[styles.subtitle, { color: dangerColors.text }]}>
-                    Thoát khỏi tài khoản
+                    {t('settings.logoutDesc')}
                 </Text>
             </View>
         </Pressable>
