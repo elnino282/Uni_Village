@@ -1,15 +1,15 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-    Image,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -25,6 +25,9 @@ interface Destination {
   time?: string;
   isCheckedIn?: boolean;
   isSkipped?: boolean;
+  checkedInAt?: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface TripData {
@@ -44,10 +47,19 @@ export function ActiveTripScreen() {
 
   const [tripData, setTripData] = useState<TripData | null>(null);
   const [showEndTripModal, setShowEndTripModal] = useState(false);
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
 
   useEffect(() => {
     loadTripData();
   }, [params.tripId]);
+
+  // Reload data when screen is focused (e.g., returning from add destinations)
+  useFocusEffect(
+    useCallback(() => {
+      loadTripData();
+    }, [params.tripId])
+  );
 
   const loadTripData = async () => {
     try {
@@ -103,9 +115,19 @@ export function ActiveTripScreen() {
 
   const handleCheckIn = async (destinationId: string) => {
     if (!tripData) return;
+    
+    const destination = tripData.destinations.find(d => d.id === destinationId);
+    if (destination) {
+      setSelectedDestination(destination);
+      setShowCheckInModal(true);
+    }
+  };
+
+  const confirmCheckIn = async () => {
+    if (!tripData || !selectedDestination) return;
 
     const updatedDestinations = tripData.destinations.map(d => 
-      d.id === destinationId ? { ...d, isCheckedIn: true } : d
+      d.id === selectedDestination.id ? { ...d, isCheckedIn: true, checkedInAt: new Date().toISOString() } : d
     );
 
     setTripData({
@@ -126,6 +148,9 @@ export function ActiveTripScreen() {
     } catch (error) {
       console.error('Failed to update check-in:', error);
     }
+
+    setShowCheckInModal(false);
+    setSelectedDestination(null);
   };
 
   const handleEndTrip = () => {
@@ -316,7 +341,18 @@ export function ActiveTripScreen() {
                         <View style={styles.actionButtons}>
                           <Pressable 
                             style={[styles.actionButton, { backgroundColor: colors.info }]}
-                            onPress={() => {/* Navigate to map */}}
+                            onPress={() => {
+                              // Navigate to NavigationScreen with destination info
+                              router.push({
+                                pathname: "/(modals)/navigation" as any,
+                                params: {
+                                  destinationName: dest.name,
+                                  destinationImage: dest.thumbnail,
+                                  destinationLat: dest.lat?.toString() || '10.7630',
+                                  destinationLng: dest.lng?.toString() || '106.6830',
+                                }
+                              });
+                            }}
                           >
                             <Ionicons name="navigate" size={16} color="#FFFFFF" />
                             <Text style={styles.actionButtonText}>Chỉ đường</Text>
@@ -354,8 +390,32 @@ export function ActiveTripScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Button */}
+      {/* Bottom Buttons */}
       <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+        {/* Add Destinations Button */}
+        <Pressable 
+          style={[styles.addButton, { backgroundColor: colors.background, borderColor: colors.info, borderWidth: 1 }]}
+          onPress={() => {
+            if (tripData) {
+              router.push({
+                pathname: "/(modals)/select-destinations" as any,
+                params: {
+                  tripId: tripData.id,
+                  tripName: tripData.tripName,
+                  startDate: tripData.startDate,
+                  startTime: tripData.startTime,
+                  existingDestinations: JSON.stringify(tripData.destinations),
+                  isAddingToExisting: 'true',
+                }
+              });
+            }
+          }}
+        >
+          <Ionicons name="add-circle-outline" size={20} color={colors.info} />
+          <Text style={[styles.addButtonText, { color: colors.info }]}>Thêm địa điểm mới</Text>
+        </Pressable>
+
+        {/* End Trip Button */}
         <Pressable 
           style={[styles.endButton, { backgroundColor: allCompleted ? '#4CAF50' : '#F44336' }]}
           onPress={handleEndTrip}
@@ -363,6 +423,89 @@ export function ActiveTripScreen() {
           <Text style={styles.endButtonText}>{allCompleted ? 'Hoàn thành & Đóng' : 'Kết thúc chuyến đi'}</Text>
         </Pressable>
       </View>
+
+      {/* Check-in Confirmation Modal */}
+      {showCheckInModal && selectedDestination && (
+        <Modal
+          visible={showCheckInModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowCheckInModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable 
+              style={StyleSheet.absoluteFill} 
+              onPress={() => setShowCheckInModal(false)}
+            />
+            <View style={[styles.checkInModalContent, { backgroundColor: colors.card }]}>
+              <Pressable 
+                onPress={() => setShowCheckInModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={colors.icon} />
+              </Pressable>
+
+              <Text style={[styles.checkInModalTitle, { color: colors.text }]}>
+                Check-in tại địa điểm
+              </Text>
+
+              <View style={styles.checkInDestinationCard}>
+                <Image
+                  source={{ uri: selectedDestination.thumbnail }}
+                  style={styles.checkInDestinationImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.checkInDestinationInfo}>
+                  <Text style={[styles.checkInDestinationName, { color: colors.text }]}>
+                    {selectedDestination.name}
+                  </Text>
+                  <View style={styles.checkInBadgeRow}>
+                    <View style={[styles.checkInBadge, { backgroundColor: '#E3F2FD' }]}>
+                      <Text style={[styles.checkInBadgeText, { color: '#2196F3' }]}>
+                        Cà phê
+                      </Text>
+                    </View>
+                    <View style={[styles.checkInBadge, { backgroundColor: '#FFE5E5' }]}>
+                      <Text style={[styles.checkInBadgeText, { color: '#FF4444' }]}>
+                        Nổi bật
+                      </Text>
+                    </View>
+                  </View>
+                  {selectedDestination.rating && (
+                    <View style={styles.checkInRatingRow}>
+                      <Ionicons name="star" size={16} color="#FFB800" />
+                      <Text style={[styles.checkInRatingText, { color: colors.text }]}>
+                        {selectedDestination.rating}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <Text style={[styles.checkInNote, { color: colors.textSecondary }]}>
+                Bạn đang ở địa điểm này. Xác nhận check-in?
+              </Text>
+
+              <Pressable
+                style={[styles.checkInConfirmButton, { backgroundColor: '#4CAF50' }]}
+                onPress={confirmCheckIn}
+              >
+                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                <Text style={styles.checkInConfirmText}>Check-in tại đây</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.checkInCancelButton}
+                onPress={() => setShowCheckInModal(false)}
+              >
+                <Text style={[styles.checkInCancelText, { color: colors.textSecondary }]}>
+                  Huỷ
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* End Trip Confirmation Modal */}
       <Modal
@@ -487,7 +630,7 @@ const styles = StyleSheet.create({
   timelineContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 100,
+    paddingBottom: 140,
   },
   timelineItem: {
     flexDirection: "row",
@@ -627,6 +770,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  addButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
   endButton: {
     paddingVertical: 14,
@@ -678,6 +834,99 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  checkInModalContent: {
+    width: "90%",
+    maxWidth: 400,
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 10,
+  },
+  modalCloseButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    zIndex: 1,
+    padding: 4,
+  },
+  checkInModalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  checkInDestinationCard: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  checkInDestinationImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  checkInDestinationInfo: {
+    flex: 1,
+    gap: 6,
+  },
+  checkInDestinationName: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  checkInBadgeRow: {
+    flexDirection: "row",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  checkInBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  checkInBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  checkInRatingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  checkInRatingText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  checkInNote: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  checkInConfirmButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  checkInConfirmText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  checkInCancelButton: {
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  checkInCancelText: {
     fontSize: 15,
     fontWeight: "600",
   },
