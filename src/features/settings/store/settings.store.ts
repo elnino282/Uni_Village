@@ -1,9 +1,11 @@
 /**
  * Settings Store
- * Zustand store for app settings state
+ * Zustand store for app settings state with AsyncStorage persistence
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type LanguageCode = 'vi' | 'en';
 
@@ -23,16 +25,24 @@ interface SettingsActions {
 
 interface SettingsStore extends SettingsState, SettingsActions { }
 
-export const useSettingsStore = create<SettingsStore>((set) => ({
-    // Initial state
-    darkMode: false,
-    privatePosts: false,
-    language: 'vi',
+export const useSettingsStore = create<SettingsStore>()(
+    persist(
+        (set) => ({
+            // Initial state
+            darkMode: false,
+            privatePosts: false,
+            language: 'vi',
 
-    // Actions
-    setDarkMode: (value) => set({ darkMode: value }),
-    setPrivatePosts: (value) => set({ privatePosts: value }),
-    setLanguage: (value) => set({ language: value }),
-    toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
-    togglePrivatePosts: () => set((state) => ({ privatePosts: !state.privatePosts })),
-}));
+            // Actions
+            setDarkMode: (value) => set({ darkMode: value }),
+            setPrivatePosts: (value) => set({ privatePosts: value }),
+            setLanguage: (value) => set({ language: value }),
+            toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
+            togglePrivatePosts: () => set((state) => ({ privatePosts: !state.privatePosts })),
+        }),
+        {
+            name: 'uni-village-settings',
+            storage: createJSONStorage(() => AsyncStorage),
+        }
+    )
+);
