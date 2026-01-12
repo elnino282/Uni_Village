@@ -1,6 +1,6 @@
 import { Colors } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
-import { router } from 'expo-router';
+import { Href, router } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,8 +33,7 @@ export function ProfileScreen() {
     };
 
     const handleSettingsPress = () => {
-        // TODO: Navigate to settings screen
-        console.log('Settings pressed');
+        router.push('/settings' as Href);
     };
 
     const handleEditProfilePress = () => {
