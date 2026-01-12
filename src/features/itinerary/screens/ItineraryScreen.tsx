@@ -131,7 +131,10 @@ export function ItineraryScreen() {
                         <Text style={[styles.listHeaderTitle, { color: colors.text }]}>
                             Danh sách chuyến đi
                         </Text>
-                        <Pressable style={styles.aiButton}>
+                        <Pressable 
+                            style={styles.aiButton}
+                            onPress={() => router.push("/(modals)/ai-itinerary" as any)}
+                        >
                             <Ionicons name="sparkles" size={16} color="#FF6B6B" />
                             <Text style={[styles.aiButtonText, { color: colors.info }]}>
                                 Gợi ý bằng AI
@@ -153,6 +156,12 @@ export function ItineraryScreen() {
                                     if (trip.status === 'ongoing') {
                                         router.push({
                                             pathname: "/(modals)/active-trip" as any,
+                                            params: { tripId: trip.id }
+                                        });
+                                    } else if (trip.status === 'past') {
+                                        // If trip is past, go to completed trip screen
+                                        router.push({
+                                            pathname: "/(modals)/completed-trip" as any,
                                             params: { tripId: trip.id }
                                         });
                                     } else {
@@ -283,7 +292,10 @@ export function ItineraryScreen() {
                     >
                         <Text style={styles.primaryButtonText}>Tạo chuyến đi mới</Text>
                     </Pressable>
-                    <Pressable style={[styles.secondaryButton, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                    <Pressable 
+                        style={[styles.secondaryButton, { borderColor: colors.border, backgroundColor: colors.background }]}
+                        onPress={() => router.push("/(modals)/ai-itinerary" as any)}
+                    >
                         <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Gợi ý lịch trình bằng AI</Text>
                     </Pressable>
                     <View style={styles.suggestionRow}>

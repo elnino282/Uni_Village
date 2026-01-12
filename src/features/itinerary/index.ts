@@ -4,10 +4,12 @@
 
 // Screens
 export { ActiveTripScreen } from './screens/ActiveTripScreen';
+export { AIItineraryWizardScreen } from './screens/AIItineraryWizardScreen';
 export { CreateItineraryScreen } from './screens/CreateItineraryScreen';
 export { ItineraryDetailScreen } from './screens/ItineraryDetailScreen';
 export { ItineraryScreen } from './screens/ItineraryScreen';
 export { default as ItinerarySuccessScreen } from './screens/ItinerarySuccessScreen';
+export { NavigationScreen } from './screens/NavigationScreen';
 export { SelectDestinationsScreen } from './screens/SelectDestinationsScreen';
 
 // Components
