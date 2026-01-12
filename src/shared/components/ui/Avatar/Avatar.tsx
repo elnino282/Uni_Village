@@ -6,7 +6,7 @@
 import { Image } from 'expo-image';
 import { ImageStyle, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
-export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 
 export interface AvatarProps {
     source?: string | null;
@@ -21,6 +21,7 @@ const SIZE_MAP: Record<AvatarSize, number> = {
     md: 40,
     lg: 56,
     xl: 80,
+    xxl: 96,
 };
 
 const FONT_SIZE_MAP: Record<AvatarSize, number> = {
@@ -29,6 +30,7 @@ const FONT_SIZE_MAP: Record<AvatarSize, number> = {
     md: 14,
     lg: 20,
     xl: 28,
+    xxl: 36,
 };
 
 function getInitials(name?: string): string {
