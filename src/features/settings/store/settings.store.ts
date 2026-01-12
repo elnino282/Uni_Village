@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import i18n from '@/lib/i18n';
 
 export type LanguageCode = 'vi' | 'en';
 
@@ -36,13 +37,21 @@ export const useSettingsStore = create<SettingsStore>()(
             // Actions
             setDarkMode: (value) => set({ darkMode: value }),
             setPrivatePosts: (value) => set({ privatePosts: value }),
-            setLanguage: (value) => set({ language: value }),
+            setLanguage: (value) => {
+                i18n.changeLanguage(value);
+                set({ language: value });
+            },
             toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
             togglePrivatePosts: () => set((state) => ({ privatePosts: !state.privatePosts })),
         }),
         {
             name: 'uni-village-settings',
             storage: createJSONStorage(() => AsyncStorage),
+            onRehydrateStorage: () => (state) => {
+                if (state) {
+                   i18n.changeLanguage(state.language);
+                }
+            },
         }
     )
 );
