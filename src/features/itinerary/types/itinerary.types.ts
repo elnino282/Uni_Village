@@ -61,3 +61,22 @@ export function calculateItineraryDuration(itinerary: Itinerary): number | null 
 export function getItineraryDestinationsCount(itinerary: Itinerary): number {
     return itinerary.stops?.length ?? itinerary.locations?.length ?? 0;
 }
+
+export interface ItineraryShareStop {
+    id: string;
+    time: string;
+    name: string;
+    address: string;
+    note?: string;
+    order: number;
+}
+
+export interface ItineraryShareData {
+    id: string;
+    dayLabel: string;
+    date: string;
+    stopsCount: number;
+    timeRange: string;
+    tags: string[];
+    stops: ItineraryShareStop[];
+}
