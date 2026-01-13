@@ -15,6 +15,8 @@ export { SelectDestinationsScreen } from './screens/SelectDestinationsScreen';
 // Components
 export { DestinationMap } from './components/DestinationMap';
 export type { DestinationMapRef } from './components/DestinationMap';
+export { ItineraryDetailsSheet } from './components/ItineraryDetailsSheet';
+export { ItineraryShareCard } from './components/ItineraryShareCard';
 export { SelectDestinationsMap } from './components/SelectDestinationsMap';
 export type { SelectDestinationsMapRef } from './components/SelectDestinationsMap';
 
@@ -24,6 +26,9 @@ export { useItineraries } from './hooks/useItineraries';
 // Services
 export { fetchItineraries } from './services/itineraryService';
 
+// Mock Data
+export { MOCK_ITINERARY_SHARE } from './mock/itineraryShareMock';
+
 // Types
-export type { Itinerary, ItineraryStatus } from './types/itinerary.types';
+export type { Itinerary, ItineraryShareData, ItineraryShareStop, ItineraryStatus } from './types/itinerary.types';
 
