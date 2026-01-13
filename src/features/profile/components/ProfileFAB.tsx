@@ -23,6 +23,9 @@ export function ProfileFAB({ onPress, absolute = true }: ProfileFABProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
 
+    // In dark mode, tint is white, so we use background (dark) for the icon
+    const iconColor = colorScheme === 'dark' ? colors.background : '#fff';
+
     return (
         <View style={absolute ? styles.containerAbsolute : styles.containerInline}>
             <Pressable
@@ -35,9 +38,9 @@ export function ProfileFAB({ onPress, absolute = true }: ProfileFABProps) {
                 accessibilityLabel="Add friend"
                 accessibilityRole="button"
             >
-                <MaterialIcons name="person" size={ms(28)} color="#fff" />
+                <MaterialIcons name="person" size={ms(28)} color={iconColor} />
                 {/* Plus badge overlay */}
-                <View style={styles.badge}>
+                <View style={[styles.badge, { borderColor: colors.background }]}>
                     <MaterialIcons name="add" size={ms(14)} color="#fff" />
                 </View>
             </Pressable>
@@ -78,6 +81,5 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 2,
-        borderColor: '#fff',
     },
 });

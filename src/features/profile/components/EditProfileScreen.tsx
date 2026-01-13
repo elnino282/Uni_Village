@@ -10,12 +10,11 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
-    Pressable,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
-    View,
+    View
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -51,8 +50,6 @@ export function EditProfileScreen() {
             avatarUrl: mockProfile.avatarUrl,
             coverUrl: mockProfile.coverUrl,
             interests: [],
-            links: [],
-            podcastUrl: '',
             isPrivate: false,
         },
     });
@@ -137,13 +134,7 @@ export function EditProfileScreen() {
         [watchedInterests, setValue]
     );
 
-    const handleLinksPress = useCallback(() => {
-        Alert.alert('Liên kết', 'Tính năng đang phát triển');
-    }, []);
 
-    const handlePodcastPress = useCallback(() => {
-        Alert.alert('Podcast', 'Tính năng đang phát triển');
-    }, []);
 
     const handlePrivacyPress = useCallback(() => {
         setValue('isPrivate', !watchedIsPrivate, { shouldDirty: true });
@@ -270,25 +261,7 @@ export function EditProfileScreen() {
                                     />
                                 </EditProfileFormSection>
 
-                                {/* Links Section */}
-                                <EditProfileFormRow
-                                    label="Liên kết"
-                                    onPress={handleLinksPress}
-                                />
 
-                                {/* Podcast Section */}
-                                <EditProfileFormSection label="Podcast" showBorder>
-                                    <Pressable onPress={handlePodcastPress}>
-                                        <Text
-                                            style={[
-                                                styles.addActionText,
-                                                { color: colors.textSecondary },
-                                            ]}
-                                        >
-                                            + Liên kết đến podcast của bạn
-                                        </Text>
-                                    </Pressable>
-                                </EditProfileFormSection>
 
                                 {/* Privacy Section */}
                                 <View style={styles.privacySection}>

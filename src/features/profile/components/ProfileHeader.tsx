@@ -1,9 +1,6 @@
-/**
- * ProfileHeader Component
- */
-
 import { Avatar, Button } from '@/shared/components/ui';
 import { Colors } from '@/shared/constants';
+import { useColorScheme } from '@/shared/hooks';
 import { formatCompact } from '@/shared/utils';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
@@ -22,8 +19,11 @@ export function ProfileHeader({
     onEditPress,
     onFollowPress,
 }: ProfileHeaderProps) {
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme];
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Cover Image */}
             {profile.coverUrl ? (
                 <Image
@@ -32,7 +32,7 @@ export function ProfileHeader({
                     contentFit="cover"
                 />
             ) : (
-                <View style={styles.coverPlaceholder} />
+                <View style={[styles.coverPlaceholder, { backgroundColor: colors.muted }]} />
             )}
 
             {/* Avatar */}
@@ -41,30 +41,30 @@ export function ProfileHeader({
                     source={profile.avatarUrl}
                     name={profile.displayName}
                     size="xl"
-                    style={styles.avatar}
+                    style={[styles.avatar, { borderColor: colors.background }]}
                 />
             </View>
 
             {/* Info */}
             <View style={styles.info}>
-                <Text style={styles.displayName}>{profile.displayName}</Text>
-                <Text style={styles.username}>@{profile.username}</Text>
+                <Text style={[styles.displayName, { color: colors.textPrimary }]}>{profile.displayName}</Text>
+                <Text style={[styles.username, { color: colors.icon }]}>@{profile.username}</Text>
 
-                {profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+                {profile.bio && <Text style={[styles.bio, { color: colors.textPrimary }]}>{profile.bio}</Text>}
 
                 {/* Stats */}
                 <View style={styles.stats}>
                     <View style={styles.stat}>
-                        <Text style={styles.statValue}>{formatCompact(profile.postsCount)}</Text>
-                        <Text style={styles.statLabel}>Posts</Text>
+                        <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCompact(profile.postsCount)}</Text>
+                        <Text style={[styles.statLabel, { color: colors.icon }]}>Posts</Text>
                     </View>
                     <View style={styles.stat}>
-                        <Text style={styles.statValue}>{formatCompact(profile.followersCount)}</Text>
-                        <Text style={styles.statLabel}>Followers</Text>
+                        <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCompact(profile.followersCount)}</Text>
+                        <Text style={[styles.statLabel, { color: colors.icon }]}>Followers</Text>
                     </View>
                     <View style={styles.stat}>
-                        <Text style={styles.statValue}>{formatCompact(profile.followingCount)}</Text>
-                        <Text style={styles.statLabel}>Following</Text>
+                        <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCompact(profile.followingCount)}</Text>
+                        <Text style={[styles.statLabel, { color: colors.icon }]}>Following</Text>
                     </View>
                 </View>
 
@@ -91,7 +91,7 @@ export function ProfileHeader({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#fff',
+        // Dynamic backgroundColor applied inline
     },
     cover: {
         height: 120,
@@ -99,7 +99,6 @@ const styles = StyleSheet.create({
     },
     coverPlaceholder: {
         height: 120,
-        backgroundColor: Colors.light.muted,
     },
     avatarContainer: {
         marginTop: -40,
@@ -107,7 +106,6 @@ const styles = StyleSheet.create({
     },
     avatar: {
         borderWidth: 3,
-        borderColor: '#fff',
     },
     info: {
         padding: 16,
@@ -116,15 +114,12 @@ const styles = StyleSheet.create({
     displayName: {
         fontSize: 20,
         fontWeight: '700',
-        color: Colors.light.text,
     },
     username: {
         fontSize: 14,
-        color: Colors.light.icon,
     },
     bio: {
         fontSize: 14,
-        color: Colors.light.text,
         lineHeight: 20,
     },
     stats: {
@@ -139,10 +134,8 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.light.text,
     },
     statLabel: {
         fontSize: 12,
-        color: Colors.light.icon,
     },
 });

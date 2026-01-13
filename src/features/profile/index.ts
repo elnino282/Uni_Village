@@ -3,7 +3,6 @@
  */
 
 // Components
-export { EditProfileAvatarFAB } from './components/EditProfileAvatarFAB';
 export { EditProfileFormRow } from './components/EditProfileFormRow';
 export { EditProfileFormSection } from './components/EditProfileFormSection';
 export { EditProfileHeader } from './components/EditProfileHeader';
@@ -17,12 +16,12 @@ export { ProfileHeader } from './components/ProfileHeader';
 export { ProfileHeaderIcons } from './components/ProfileHeaderIcons';
 export { ProfileInfo } from './components/ProfileInfo';
 export { ProfilePostCard } from './components/ProfilePostCard';
-export { PublicProfileHeader } from './components/PublicProfileHeader';
-export { PublicProfileScreen } from './components/PublicProfileScreen';
-export { PublicProfileTabs } from './components/PublicProfileTabs';
 export { ProfileScreen } from './components/ProfileScreen';
 export { ProfileTabs } from './components/ProfileTabs';
 export type { ProfileTabKey } from './components/ProfileTabs';
+export { PublicProfileHeader } from './components/PublicProfileHeader';
+export { PublicProfileScreen } from './components/PublicProfileScreen';
+export { PublicProfileTabs } from './components/PublicProfileTabs';
 
 // Hooks
 export { useProfile } from './hooks/useProfile';
@@ -35,19 +34,17 @@ export type { EditProfileFormData } from './schemas';
 
 // Services
 export { getMockProfile, mockProfile } from './services/mockProfile';
-export { fetchPublicProfile, getMockPublicProfile } from './services/mockPublicProfile';
 export { fetchProfilePosts, getMockProfilePosts } from './services/mockProfilePosts';
+export { fetchPublicProfile, getMockPublicProfile } from './services/mockPublicProfile';
 export { fetchSavedPosts, getMockSavedPosts } from './services/mockSavedPosts';
 
 // Types
 export type {
   Profile,
-  ProfileLink,
-  PublicProfile,
-  PublicProfileTab,
-  ProfilePost,
+  ProfileLink, ProfilePost,
   ProfilePostAuthor,
   ProfilePostLocation,
-  ProfilePostReactions,
-  UpdateProfileRequest,
+  ProfilePostReactions, PublicProfile,
+  PublicProfileTab, UpdateProfileRequest
 } from './types';
+
