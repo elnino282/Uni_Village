@@ -1,8 +1,11 @@
 /**
  * Card Component
  * Base card container with variants
+ * Supports light/dark mode theming
  */
 
+import { Colors } from '@/shared/constants';
+import { useColorScheme } from '@/shared/hooks';
 import React from 'react';
 import { Pressable, StyleSheet, View, ViewProps, ViewStyle } from 'react-native';
 
@@ -24,17 +27,40 @@ export function Card({
     children,
     ...viewProps
 }: CardProps) {
-    const cardStyle = [
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme];
+
+    // Dynamic variant styles based on color scheme
+    const variantStyles: Record<CardVariant, ViewStyle> = {
+        elevated: {
+            backgroundColor: colors.card,
+            shadowColor: colorScheme === 'dark' ? '#000' : '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: colorScheme === 'dark' ? 0.3 : 0.1,
+            shadowRadius: 8,
+            elevation: 4,
+        },
+        outlined: {
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        filled: {
+            backgroundColor: colors.muted,
+        },
+    };
+
+    const cardStyle: ViewStyle[] = [
         styles.base,
-        styles[variant],
-        styles[`padding_${padding}`],
-        style,
-    ];
+        variantStyles[variant],
+        styles[`padding_${padding}` as keyof typeof styles] as ViewStyle,
+        style as ViewStyle,
+    ].filter(Boolean) as ViewStyle[];
 
     if (onPress) {
         return (
             <Pressable
-                style={({ pressed }) => [cardStyle, pressed && styles.pressed]}
+                style={({ pressed }) => [...cardStyle, pressed && styles.pressed]}
                 onPress={onPress}
                 {...viewProps}
             >
@@ -54,23 +80,6 @@ const styles = StyleSheet.create({
     base: {
         borderRadius: 16,
         overflow: 'hidden',
-    },
-    // Variants
-    elevated: {
-        backgroundColor: '#fff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    outlined: {
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    filled: {
-        backgroundColor: '#f8fafc',
     },
     // Padding
     padding_none: {

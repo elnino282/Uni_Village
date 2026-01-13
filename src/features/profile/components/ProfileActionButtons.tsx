@@ -26,12 +26,13 @@ export function ProfileActionButtons({
             <Pressable
                 style={({ pressed }) => [
                     styles.button,
-                    { backgroundColor: colors.tint },
+                    styles.secondaryButton,
+                    { borderColor: colors.tint },
                     pressed && styles.pressed,
                 ]}
                 onPress={onEditPress}
             >
-                <Text style={styles.buttonText} numberOfLines={1}>
+                <Text style={[styles.buttonText, { color: colors.tint }]} numberOfLines={1}>
                     Chỉnh sửa trang cá nhân
                 </Text>
             </Pressable>
@@ -73,7 +74,6 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
     },
     buttonText: {
-        color: '#fff',
         fontSize: ms(13),
         fontWeight: '600',
         textAlign: 'center',

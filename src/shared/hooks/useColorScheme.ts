@@ -1,12 +1,15 @@
 /**
  * useColorScheme Hook
  * Returns the current color scheme (light/dark)
+ * User preference from settings store takes full control
  */
 
-import { useColorScheme as useNativeColorScheme } from 'react-native';
+import { useSettingsStore } from '@/features/settings/store/settings.store';
 
 
 export function useColorScheme(): 'light' | 'dark' {
-    const colorScheme = useNativeColorScheme();
-    return (colorScheme === 'dark' ? 'dark' : 'light') as 'light' | 'dark';
+    const darkModeEnabled = useSettingsStore((state) => state.darkMode);
+
+    // User preference fully controls the theme
+    return darkModeEnabled ? 'dark' : 'light';
 }

@@ -26,7 +26,7 @@ export function ProfileTabs({ activeTab, onTabChange }: ProfileTabsProps) {
     const colors = Colors[colorScheme];
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { borderBottomColor: colors.border }]}>
             {TABS.map((tab) => {
                 const isActive = activeTab === tab.key;
                 return (
@@ -64,7 +64,6 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
     },
     tab: {
         flex: 1,
