@@ -1,10 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import React from 'react';
 import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
@@ -40,7 +40,7 @@ export function CommunitySegmentedTabs({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View testID="community-tabs" style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.tabContainer, { backgroundColor: colors.chipBackground }]}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.key;

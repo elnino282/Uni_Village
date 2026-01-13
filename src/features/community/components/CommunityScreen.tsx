@@ -3,15 +3,17 @@ import React, { useCallback, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { ItineraryDetailsSheet } from '@/features/itinerary/components/ItineraryDetailsSheet';
+import type { ItineraryShareData } from '@/features/itinerary/types/itinerary.types';
 import { LoadingScreen } from '@/shared/components/feedback';
 import { Colors, Spacing } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import {
-    useBlockPost,
-    useCommunityPosts,
-    useLikePost,
-    useReportPost,
-    useSavePost,
+  useBlockPost,
+  useCommunityPosts,
+  useLikePost,
+  useReportPost,
+  useSavePost,
 } from '../hooks';
 import type { CommunityPost, CommunityTab, PostLocation } from '../types';
 
@@ -23,28 +25,24 @@ import { MessagesTab } from './MessagesTab';
 import { PostCard } from './PostCard';
 import { PostOverflowMenu } from './PostOverflowMenu';
 
-/**
- * Main Community screen component
- */
 export function CommunityScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const router = useRouter();
 
-  // State
   const [activeTab, setActiveTab] = useState<CommunityTab>('posts');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSheetVisible, setIsSheetVisible] = useState(false);
+  const [selectedItinerary, setSelectedItinerary] = useState<ItineraryShareData | null>(null);
 
-  // React Query hooks
   const { data, isLoading, refetch, isRefetching } = useCommunityPosts();
   const likePostMutation = useLikePost();
   const savePostMutation = useSavePost();
   const reportPostMutation = useReportPost();
   const blockPostMutation = useBlockPost();
 
-  // Handlers
   const handleMenuPress = useCallback((postId: string) => {
     setSelectedPostId(postId);
     setIsMenuOpen(true);
@@ -64,15 +62,6 @@ export function CommunityScreen() {
 
   const handleCommentPress = useCallback(
     (postId: string) => {
-      // Navigate to post detail screen
-      router.push(`/post/${postId}` as any);
-    },
-    [router]
-  );
-
-  const handlePostPress = useCallback(
-    (postId: string) => {
-      // Navigate to post detail screen
       router.push(`/post/${postId}` as any);
     },
     [router]
@@ -80,7 +69,6 @@ export function CommunityScreen() {
 
   const handleLocationPress = useCallback(
     (location: PostLocation) => {
-      // Navigate to map with location
       console.log('Location pressed:', location.name);
     },
     []
@@ -111,6 +99,30 @@ export function CommunityScreen() {
     router.push('/post/create' as any);
   }, [router]);
 
+  const handleViewItineraryDetails = useCallback((itinerary: ItineraryShareData) => {
+    setSelectedItinerary(itinerary);
+    setIsSheetVisible(true);
+  }, []);
+
+  const handleOpenItinerary = useCallback((itinerary: ItineraryShareData) => {
+    setSelectedItinerary(itinerary);
+    setIsSheetVisible(true);
+  }, []);
+
+  const handleCloseSheet = useCallback(() => {
+    setIsSheetVisible(false);
+    setSelectedItinerary(null);
+  }, []);
+
+  const handleOpenMap = useCallback(() => {
+    console.log('Open map for itinerary');
+    handleCloseSheet();
+  }, [handleCloseSheet]);
+
+  const handleSaveItinerary = useCallback(() => {
+    console.log('Save itinerary');
+  }, []);
+
   const renderPostItem = useCallback(
     ({ item }: { item: CommunityPost }) => (
       <PostCard
@@ -119,18 +131,27 @@ export function CommunityScreen() {
         onLikePress={handleLikePress}
         onCommentPress={handleCommentPress}
         onLocationPress={handleLocationPress}
+        onViewItineraryDetails={
+          item.itineraryShare
+            ? () => handleViewItineraryDetails(item.itineraryShare!)
+            : undefined
+        }
+        onOpenItinerary={
+          item.itineraryShare
+            ? () => handleOpenItinerary(item.itineraryShare!)
+            : undefined
+        }
       />
     ),
-    [handleMenuPress, handleLikePress, handleCommentPress, handleLocationPress]
+    [handleMenuPress, handleLikePress, handleCommentPress, handleLocationPress, handleViewItineraryDetails, handleOpenItinerary]
   );
 
   const keyExtractor = useCallback((item: CommunityPost) => item.id, []);
 
-  // Filter posts by search query
   const filteredPosts = data?.data.filter((post) =>
     searchQuery
       ? post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.author.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+      post.author.displayName.toLowerCase().includes(searchQuery.toLowerCase())
       : true
   );
 
@@ -140,7 +161,7 @@ export function CommunityScreen() {
 
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
-      <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
+      <View testID="community-screen" style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
         <CommunityHeader />
 
         <CommunitySegmentedTabs
@@ -180,6 +201,14 @@ export function CommunityScreen() {
               onReport={handleReportPost}
               onBlock={handleBlockPost}
             />
+
+            <ItineraryDetailsSheet
+              isVisible={isSheetVisible}
+              itinerary={selectedItinerary}
+              onClose={handleCloseSheet}
+              onOpenMap={handleOpenMap}
+              onSave={handleSaveItinerary}
+            />
           </>
         ) : (
           <MessagesTab />
@@ -198,6 +227,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingTop: Spacing.sm,
-    paddingBottom: 100, // Space for FAB
+    paddingBottom: 100,
   },
 });

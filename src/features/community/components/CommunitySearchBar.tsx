@@ -23,7 +23,7 @@ export function CommunitySearchBar({
   const colors = Colors[colorScheme];
 
   return (
-    <View style={styles.container}>
+    <View testID="community-search" style={styles.container}>
       <View
         style={[
           styles.inputContainer,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { ItineraryShareCard } from '@/features/itinerary/components/ItineraryShareCard';
 import { ChannelInviteCard } from '@/shared/components/channel';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
@@ -17,11 +18,33 @@ interface PostCardProps {
   onCommentPress: (postId: string) => void;
   onLocationPress?: (location: PostLocation) => void;
   onPress?: (postId: string) => void;
+  onViewItineraryDetails?: () => void;
+  onOpenItinerary?: () => void;
+  onMessage?: () => void;
 }
 
-/**
- * Complete post card component with optional channel invite support
- */
+function TagChips({ tags, colors }: { tags: string[]; colors: { actionBlue: string } }) {
+  if (!tags || tags.length === 0) return null;
+  return (
+    <View style={tagStyles.container}>
+      <Text style={[tagStyles.text, { color: colors.actionBlue }]}>
+        {tags.join(' • ')}
+      </Text>
+    </View>
+  );
+}
+
+const tagStyles = StyleSheet.create({
+  container: {
+    paddingHorizontal: Spacing.cardPadding,
+    paddingTop: Spacing.sm,
+  },
+  text: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.medium,
+  },
+});
+
 export function PostCard({
   post,
   onMenuPress,
@@ -29,6 +52,9 @@ export function PostCard({
   onCommentPress,
   onLocationPress,
   onPress,
+  onViewItineraryDetails,
+  onOpenItinerary,
+  onMessage,
 }: PostCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
@@ -37,13 +63,13 @@ export function PostCard({
     if (onPress) {
       onPress(post.id);
     } else {
-      // Default to comment press for navigation
       onCommentPress(post.id);
     }
   };
 
   return (
     <TouchableOpacity
+      testID="post-card"
       activeOpacity={0.9}
       onPress={handlePress}
       style={[
@@ -60,28 +86,36 @@ export function PostCard({
         onMenuPress={() => onMenuPress(post.id)}
       />
 
-      {/* Post content text */}
+      {post.tags && post.tags.length > 0 && (
+        <TagChips tags={post.tags} colors={colors} />
+      )}
+
       <View style={styles.contentContainer}>
         <Text style={[styles.content, { color: colors.textPrimary }]}>
           {post.content}
         </Text>
       </View>
 
-      {/* Channel invite card (if present) */}
+      {post.itineraryShare && (
+        <ItineraryShareCard
+          itinerary={post.itineraryShare}
+          onViewDetails={onViewItineraryDetails || (() => { })}
+          onOpenItinerary={onOpenItinerary || (() => { })}
+          onMessage={onMessage}
+        />
+      )}
+
       {post.channelInvite && (
         <ChannelInviteCard invite={post.channelInvite} />
       )}
 
-      {/* Post image */}
       {post.imageUrl && <PostMedia imageUrl={post.imageUrl} />}
 
-      {/* Location tags */}
       <PostLocations
         locations={post.locations}
         onLocationPress={onLocationPress}
       />
 
-      {/* Like, comment, and share actions */}
       <PostActions
         likesCount={post.likesCount}
         commentsCount={post.commentsCount}
@@ -96,7 +130,7 @@ export function PostCard({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: BorderRadius.xl, // 16px
+    borderRadius: BorderRadius.xl,
     marginHorizontal: Spacing.screenPadding,
     marginBottom: Spacing.md,
     overflow: 'hidden',
@@ -106,9 +140,8 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
   },
   content: {
-    fontSize: Typography.sizes.base, // 16px
+    fontSize: Typography.sizes.base,
     fontWeight: Typography.weights.normal,
     lineHeight: 26,
   },
 });
-
