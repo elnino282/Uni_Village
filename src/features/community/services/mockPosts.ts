@@ -1,9 +1,28 @@
+import { MOCK_ITINERARY_SHARE } from '@/features/itinerary/mock/itineraryShareMock';
 import type { CommunityPost, CommunityPostsResponse } from '../types';
 
 /**
  * Mock post data matching Figma design
  */
 export const MOCK_POSTS: CommunityPost[] = [
+  {
+    id: 'post-itinerary',
+    author: {
+      id: 'user-minh-chau',
+      displayName: 'Minh Châu',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face',
+    },
+    content: 'Coffee tour cuối tuần này. Ai muốn tham gia nhắn mình nhé ☕',
+    locations: [],
+    likesCount: 24,
+    commentsCount: 8,
+    sharesCount: 3,
+    isLiked: false,
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    tags: ['Lịch trình', 'Cà phê'],
+    itineraryShare: MOCK_ITINERARY_SHARE,
+  },
   {
     id: 'post-channel-invite',
     author: {
@@ -17,7 +36,7 @@ export const MOCK_POSTS: CommunityPost[] = [
     commentsCount: 15,
     sharesCount: 8,
     isLiked: false,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     channelInvite: {
       channelId: 'coffee-homestay',
