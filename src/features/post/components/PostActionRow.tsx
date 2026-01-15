@@ -1,9 +1,9 @@
 /**
  * PostActionRow Component
- * Action buttons row: Like, Comment, Share
+ * Action buttons row: Like, Comment, Share - with counts
  */
 
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -15,6 +15,9 @@ interface PostActionRowProps {
   onLikePress: () => void;
   onCommentPress: () => void;
   onSharePress: () => void;
+  likesCount?: number;
+  commentsCount?: number;
+  sharesCount?: number;
 }
 
 export function PostActionRow({
@@ -22,6 +25,9 @@ export function PostActionRow({
   onLikePress,
   onCommentPress,
   onSharePress,
+  likesCount,
+  commentsCount,
+  sharesCount,
 }: PostActionRowProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
@@ -30,7 +36,7 @@ export function PostActionRow({
   const likeTextColor = isLiked ? colors.heartLiked : colors.actionButtonText;
 
   return (
-    <View style={[styles.container, { borderBottomColor: colors.chipBackground }]}>
+    <View style={[styles.container, { borderTopColor: colors.chipBackground }]}>
       {/* Like Button */}
       <TouchableOpacity
         style={styles.actionButton}
@@ -39,9 +45,12 @@ export function PostActionRow({
       >
         <MaterialIcons
           name={isLiked ? 'favorite' : 'favorite-border'}
-          size={17}
+          size={18}
           color={likeIconColor}
         />
+        {likesCount !== undefined && (
+          <Text style={[styles.countText, { color: likeTextColor }]}>{likesCount}</Text>
+        )}
         <Text style={[styles.actionText, { color: likeTextColor }]}>Thích</Text>
       </TouchableOpacity>
 
@@ -51,7 +60,10 @@ export function PostActionRow({
         onPress={onCommentPress}
         activeOpacity={0.7}
       >
-        <MaterialIcons name="chat-bubble-outline" size={17} color={colors.actionButtonText} />
+        <MaterialIcons name="chat-bubble-outline" size={18} color={colors.actionButtonText} />
+        {commentsCount !== undefined && (
+          <Text style={[styles.countText, { color: colors.actionButtonText }]}>{commentsCount}</Text>
+        )}
         <Text style={[styles.actionText, { color: colors.actionButtonText }]}>Bình luận</Text>
       </TouchableOpacity>
 
@@ -61,7 +73,10 @@ export function PostActionRow({
         onPress={onSharePress}
         activeOpacity={0.7}
       >
-        <MaterialIcons name="send" size={17} color={colors.actionButtonText} />
+        <Ionicons name="paper-plane-outline" size={18} color={colors.actionButtonText} />
+        {sharesCount !== undefined && (
+          <Text style={[styles.countText, { color: colors.actionButtonText }]}>{sharesCount}</Text>
+        )}
         <Text style={[styles.actionText, { color: colors.actionButtonText }]}>Chia sẻ</Text>
       </TouchableOpacity>
     </View>
@@ -72,23 +87,28 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-around',
     paddingHorizontal: Spacing.sm, // 8px
-    paddingVertical: Spacing.xs + 2, // ~6px
-    borderBottomWidth: 0.8,
+    paddingVertical: Spacing.sm, // 8px
+    borderTopWidth: 0.8,
   },
   actionButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.sm - 2, // 6px
+    paddingVertical: Spacing.xs, // 4px
+    paddingHorizontal: Spacing.sm, // 8px
     borderRadius: BorderRadius.md + 2, // 10px
-    gap: 6,
+    gap: 5,
+  },
+  countText: {
+    fontSize: Typography.sizes['13'], // 13px
+    fontWeight: Typography.weights.medium,
+    lineHeight: 19.5,
   },
   actionText: {
     fontSize: Typography.sizes['13'], // 13px
     fontWeight: Typography.weights.normal,
     lineHeight: 19.5,
-    textAlign: 'center',
   },
 });

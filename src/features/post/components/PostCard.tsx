@@ -6,6 +6,7 @@
 import { Avatar, Card } from '@/shared/components/ui';
 import { Colors } from '@/shared/constants';
 import { formatRelativeTime } from '@/shared/utils';
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Post } from '../types';
@@ -15,9 +16,10 @@ interface PostCardProps {
     onPress?: () => void;
     onLike?: () => void;
     onComment?: () => void;
+    onShare?: () => void;
 }
 
-export function PostCard({ post, onPress, onLike, onComment }: PostCardProps) {
+export function PostCard({ post, onPress, onLike, onComment, onShare }: PostCardProps) {
     return (
         <Card variant="elevated" padding="none" onPress={onPress}>
             <View style={styles.header}>
@@ -53,6 +55,10 @@ export function PostCard({ post, onPress, onLike, onComment }: PostCardProps) {
 
                 <Pressable style={styles.actionButton} onPress={onComment}>
                     <Text style={styles.actionText}>💬 {post.commentsCount}</Text>
+                </Pressable>
+
+                <Pressable style={styles.actionButton} onPress={onShare}>
+                    <Ionicons name="share-social-outline" size={18} color={Colors.light.icon} />
                 </Pressable>
             </View>
         </Card>

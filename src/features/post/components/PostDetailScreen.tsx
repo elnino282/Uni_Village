@@ -5,13 +5,13 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import {
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    View,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,10 +19,10 @@ import { LoadingScreen } from '@/shared/components/feedback';
 import { Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import {
-    useCreateComment,
-    usePostDetail,
-    useToggleCommentLike,
-    useTogglePostLike,
+  useCreateComment,
+  usePostDetail,
+  useToggleCommentLike,
+  useTogglePostLike,
 } from '../hooks';
 import type { Comment, PostDetailLocation } from '../types';
 import { formatTimeAgo } from '../utils/formatTime';
@@ -35,7 +35,6 @@ import { PostAuthorRow } from './PostAuthorRow';
 import { PostDetailHeader } from './PostDetailHeader';
 import { PostDetailMedia } from './PostDetailMedia';
 import { PostLocationChips } from './PostLocationChips';
-import { PostStatsRow } from './PostStatsRow';
 
 interface PostDetailScreenProps {
   postId: string;
@@ -157,19 +156,15 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         {/* Location chips */}
         <PostLocationChips locations={post.locations} onLocationPress={handleLocationPress} />
 
-        {/* Stats row */}
-        <PostStatsRow
-          likesCount={post.likesCount}
-          commentsCount={post.commentsCount}
-          sharesCount={post.sharesCount}
-        />
-
-        {/* Action row */}
+        {/* Action row with stats */}
         <PostActionRow
           isLiked={post.isLiked}
           onLikePress={handleLikePress}
           onCommentPress={handleCommentPress}
           onSharePress={handleSharePress}
+          likesCount={post.likesCount}
+          commentsCount={post.commentsCount}
+          sharesCount={post.sharesCount}
         />
       </View>
 

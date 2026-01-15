@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -70,22 +70,22 @@ export function PostActions({
         </Text>
       </TouchableOpacity>
 
-      {sharesCount !== undefined && (
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleSharePress}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons
-            name="share"
-            size={20}
-            color={colors.textSecondary}
-          />
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={handleSharePress}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name="paper-plane-outline"
+          size={20}
+          color={colors.textSecondary}
+        />
+        {sharesCount !== undefined && (
           <Text style={[styles.actionText, { color: colors.textSecondary }]}>
             {sharesCount}
           </Text>
-        </TouchableOpacity>
-      )}
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
