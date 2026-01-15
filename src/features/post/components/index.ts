@@ -12,3 +12,11 @@ export { PostDetailScreen } from './PostDetailScreen';
 export { PostLocationChips } from './PostLocationChips';
 export { PostStatsRow } from './PostStatsRow';
 
+// Create Post components
+export { ChooseChannelSheet } from './ChooseChannelSheet';
+export { ChooseItinerarySheet } from './ChooseItinerarySheet';
+export { SegmentedTabs } from './SegmentedTabs';
+export type { TabItem } from './SegmentedTabs';
+export { SelectedChannelCard } from './SelectedChannelCard';
+export { SelectedItineraryCard } from './SelectedItineraryCard';
+
