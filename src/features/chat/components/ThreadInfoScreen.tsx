@@ -99,22 +99,7 @@ export function ThreadInfoScreen({ threadId }: ThreadInfoScreenProps) {
     );
   }, []);
 
-  const handleArchivePress = useCallback(() => {
-    Alert.alert(
-      'Lưu trữ hội thoại',
-      'Hội thoại sẽ được chuyển vào mục lưu trữ.',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Lưu trữ',
-          onPress: () => {
-            Alert.alert('Đã lưu trữ', 'Hội thoại đã được lưu trữ.');
-            router.back();
-          },
-        },
-      ]
-    );
-  }, []);
+
 
   const handleDeletePress = useCallback(() => {
     Alert.alert(
@@ -205,11 +190,7 @@ export function ThreadInfoScreen({ threadId }: ThreadInfoScreenProps) {
             label="Chặn người dùng"
             onPress={handleBlockPress}
           />
-          <ThreadInfoOptionRow
-            icon="archive-outline"
-            label="Lưu trữ hội thoại"
-            onPress={handleArchivePress}
-          />
+
           <ThreadInfoOptionRow
             icon="trash-outline"
             label="Xóa lịch sử trò chuyện"

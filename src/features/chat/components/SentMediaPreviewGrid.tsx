@@ -49,7 +49,7 @@ export function SentMediaPreviewGrid({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>
-          Ảnh đã gửi
+          Media đã gửi
         </Text>
         <Pressable
           onPress={onViewAllPress}
