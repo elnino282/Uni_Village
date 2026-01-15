@@ -7,7 +7,6 @@ export { CommunitySearchBar } from './CommunitySearchBar';
 export { CommunitySegmentedTabs } from './CommunitySegmentedTabs';
 export { MessagesTab } from './MessagesTab';
 export { PlusActionMenu } from './PlusActionMenu';
-export { PostActions } from './PostActions';
 export { PostCard } from './PostCard';
 export { PostHeader } from './PostHeader';
 export { PostLocations } from './PostLocations';

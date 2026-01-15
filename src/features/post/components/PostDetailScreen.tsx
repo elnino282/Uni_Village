@@ -27,10 +27,10 @@ import {
 import type { Comment, PostDetailLocation } from '../types';
 import { formatTimeAgo } from '../utils/formatTime';
 
+import { PostActionRow } from '@/shared/components/post';
 import { CommentComposer } from './CommentComposer';
 import { CommentItem } from './CommentItem';
 import { CommentListHeader } from './CommentListHeader';
-import { PostActionRow } from './PostActionRow';
 import { PostAuthorRow } from './PostAuthorRow';
 import { PostDetailHeader } from './PostDetailHeader';
 import { PostDetailMedia } from './PostDetailMedia';
@@ -158,6 +158,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
 
         {/* Action row with stats */}
         <PostActionRow
+          variant="full"
           isLiked={post.isLiked}
           onLikePress={handleLikePress}
           onCommentPress={handleCommentPress}

@@ -3,10 +3,10 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { ItineraryShareCard } from '@/features/itinerary/components/ItineraryShareCard';
 import { ChannelInviteCard } from '@/shared/components/channel';
+import { PostActionRow } from '@/shared/components/post';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import type { CommunityPost, PostLocation } from '../types';
-import { PostActions } from './PostActions';
 import { PostHeader } from './PostHeader';
 import { PostLocations } from './PostLocations';
 import { PostMedia } from './PostMedia';
@@ -16,6 +16,7 @@ interface PostCardProps {
   onMenuPress: (postId: string) => void;
   onLikePress: (postId: string) => void;
   onCommentPress: (postId: string) => void;
+  onSharePress?: (postId: string) => void;
   onLocationPress?: (location: PostLocation) => void;
   onPress?: (postId: string) => void;
   onViewItineraryDetails?: () => void;
@@ -50,6 +51,7 @@ export function PostCard({
   onMenuPress,
   onLikePress,
   onCommentPress,
+  onSharePress,
   onLocationPress,
   onPress,
   onViewItineraryDetails,
@@ -116,13 +118,16 @@ export function PostCard({
         onLocationPress={onLocationPress}
       />
 
-      <PostActions
+      <PostActionRow
+        variant="compact"
+        showBorder={false}
         likesCount={post.likesCount}
         commentsCount={post.commentsCount}
         sharesCount={post.sharesCount}
         isLiked={post.isLiked}
         onLikePress={() => onLikePress(post.id)}
         onCommentPress={() => onCommentPress(post.id)}
+        onSharePress={() => onSharePress?.(post.id)}
       />
     </TouchableOpacity>
   );
