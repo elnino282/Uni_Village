@@ -1,0 +1,460 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import BottomSheet from '@gorhom/bottom-sheet';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import {
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Button } from '@/shared/components/ui';
+import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
+import { useColorScheme } from '@/shared/hooks';
+
+import { ChooseChannelSheet } from '../components/ChooseChannelSheet';
+import { ChooseItinerarySheet } from '../components/ChooseItinerarySheet';
+import { PostVisibilityDropdown } from '../components/PostVisibilityDropdown';
+import { SegmentedTabs, TabItem } from '../components/SegmentedTabs';
+import { SelectedChannelCard } from '../components/SelectedChannelCard';
+import { SelectedItineraryCard } from '../components/SelectedItineraryCard';
+import type {
+    ChannelForSelection,
+    ChannelVisibility,
+    CreatePostTab,
+    ItineraryForSelection,
+} from '../types/createPost.types';
+
+const CREATE_POST_TABS: TabItem<CreatePostTab>[] = [
+    { key: 'post', label: 'Bài viết' },
+    { key: 'channel', label: 'Channel' },
+    { key: 'itinerary', label: 'Lịch trình' },
+];
+
+/**
+ * Create Post Screen
+ * Features segmented tabs for Post/Channel/Itinerary with bottom sheet selection
+ */
+export function CreatePostScreen() {
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme];
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
+
+    // State
+    const [activeTab, setActiveTab] = useState<CreatePostTab>('post');
+    const [postContent, setPostContent] = useState('');
+    const [channelContent, setChannelContent] = useState('');
+    const [itineraryContent, setItineraryContent] = useState('');
+    const [selectedChannel, setSelectedChannel] = useState<ChannelForSelection | null>(null);
+    const [selectedItinerary, setSelectedItinerary] = useState<ItineraryForSelection | null>(null);
+    const [postVisibility, setPostVisibility] = useState<ChannelVisibility>('public');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Bottom sheet refs
+    const channelSheetRef = useRef<BottomSheet>(null);
+    const itinerarySheetRef = useRef<BottomSheet>(null);
+
+    // Can submit when:
+    // - Tab is 'post' and content is not empty
+    // - Tab is 'channel' and a channel is selected (content optional)
+    // - Tab is 'itinerary' and an itinerary is selected (content optional)
+    const canSubmit = useMemo(() => {
+        if (isSubmitting) return false;
+        switch (activeTab) {
+            case 'post':
+                return postContent.trim().length > 0;
+            case 'channel':
+                return !!selectedChannel;
+            case 'itinerary':
+                return !!selectedItinerary;
+            default:
+                return false;
+        }
+    }, [activeTab, postContent, selectedChannel, selectedItinerary, isSubmitting]);
+
+    const handleClose = () => {
+        if (Platform.OS !== 'web') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+        router.back();
+    };
+
+    const handleSubmit = async () => {
+        if (!canSubmit) return;
+
+        setIsSubmitting(true);
+        if (Platform.OS !== 'web') {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+
+        // TODO: Implement actual post creation API call
+        console.log('Creating post:', {
+            tab: activeTab,
+            content: activeTab === 'post' ? postContent : activeTab === 'channel' ? channelContent : itineraryContent,
+            visibility: activeTab === 'post' ? postVisibility : 'public',
+            channel: selectedChannel,
+            itinerary: selectedItinerary,
+        });
+
+        // Simulate API delay
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        setIsSubmitting(false);
+        router.back();
+    };
+
+    const openChannelSheet = useCallback(() => {
+        channelSheetRef.current?.expand();
+    }, []);
+
+    const closeChannelSheet = useCallback(() => {
+        channelSheetRef.current?.close();
+    }, []);
+
+    const openItinerarySheet = useCallback(() => {
+        itinerarySheetRef.current?.expand();
+    }, []);
+
+    const closeItinerarySheet = useCallback(() => {
+        itinerarySheetRef.current?.close();
+    }, []);
+
+    const handleChannelSelect = useCallback((channel: ChannelForSelection) => {
+        setSelectedChannel(channel);
+        closeChannelSheet();
+    }, [closeChannelSheet]);
+
+    const handleItinerarySelect = useCallback((itinerary: ItineraryForSelection) => {
+        setSelectedItinerary(itinerary);
+        closeItinerarySheet();
+    }, [closeItinerarySheet]);
+
+
+
+    const getPlaceholder = () => {
+        switch (activeTab) {
+            case 'post':
+                return 'Chia sẻ cảm nghĩ của bạn…';
+            case 'channel':
+                return 'Viết gì đó cho Channel này…';
+            case 'itinerary':
+                return 'Mô tả ngắn về lịch trình (tuỳ chọn)…';
+            default:
+                return '';
+        }
+    };
+
+    const getCurrentContent = () => {
+        switch (activeTab) {
+            case 'post':
+                return postContent;
+            case 'channel':
+                return channelContent;
+            case 'itinerary':
+                return itineraryContent;
+            default:
+                return '';
+        }
+    };
+
+    const setCurrentContent = (text: string) => {
+        switch (activeTab) {
+            case 'post':
+                setPostContent(text);
+                break;
+            case 'channel':
+                setChannelContent(text);
+                break;
+            case 'itinerary':
+                setItineraryContent(text);
+                break;
+        }
+    };
+
+    const renderEmptyState = () => {
+        if (activeTab === 'channel' && !selectedChannel) {
+            return (
+                <View style={styles.emptyState}>
+                    <View style={[styles.emptyIcon, { backgroundColor: colors.chipBackground }]}>
+                        <Text style={[styles.emptyIconText, { color: colors.textSecondary }]}>
+                            #
+                        </Text>
+                    </View>
+                    <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>
+                        Chưa chọn Channel
+                    </Text>
+                    <Button
+                        title="Chọn Channel"
+                        onPress={openChannelSheet}
+                        variant="primary"
+                        size="md"
+                    />
+                </View>
+            );
+        }
+
+        if (activeTab === 'itinerary' && !selectedItinerary) {
+            return (
+                <View style={styles.emptyState}>
+                    <View style={[styles.emptyIcon, { backgroundColor: colors.chipBackground }]}>
+                        <MaterialIcons
+                            name="event-note"
+                            size={32}
+                            color={colors.textSecondary}
+                        />
+                    </View>
+                    <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>
+                        Chưa chọn lịch trình
+                    </Text>
+                    <Button
+                        title="Chọn lịch trình"
+                        onPress={openItinerarySheet}
+                        variant="primary"
+                        size="md"
+                    />
+                </View>
+            );
+        }
+
+        return null;
+    };
+
+    const renderSelectedContent = () => {
+        if (activeTab === 'channel' && selectedChannel) {
+            return (
+                <View style={styles.selectedContent}>
+                    <SelectedChannelCard
+                        channel={selectedChannel}
+                        onChangeChannel={openChannelSheet}
+                    />
+                </View>
+            );
+        }
+
+        if (activeTab === 'itinerary' && selectedItinerary) {
+            return (
+                <View style={styles.selectedContent}>
+                    <SelectedItineraryCard
+                        itinerary={selectedItinerary}
+                        onChangeItinerary={openItinerarySheet}
+                    />
+                </View>
+            );
+        }
+
+        return null;
+    };
+
+    const shouldShowEmptyState =
+        (activeTab === 'channel' && !selectedChannel) ||
+        (activeTab === 'itinerary' && !selectedItinerary);
+
+    return (
+        <KeyboardAvoidingView
+            style={[styles.container, { backgroundColor: colors.background }]}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            {/* Header */}
+            <View
+                style={[
+                    styles.header,
+                    {
+                        paddingTop: insets.top + Spacing.sm,
+                        borderBottomColor: colors.border,
+                    },
+                ]}
+            >
+                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                    <MaterialIcons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+
+                <Text style={[styles.headerTitle, { color: colors.text }]}>
+                    Tạo bài viết
+                </Text>
+
+                <Button
+                    title="Đăng"
+                    onPress={handleSubmit}
+                    disabled={!canSubmit}
+                    loading={isSubmitting}
+                    size="sm"
+                    variant={canSubmit ? 'primary' : 'outline'}
+                />
+            </View>
+
+            {/* Segmented Tabs */}
+            <View style={[styles.tabsSection, { backgroundColor: colors.background }]}>
+                <SegmentedTabs
+                    tabs={CREATE_POST_TABS}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                />
+            </View>
+
+            {/* Content */}
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+            >
+                {/* Text Input - always shown unless empty state */}
+                {!shouldShowEmptyState && (
+                    <>
+                        <TextInput
+                            style={[
+                                styles.textInput,
+                                { color: colors.text },
+                            ]}
+                            placeholder={getPlaceholder()}
+                            placeholderTextColor={colors.textSecondary}
+                            value={getCurrentContent()}
+                            onChangeText={setCurrentContent}
+                            multiline
+                            autoFocus={activeTab === 'post'}
+                            textAlignVertical="top"
+                        />
+
+                    </>
+                )}
+
+                {/* Empty state for Channel/Itinerary */}
+                {renderEmptyState()}
+
+                {/* Selected Channel/Itinerary cards */}
+                {renderSelectedContent()}
+            </ScrollView>
+
+            {/* Bottom toolbar */}
+            <View
+                style={[
+                    styles.toolbar,
+                    {
+                        paddingBottom: insets.bottom + Spacing.sm,
+                        borderTopColor: colors.border,
+                        backgroundColor: colors.background,
+                    },
+                ]}
+            >
+                <TouchableOpacity style={styles.toolbarButton}>
+                    <MaterialIcons name="image" size={24} color="#6A7282" />
+                    <Text style={[styles.toolbarText, { color: '#6A7282' }]}>
+                        Ảnh
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.toolbarButton}>
+                    <MaterialIcons name="location-on" size={24} color="#6A7282" />
+                    <Text style={[styles.toolbarText, { color: '#6A7282' }]}>
+                        Vị trí
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Visibility Selector - nằm cạnh Vị trí khi tab Post được chọn */}
+                {activeTab === 'post' && (
+                    <PostVisibilityDropdown
+                        visibility={postVisibility}
+                        onVisibilityChange={setPostVisibility}
+                    />
+                )}
+            </View>
+
+            {/* Bottom Sheets */}
+            <ChooseChannelSheet
+                ref={channelSheetRef}
+                onSelect={handleChannelSelect}
+            />
+            <ChooseItinerarySheet
+                ref={itinerarySheetRef}
+                onSelect={handleItinerarySelect}
+            />
+        </KeyboardAvoidingView>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: Spacing.screenPadding,
+        paddingBottom: Spacing.sm,
+        borderBottomWidth: 1,
+    },
+    closeButton: {
+        padding: Spacing.xs,
+    },
+    headerTitle: {
+        fontSize: Typography.sizes.lg,
+        fontWeight: Typography.weights.semibold,
+    },
+    tabsSection: {
+        paddingHorizontal: Spacing.screenPadding,
+        paddingVertical: Spacing.sm,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        padding: Spacing.screenPadding,
+        flexGrow: 1,
+    },
+    textInput: {
+        fontSize: Typography.sizes.base,
+        lineHeight: 24,
+        minHeight: 120,
+    },
+    emptyState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Spacing.xl,
+        gap: Spacing.md,
+    },
+    emptyIcon: {
+        width: 64,
+        height: 64,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.sm,
+    },
+    emptyIconText: {
+        fontSize: 32,
+        fontWeight: Typography.weights.bold,
+    },
+    emptyTitle: {
+        fontSize: Typography.sizes.base,
+        marginBottom: Spacing.sm,
+    },
+    selectedContent: {
+        marginTop: Spacing.md,
+    },
+    toolbar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.screenPadding,
+        paddingTop: Spacing.sm,
+        borderTopWidth: 1,
+        gap: Spacing.lg,
+    },
+    toolbarButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+    },
+    toolbarText: {
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.medium,
+    },
+});
