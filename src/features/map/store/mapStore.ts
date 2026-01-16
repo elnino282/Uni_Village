@@ -1,14 +1,32 @@
+/**
+ * Map Store - Zustand store for map state management
+ * 
+ * Manages:
+ * - Selected place
+ * - Active category filter
+ * - Search query
+ * - Map region
+ * - User location
+ */
+
 import { create } from 'zustand';
-import { DEFAULT_REGION } from '../services/mockPlaces';
 import type { MapRegion, MapState, PlaceCategory, UserLocation } from '../types';
 
+// Default region: Ho Chi Minh City, Vietnam (University area)
+const DEFAULT_REGION: MapRegion = {
+    latitude: 10.7626,
+    longitude: 106.6824,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+};
+
 const initialState = {
-    selectedPlaceId: null,
+    selectedPlaceId: null as string | null,
     activeCategory: 'all' as PlaceCategory | 'all',
     searchQuery: '',
     isSearchFocused: false,
     region: DEFAULT_REGION,
-    userLocation: null,
+    userLocation: null as UserLocation | null,
     isLoadingLocation: false,
 };
 
@@ -17,28 +35,28 @@ export const useMapStore = create<MapState>((set) => ({
     ...initialState,
 
     // Actions
-    setSelectedPlaceId: (id: string | null) => 
+    setSelectedPlaceId: (id: string | null) =>
         set({ selectedPlaceId: id }),
 
-    setActiveCategory: (category: PlaceCategory | 'all') => 
+    setActiveCategory: (category: PlaceCategory | 'all') =>
         set({ activeCategory: category }),
 
-    setSearchQuery: (query: string) => 
+    setSearchQuery: (query: string) =>
         set({ searchQuery: query }),
 
-    setIsSearchFocused: (focused: boolean) => 
+    setIsSearchFocused: (focused: boolean) =>
         set({ isSearchFocused: focused }),
 
-    setRegion: (region: MapRegion) => 
+    setRegion: (region: MapRegion) =>
         set({ region }),
 
-    setUserLocation: (location: UserLocation | null) => 
+    setUserLocation: (location: UserLocation | null) =>
         set({ userLocation: location }),
 
-    setIsLoadingLocation: (loading: boolean) => 
+    setIsLoadingLocation: (loading: boolean) =>
         set({ isLoadingLocation: loading }),
 
-    resetMapState: () => 
+    resetMapState: () =>
         set(initialState),
 }));
 
