@@ -62,6 +62,12 @@ export function PostCard({
   const colors = Colors[colorScheme];
 
   const handlePress = () => {
+    // Don't navigate to post detail for special post types
+    // They have their own navigation in ItineraryShareCard and ChannelInviteCard
+    if (post.itineraryShare || post.channelInvite) {
+      return;
+    }
+
     if (onPress) {
       onPress(post.id);
     } else {
