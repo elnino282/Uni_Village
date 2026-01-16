@@ -213,6 +213,21 @@ export const MapColors = {
         markerDefault: '#ef4444',
         markerSelected: '#0a7ea4',
         userLocationDot: '#3b82f6',
+        // Navigation Banner colors
+        navigationBannerBg: '#1B5E20',
+        navigationBannerBgGradient: '#2E7D32',
+        navigationBannerText: '#FFFFFF',
+        navigationBannerIcon: '#FFFFFF',
+        // Route Polyline colors
+        routePolyline: '#4285F4',
+        routePolylineStroke: '#FFFFFF',
+        routePolylineAlternate: '#9AA0A6',
+        // Distance Badge
+        distanceBadgeBg: 'rgba(0,0,0,0.7)',
+        distanceBadgeText: '#FFFFFF',
+        // Bottom Sheet
+        bottomSheetHandle: '#D1D5DB',
+        bottomSheetBackground: '#FFFFFF',
     },
     dark: {
         searchBarBackground: '#1e2225',
@@ -225,5 +240,20 @@ export const MapColors = {
         markerDefault: '#f87171',
         markerSelected: '#60a5fa',
         userLocationDot: '#60a5fa',
+        // Navigation Banner colors
+        navigationBannerBg: '#1B3D20',
+        navigationBannerBgGradient: '#234D28',
+        navigationBannerText: '#FFFFFF',
+        navigationBannerIcon: '#FFFFFF',
+        // Route Polyline colors
+        routePolyline: '#8AB4F8',
+        routePolylineStroke: '#1E1E1E',
+        routePolylineAlternate: '#5F6368',
+        // Distance Badge
+        distanceBadgeBg: 'rgba(255,255,255,0.2)',
+        distanceBadgeText: '#FFFFFF',
+        // Bottom Sheet
+        bottomSheetHandle: '#4B5563',
+        bottomSheetBackground: '#1e2225',
     },
 } as const;
