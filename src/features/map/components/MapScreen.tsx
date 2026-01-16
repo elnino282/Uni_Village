@@ -109,11 +109,21 @@ function convertPlaceDetailsToPlace(details: PlaceDetails): Place {
         distanceKm: 0,
         tags: [],
         thumbnail:
-            "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400",
+            details.photos && details.photos.length > 0
+                ? `https://places.googleapis.com/v1/${details.photos[0].name}/media?maxWidthPx=400&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
+                : "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400",
         lat: details.location.latitude,
         lng: details.location.longitude,
         address: details.formattedAddress,
         isOpen: details.openingHours?.openNow,
+        // Extended fields
+        photos: details.photos,
+        editorialSummary: details.editorialSummary,
+        businessStatus: details.businessStatus,
+        phone: details.phoneNumber,
+        internationalPhone: details.internationalPhoneNumber,
+        website: details.website,
+        openingHoursText: details.openingHours?.weekdayDescriptions,
     };
 }
 

@@ -17,6 +17,7 @@ import BottomSheet, {
     BottomSheetBackdrop,
     BottomSheetScrollView
 } from "@gorhom/bottom-sheet";
+import { useRouter } from "expo-router";
 import React, {
     forwardRef,
     memo,
@@ -35,6 +36,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Place } from "../types";
+import { PhotoCarousel } from "./PhotoCarousel";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -47,6 +49,8 @@ export interface PlaceBottomSheetProps {
     onPlaceSelect?: (place: Place) => void;
     /** Callback when directions button is pressed */
     onDirections?: (place: Place) => void;
+    /** Callback when view details is pressed */
+    onViewDetails?: (place: Place) => void;
     /** Callback when sheet is closed */
     onClose?: () => void;
     /** Callback when sheet index changes */
@@ -238,12 +242,14 @@ export const PlaceBottomSheet = forwardRef<
         recentlyViewed = [],
         onPlaceSelect,
         onDirections,
+        onViewDetails,
         onClose,
         onSheetChange,
         colorScheme = "light",
     },
     ref
 ) {
+    const router = useRouter();
     const bottomSheetRef = useRef<BottomSheet>(null);
     const insets = useSafeAreaInsets();
     const colors = Colors[colorScheme];
@@ -303,6 +309,21 @@ export const PlaceBottomSheet = forwardRef<
         }
     }, [place, onDirections]);
 
+    // Handle view details - navigate to PlaceDetailsScreen
+    const handleViewDetails = useCallback(() => {
+        if (place) {
+            if (onViewDetails) {
+                onViewDetails(place);
+            } else {
+                // Default: navigate to PlaceDetailsScreen
+                router.push({
+                    pathname: "/place-details" as any,
+                    params: { placeData: JSON.stringify(place) },
+                });
+            }
+        }
+    }, [place, onViewDetails, router]);
+
     // Don't render if no place
     if (!place && recentlyViewed.length === 0) {
         return null;
@@ -334,6 +355,16 @@ export const PlaceBottomSheet = forwardRef<
                 ]}
                 showsVerticalScrollIndicator={false}
             >
+                {/* Photo Carousel (Quick View) */}
+                {place && place.photos && place.photos.length > 0 && (
+                    <PhotoCarousel
+                        photos={place.photos}
+                        onPhotoPress={handleViewDetails}
+                        onViewAllPress={handleViewDetails}
+                        colorScheme={colorScheme}
+                    />
+                )}
+
                 {/* Section Header */}
                 <View style={styles.header}>
                     <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -345,7 +376,7 @@ export const PlaceBottomSheet = forwardRef<
                 {place && (
                     <PlaceCard
                         place={place}
-                        onPress={handlePlacePress}
+                        onPress={handleViewDetails}
                         onDirections={handleDirectionsPress}
                         colorScheme={colorScheme}
                     />

@@ -5,6 +5,7 @@ export type {
     MapState,
     Place,
     PlaceCategory,
+    PlacePhoto,
     RouteInfo,
     SearchResult,
     SelectedLocation,

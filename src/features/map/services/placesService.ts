@@ -42,6 +42,10 @@ export interface PlaceDetails {
     photos?: PlacePhoto[];
     phoneNumber?: string;
     website?: string;
+    // Extended fields
+    editorialSummary?: string;
+    businessStatus?: 'OPERATIONAL' | 'CLOSED_TEMPORARILY' | 'CLOSED_PERMANENTLY';
+    internationalPhoneNumber?: string;
 }
 
 export interface PlacePhoto {
@@ -229,6 +233,10 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
             'photos',
             'nationalPhoneNumber',
             'websiteUri',
+            // Extended fields
+            'editorialSummary',
+            'businessStatus',
+            'internationalPhoneNumber',
         ].join(',');
 
         const response = await fetch(`${PLACES_API_BASE}/places/${placeId}`, {
@@ -269,6 +277,10 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
             })),
             phoneNumber: data.nationalPhoneNumber,
             website: data.websiteUri,
+            // Extended fields
+            editorialSummary: data.editorialSummary?.text,
+            businessStatus: data.businessStatus,
+            internationalPhoneNumber: data.internationalPhoneNumber,
         };
 
         setCache(detailsCache, placeId, details);
