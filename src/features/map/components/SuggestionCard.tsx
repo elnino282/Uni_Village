@@ -1,7 +1,7 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing } from '@/shared/constants/spacing';
 import { BorderRadius, Colors, MapColors, Shadows } from '@/shared/constants/theme';
 import { Typography } from '@/shared/constants/typography';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React, { memo } from 'react';
 import {
     Image,
@@ -16,6 +16,7 @@ import type { Place } from '../types';
 interface SuggestionCardProps {
     place: Place | null;
     onPlacePress?: (place: Place) => void;
+    onDirectionsPress?: (place: Place) => void;
     onExpand?: () => void;
     colorScheme?: 'light' | 'dark';
 }
@@ -23,6 +24,7 @@ interface SuggestionCardProps {
 export const SuggestionCard = memo(function SuggestionCard({
     place,
     onPlacePress,
+    onDirectionsPress,
     onExpand,
     colorScheme = 'light',
 }: SuggestionCardProps) {
@@ -110,52 +112,81 @@ export const SuggestionCard = memo(function SuggestionCard({
                                 </Text>
                             )}
                         </View>
-                        <View style={styles.distanceContainer}>
-                            <MaterialIcons
-                                name="directions-walk"
-                                size={14}
-                                color={colors.icon}
-                            />
-                            <Text style={[styles.distance, { color: colors.icon }]}>
-                                {place.distanceKm < 1
-                                    ? `${(place.distanceKm * 1000).toFixed(0)}m`
-                                    : `${place.distanceKm.toFixed(1)}km`}
-                            </Text>
-                        </View>
+                        {place.isOpen !== undefined && (
+                            <View style={styles.openStatusContainer}>
+                                <View
+                                    style={[
+                                        styles.openDot,
+                                        { backgroundColor: place.isOpen ? '#22c55e' : '#ef4444' }
+                                    ]}
+                                />
+                                <Text style={[styles.openStatus, { color: place.isOpen ? '#22c55e' : '#ef4444' }]}>
+                                    {place.isOpen ? 'Đang mở cửa' : 'Đã đóng cửa'}
+                                </Text>
+                            </View>
+                        )}
+                        {place.distanceKm > 0 && (
+                            <View style={styles.distanceContainer}>
+                                <MaterialIcons
+                                    name="directions-walk"
+                                    size={14}
+                                    color={colors.icon}
+                                />
+                                <Text style={[styles.distance, { color: colors.icon }]}>
+                                    {place.distanceKm < 1
+                                        ? `${(place.distanceKm * 1000).toFixed(0)}m`
+                                        : `${place.distanceKm.toFixed(1)}km`}
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
                     {/* Tags */}
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={styles.tagsContainer}
-                        contentContainerStyle={styles.tagsContent}
-                    >
-                        {place.tags.map((tag, index) => (
-                            <View
-                                key={index}
-                                style={[
-                                    styles.tag,
-                                    { backgroundColor: colors.muted },
-                                ]}
-                            >
-                                <Text style={[styles.tagText, { color: colors.icon }]}>
-                                    {tag}
-                                </Text>
-                            </View>
-                        ))}
-                    </ScrollView>
-                </View>
-
-                {/* Arrow */}
-                <View style={styles.arrowContainer}>
-                    <MaterialIcons
-                        name="chevron-right"
-                        size={24}
-                        color={colors.icon}
-                    />
+                    {place.tags.length > 0 && (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.tagsContainer}
+                            contentContainerStyle={styles.tagsContent}
+                        >
+                            {place.tags.map((tag, index) => (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.tag,
+                                        { backgroundColor: colors.muted },
+                                    ]}
+                                >
+                                    <Text style={[styles.tagText, { color: colors.icon }]}>
+                                        {tag}
+                                    </Text>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    )}
                 </View>
             </TouchableOpacity>
+
+            {/* Action Buttons */}
+            <View style={styles.actionsRow}>
+                <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: colors.muted }]}
+                    onPress={() => onPlacePress?.(place)}
+                    activeOpacity={0.7}
+                >
+                    <MaterialIcons name="info-outline" size={18} color={colors.text} />
+                    <Text style={[styles.actionText, { color: colors.text }]}>Chi tiết</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.actionButton, styles.directionsButton, { backgroundColor: colors.tint }]}
+                    onPress={() => onDirectionsPress?.(place)}
+                    activeOpacity={0.7}
+                >
+                    <MaterialIcons name="directions" size={18} color="#fff" />
+                    <Text style={[styles.actionText, { color: '#fff' }]}>Chỉ đường</Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 });
@@ -168,7 +199,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         borderTopLeftRadius: BorderRadius.xl,
         borderTopRightRadius: BorderRadius.xl,
-        paddingBottom: Spacing.lg, 
+        paddingBottom: Spacing.lg,
         ...Shadows.lg,
     },
     handleContainer: {
@@ -220,12 +251,13 @@ const styles = StyleSheet.create({
     metaRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        flexWrap: 'wrap',
         marginBottom: Spacing.xs,
+        gap: Spacing.sm,
     },
     ratingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: Spacing.md,
     },
     rating: {
         fontSize: Typography.sizes.sm,
@@ -235,6 +267,20 @@ const styles = StyleSheet.create({
     ratingCount: {
         fontSize: Typography.sizes.xs,
         marginLeft: 2,
+    },
+    openStatusContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    openDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        marginRight: 4,
+    },
+    openStatus: {
+        fontSize: Typography.sizes.xs,
+        fontWeight: Typography.weights.medium as any,
     },
     distanceContainer: {
         flexDirection: 'row',
@@ -260,7 +306,27 @@ const styles = StyleSheet.create({
         fontSize: Typography.sizes.xs,
         fontWeight: Typography.weights.medium as any,
     },
-    arrowContainer: {
-        paddingLeft: Spacing.sm,
+    actionsRow: {
+        flexDirection: 'row',
+        paddingHorizontal: Spacing.screenPadding,
+        paddingTop: Spacing.sm,
+        gap: Spacing.sm,
+    },
+    actionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.lg,
+        gap: Spacing.xs,
+    },
+    directionsButton: {
+        flex: 1.5,
+    },
+    actionText: {
+        fontSize: Typography.sizes.sm,
+        fontWeight: Typography.weights.medium as any,
     },
 });
+

@@ -7,3 +7,8 @@ export { MapScreen } from './MapScreen';
 export { SearchBar } from './SearchBar';
 export { SuggestionCard } from './SuggestionCard';
 
+// New components
+export { LocationPicker } from './LocationPicker';
+export { PlacesAutocomplete } from './PlacesAutocomplete';
+export { RouteOverlay } from './RouteOverlay';
+

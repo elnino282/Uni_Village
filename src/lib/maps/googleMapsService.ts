@@ -1,16 +1,15 @@
 /**
  * Google Maps Service
  * 
- * HOW TO USE WITH REAL API KEY:
- * 1. Get your Google Maps API key from: https://console.cloud.google.com/
- * 2. Enable these APIs:
- *    - Directions API
- *    - Distance Matrix API
- *    - Geocoding API
- * 3. Add API key to env.ts: GOOGLE_MAPS_API_KEY
- * 4. Uncomment the API calls below and remove mock data
+ * Provides navigation and routing functionality.
+ * Uses Google Directions API for real routes.
+ * Falls back to mock data if API key is not configured.
+ * 
+ * Required APIs: Directions API
+ * Docs: https://developers.google.com/maps/documentation/directions
  */
 
+import { env } from '@/config/env';
 
 export interface Location {
   latitude: number;
@@ -31,63 +30,80 @@ export interface NavigationRoute {
   steps: RouteStep[]; // Turn-by-turn instructions
 }
 
+export type TravelMode = 'driving' | 'walking' | 'bicycling' | 'transit';
+
+export interface DirectionsOptions {
+  mode?: TravelMode;
+  language?: string;
+  alternatives?: boolean;
+  avoid?: ('tolls' | 'highways' | 'ferries')[];
+}
+
+const DIRECTIONS_API_BASE = 'https://maps.googleapis.com/maps/api/directions/json';
+
 /**
  * Get directions from origin to destination using Google Directions API
- * 
- * REAL IMPLEMENTATION (uncomment when you have API key):
- * 
- * const response = await fetch(
- *   `https://maps.googleapis.com/maps/api/directions/json?` +
- *   `origin=${origin.latitude},${origin.longitude}` +
- *   `&destination=${destination.latitude},${destination.longitude}` +
- *   `&mode=driving` +
- *   `&language=vi` +
- *   `&key=${env.GOOGLE_MAPS_API_KEY}`
- * );
- * const data = await response.json();
- * return parseDirectionsResponse(data);
+ * Falls back to mock data if API key is not configured
  */
 export async function getDirections(
   origin: Location,
-  destination: Location
+  destination: Location,
+  options: DirectionsOptions = {}
 ): Promise<NavigationRoute> {
-  // TODO: Replace with real API call when you have API key
-  // Uncomment below when ready:
-  
-  /*
+  const apiKey = env.GOOGLE_MAPS_API_KEY;
+
+  // If no API key, use mock data
+  if (!apiKey) {
+    console.warn('Google Maps API key not configured, using mock data');
+    return getMockDirections(origin, destination);
+  }
+
   try {
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/directions/json?` +
-      `origin=${origin.latitude},${origin.longitude}` +
-      `&destination=${destination.latitude},${destination.longitude}` +
-      `&mode=driving` +
-      `&language=vi` +
-      `&key=${env.GOOGLE_MAPS_API_KEY}`
-    );
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch directions');
+    const params = new URLSearchParams({
+      origin: `${origin.latitude},${origin.longitude}`,
+      destination: `${destination.latitude},${destination.longitude}`,
+      mode: options.mode || 'driving',
+      language: options.language || 'vi',
+      key: apiKey,
+    });
+
+    if (options.alternatives) {
+      params.append('alternatives', 'true');
     }
-    
+
+    if (options.avoid && options.avoid.length > 0) {
+      params.append('avoid', options.avoid.join('|'));
+    }
+
+    const response = await fetch(`${DIRECTIONS_API_BASE}?${params}`);
+
+    if (!response.ok) {
+      throw new Error(`Directions API HTTP error: ${response.status}`);
+    }
+
     const data = await response.json();
-    
+
     if (data.status !== 'OK') {
       throw new Error(`Directions API error: ${data.status}`);
     }
-    
+
     return parseDirectionsResponse(data);
   } catch (error) {
     console.error('Error fetching directions:', error);
-    throw error;
+    // Fallback to mock data on error
+    return getMockDirections(origin, destination);
   }
-  */
+}
 
-  // MOCK DATA (remove when using real API)
+/**
+ * Get mock directions (fallback when API is unavailable)
+ */
+function getMockDirections(origin: Location, destination: Location): Promise<NavigationRoute> {
   return new Promise((resolve) => {
     setTimeout(() => {
       const latDiff = destination.latitude - origin.latitude;
       const lngDiff = destination.longitude - origin.longitude;
-      
+
       resolve({
         distance: '2.5 km',
         duration: '8 phút',
@@ -128,6 +144,7 @@ export async function getDirections(
   });
 }
 
+
 /**
  * Parse Google Directions API response to NavigationRoute format
  * This function will be used when you have real API
@@ -158,7 +175,7 @@ function parseDirectionsResponse(data: any): NavigationRoute {
  */
 function mapManeuver(maneuver?: string): RouteStep['maneuver'] {
   if (!maneuver) return 'straight';
-  
+
   const maneuverMap: Record<string, RouteStep['maneuver']> = {
     'turn-left': 'turn-left',
     'turn-right': 'turn-right',
@@ -226,14 +243,14 @@ export function calculateDistance(from: Location, to: Location): number {
   const R = 6371; // Earth radius in km
   const dLat = toRad(to.latitude - from.latitude);
   const dLon = toRad(to.longitude - from.longitude);
-  
+
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(from.latitude)) *
     Math.cos(toRad(to.latitude)) *
     Math.sin(dLon / 2) *
     Math.sin(dLon / 2);
-  
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in km
 }
@@ -259,11 +276,11 @@ export function formatDistance(distanceKm: number): string {
 export function estimateDuration(distanceKm: number): string {
   const hours = distanceKm / 30;
   const minutes = Math.round(hours * 60);
-  
+
   if (minutes < 60) {
     return `${minutes} phút`;
   }
-  
+
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h} giờ ${m} phút`;
