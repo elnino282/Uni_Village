@@ -22,6 +22,13 @@ export {
     SuggestionCard
 } from './components';
 
+// Hooks
+export {
+    useDirections,
+    useNearbyPlaces,
+    useUserLocation
+} from './hooks';
+
 // Store
 export {
     useActiveCategory,
@@ -29,17 +36,18 @@ export {
     useMapStore,
     useSearchQuery,
     useSelectedPlaceId,
-    useUserLocation
+    useUserLocation as useUserLocationStore
 } from './store';
 
 // Services (re-export key functions)
 export {
-    autocomplete,
+    GoogleMapsClient,
+    MapError, autocomplete,
     geocode,
     getDistance,
+    getGoogleMapsClient,
     getPlaceDetails,
-    getReadableAddress,
-    reverseGeocode,
+    getReadableAddress, reverseGeocode,
     searchNearby
 } from './services';
 
@@ -65,3 +73,12 @@ export type {
     PlacePrediction
 } from './services';
 
+// Hook types
+export type {
+    LatLng,
+    UseDirectionsOptions,
+    UseDirectionsResult,
+    UseNearbyPlacesOptions,
+    UseNearbyPlacesResult,
+    UseUserLocationResult
+} from './hooks';
