@@ -18,3 +18,7 @@ export type { NavigationBannerProps } from './NavigationBanner';
 export { PlaceBottomSheet } from './PlaceBottomSheet';
 export type { PlaceBottomSheetProps, PlaceBottomSheetRef } from './PlaceBottomSheet';
 
+// Photo and Details components
+export { PhotoCarousel } from './PhotoCarousel';
+export { PlaceDetailsScreen } from './PlaceDetailsScreen';
+
