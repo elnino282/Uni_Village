@@ -15,7 +15,7 @@ export interface Place {
     priceLevel?: 1 | 2 | 3 | 4; // $ to $$$$
 }
 
-export type PlaceCategory = 
+export type PlaceCategory =
     | 'home'
     | 'restaurant'
     | 'hotel'
@@ -28,7 +28,7 @@ export type PlaceCategory =
 export interface CategoryChip {
     id: PlaceCategory | 'all';
     label: string;
-    icon: string; 
+    icon: string;
 }
 
 export interface MapMarker {
@@ -75,3 +75,42 @@ export interface MapState {
     setIsLoadingLocation: (loading: boolean) => void;
     resetMapState: () => void;
 }
+
+// ============================================================================
+// Google Maps API Types (re-exported from services for convenience)
+// ============================================================================
+
+/** Location selected via LocationPicker */
+export interface SelectedLocation {
+    latitude: number;
+    longitude: number;
+    address: string;
+}
+
+/** Route information for navigation display */
+export interface RouteInfo {
+    distance: string;
+    duration: string;
+    isLoading: boolean;
+}
+
+/** Direction waypoint for multi-stop routing */
+export interface Waypoint {
+    latitude: number;
+    longitude: number;
+    name?: string;
+    placeId?: string;
+}
+
+/** Search result for unified search across mock and real API */
+export interface SearchResult {
+    id: string;
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    category?: PlaceCategory;
+    rating?: number;
+    isFromApi: boolean; // true = Google API, false = mock data
+}
+
