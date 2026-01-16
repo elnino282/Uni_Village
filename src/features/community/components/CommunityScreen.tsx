@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ItineraryDetailsSheet } from '@/features/itinerary/components/ItineraryDetailsSheet';
 import type { ItineraryShareData } from '@/features/itinerary/types/itinerary.types';
+import type { CreatePostTab } from '@/features/post/types/createPost.types';
 import { LoadingScreen } from '@/shared/components/feedback';
 import { Colors, Spacing } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
@@ -110,8 +111,18 @@ export function CommunityScreen() {
   );
 
   const handleCreatePost = useCallback(() => {
-    router.push('/post/create' as any);
-  }, [router]);
+    // Map content filter tab to create post tab
+    const tabMap: Record<ContentFilterTab, CreatePostTab> = {
+      posts: 'post',
+      itineraries: 'itinerary',
+      channels: 'channel',
+    };
+
+    router.push({
+      pathname: '/post/create',
+      params: { initialTab: tabMap[contentFilterTab] },
+    } as any);
+  }, [router, contentFilterTab]);
 
   const handleViewItineraryDetails = useCallback((itinerary: ItineraryShareData) => {
     setSelectedItinerary(itinerary);

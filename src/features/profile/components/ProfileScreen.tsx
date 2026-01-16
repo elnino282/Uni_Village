@@ -57,8 +57,7 @@ export function ProfileScreen() {
     };
 
     const handleCreatePost = () => {
-        // TODO: Navigate to create post screen
-        console.log('Create post pressed');
+        router.push('/post/create' as Href);
     };
 
     return (

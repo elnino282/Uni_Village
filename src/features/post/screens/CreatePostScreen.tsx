@@ -2,7 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import BottomSheet from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
@@ -22,7 +22,6 @@ import { useColorScheme } from '@/shared/hooks';
 import { ChooseChannelSheet } from '../components/ChooseChannelSheet';
 import { ChooseItinerarySheet } from '../components/ChooseItinerarySheet';
 import { PostVisibilityDropdown } from '../components/PostVisibilityDropdown';
-import { SegmentedTabs, TabItem } from '../components/SegmentedTabs';
 import { SelectedChannelCard } from '../components/SelectedChannelCard';
 import { SelectedItineraryCard } from '../components/SelectedItineraryCard';
 import type {
@@ -32,24 +31,22 @@ import type {
     ItineraryForSelection,
 } from '../types/createPost.types';
 
-const CREATE_POST_TABS: TabItem<CreatePostTab>[] = [
-    { key: 'post', label: 'Bài viết' },
-    { key: 'channel', label: 'Channel' },
-    { key: 'itinerary', label: 'Lịch trình' },
-];
+interface CreatePostScreenProps {
+    initialTab?: CreatePostTab;
+}
 
 /**
  * Create Post Screen
- * Features segmented tabs for Post/Channel/Itinerary with bottom sheet selection
+ * Context-aware post creation based on initialTab
  */
-export function CreatePostScreen() {
+export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps) {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme];
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
     // State
-    const [activeTab, setActiveTab] = useState<CreatePostTab>('post');
+    const [activeTab, setActiveTab] = useState<CreatePostTab>(initialTab);
     const [postContent, setPostContent] = useState('');
     const [channelContent, setChannelContent] = useState('');
     const [itineraryContent, setItineraryContent] = useState('');
@@ -136,6 +133,34 @@ export function CreatePostScreen() {
         setSelectedItinerary(itinerary);
         closeItinerarySheet();
     }, [closeItinerarySheet]);
+
+    // Get header title based on initialTab
+    const getHeaderTitle = () => {
+        switch (initialTab) {
+            case 'post':
+                return 'Tạo bài viết';
+            case 'channel':
+                return 'Chia sẻ Channel';
+            case 'itinerary':
+                return 'Chia sẻ lịch trình';
+            default:
+                return 'Tạo bài viết';
+        }
+    };
+
+    // Auto-open bottom sheets when initialTab is channel or itinerary
+    useEffect(() => {
+        if (initialTab === 'channel' && !selectedChannel) {
+            // Small delay to ensure bottom sheet is mounted
+            setTimeout(() => {
+                openChannelSheet();
+            }, 300);
+        } else if (initialTab === 'itinerary' && !selectedItinerary) {
+            setTimeout(() => {
+                openItinerarySheet();
+            }, 300);
+        }
+    }, [initialTab]);
 
 
 
@@ -277,7 +302,7 @@ export function CreatePostScreen() {
                 </TouchableOpacity>
 
                 <Text style={[styles.headerTitle, { color: colors.text }]}>
-                    Tạo bài viết
+                    {getHeaderTitle()}
                 </Text>
 
                 <Button
@@ -287,15 +312,6 @@ export function CreatePostScreen() {
                     loading={isSubmitting}
                     size="sm"
                     variant={canSubmit ? 'primary' : 'outline'}
-                />
-            </View>
-
-            {/* Segmented Tabs */}
-            <View style={[styles.tabsSection, { backgroundColor: colors.background }]}>
-                <SegmentedTabs
-                    tabs={CREATE_POST_TABS}
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
                 />
             </View>
 
@@ -397,10 +413,6 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: Typography.sizes.lg,
         fontWeight: Typography.weights.semibold,
-    },
-    tabsSection: {
-        paddingHorizontal: Spacing.screenPadding,
-        paddingVertical: Spacing.sm,
     },
     scrollView: {
         flex: 1,
