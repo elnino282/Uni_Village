@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ItineraryDetailsSheet } from '@/features/itinerary/components/ItineraryDetailsSheet';
@@ -15,12 +15,13 @@ import {
   useReportPost,
   useSavePost,
 } from '../hooks';
-import type { CommunityPost, CommunityTab, PostLocation } from '../types';
+import type { CommunityPost, CommunityTab, ContentFilterTab, PostLocation } from '../types';
 
 import { CommunityFAB } from './CommunityFAB';
 import { CommunityHeader } from './CommunityHeader';
 import { CommunitySearchBar } from './CommunitySearchBar';
 import { CommunitySegmentedTabs } from './CommunitySegmentedTabs';
+import { ContentTabChips } from './ContentTabChips';
 import { MessagesTab } from './MessagesTab';
 import { PostCard } from './PostCard';
 import { PostOverflowMenu } from './PostOverflowMenu';
@@ -31,11 +32,24 @@ export function CommunityScreen() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<CommunityTab>('posts');
+  const [contentFilterTab, setContentFilterTab] = useState<ContentFilterTab>('posts');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSheetVisible, setIsSheetVisible] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState<ItineraryShareData | null>(null);
+
+  // Dynamic search placeholder based on content filter tab
+  const getSearchPlaceholder = () => {
+    switch (contentFilterTab) {
+      case 'itineraries':
+        return 'Tìm kiếm lịch trình...';
+      case 'channels':
+        return 'Tìm kiếm Channel...';
+      default:
+        return 'Tìm kiếm bài viết...';
+    }
+  };
 
   const { data, isLoading, refetch, isRefetching } = useCommunityPosts();
   const likePostMutation = useLikePost();
@@ -148,12 +162,26 @@ export function CommunityScreen() {
 
   const keyExtractor = useCallback((item: CommunityPost) => item.id, []);
 
-  const filteredPosts = data?.data.filter((post) =>
+  // Filter posts by search query first
+  const searchFilteredPosts = data?.data.filter((post) =>
     searchQuery
       ? post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.author.displayName.toLowerCase().includes(searchQuery.toLowerCase())
       : true
-  );
+  ) || [];
+
+  // Then filter by content type based on active chip
+  const filteredPosts = searchFilteredPosts.filter((post) => {
+    switch (contentFilterTab) {
+      case 'itineraries':
+        return !!post.itineraryShare;
+      case 'channels':
+        return !!post.channelInvite;
+      default:
+        // 'posts' = only pure posts (no itinerary, no channel)
+        return !post.itineraryShare && !post.channelInvite;
+    }
+  });
 
   if (isLoading) {
     return <LoadingScreen message="Đang tải bài viết..." />;
@@ -174,6 +202,12 @@ export function CommunityScreen() {
             <CommunitySearchBar
               value={searchQuery}
               onChangeText={setSearchQuery}
+              placeholder={getSearchPlaceholder()}
+            />
+
+            <ContentTabChips
+              activeTab={contentFilterTab}
+              onTabChange={setContentFilterTab}
             />
 
             <FlatList
@@ -188,6 +222,17 @@ export function CommunityScreen() {
                   onRefresh={refetch}
                   tintColor={colors.actionBlue}
                 />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                    {contentFilterTab === 'itineraries'
+                      ? 'Không có bài đăng chia sẻ lịch trình'
+                      : contentFilterTab === 'channels'
+                        ? 'Không có bài đăng mời tham gia Channel'
+                        : 'Không có bài viết'}
+                  </Text>
+                </View>
               }
             />
 
@@ -228,5 +273,15 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: Spacing.sm,
     paddingBottom: 100,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
