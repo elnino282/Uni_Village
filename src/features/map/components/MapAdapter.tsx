@@ -1,13 +1,33 @@
+/**
+ * MapAdapter - Enhanced Map Component
+ *
+ * Features:
+ * - Map type switching (standard/satellite/hybrid)
+ * - Custom minimal map style for reduced visual noise
+ * - Polyline with stroke for better visibility
+ * - Performance optimizations for Android markers
+ * - Camera animation support
+ */
+
 import { Colors, MapColors, Shadows } from "@/shared/constants/theme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React, {
   forwardRef,
+  memo,
   useCallback,
   useImperativeHandle,
-  useRef
+  useMemo,
+  useRef,
 } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from "react-native-maps";
+import MapView, {
+  Camera,
+  MapType,
+  Marker,
+  Polyline,
+  PROVIDER_GOOGLE,
+  Region,
+} from "react-native-maps";
 import type {
   MapMarker,
   MapRegion,
@@ -26,10 +46,20 @@ export interface MapAdapterProps {
   selectedMarkerId?: string | null;
   userLocation?: UserLocation | null;
   initialRegion: MapRegion;
+  /** Map display type */
+  mapType?: "standard" | "satellite" | "hybrid";
   /** Route polyline coordinates */
   routePolyline?: PolylineCoord[];
-  /** Polyline color (default: theme tint) */
+  /** Polyline color (default: theme routePolyline) */
   polylineColor?: string;
+  /** Show polyline stroke/outline */
+  showPolylineStroke?: boolean;
+  /** Hide business POIs for cleaner view during navigation */
+  hideBusinessPOI?: boolean;
+  /** Camera pitch for 3D view (0-60 degrees) */
+  cameraPitch?: number;
+  /** Camera heading/bearing (0-360 degrees) */
+  cameraHeading?: number;
   onMarkerPress?: (markerId: string) => void;
   onRegionChange?: (region: MapRegion) => void;
   onMapPress?: () => void;
@@ -37,14 +67,73 @@ export interface MapAdapterProps {
   colorScheme?: "light" | "dark";
 }
 
-
 export interface MapAdapterRef {
   animateToRegion: (region: MapRegion, duration?: number) => void;
   animateToCoordinate: (coordinate: {
     latitude: number;
     longitude: number;
   }) => void;
+  animateCamera: (camera: Partial<Camera>, duration?: number) => void;
+  getCamera: () => Promise<Camera | undefined>;
 }
+
+/**
+ * Custom map style to reduce visual noise
+ * - Hides business POIs
+ * - Reduces vegetation saturation
+ * - Emphasizes roads
+ */
+const MINIMAL_MAP_STYLE = [
+  // Hide business POIs
+  {
+    featureType: "poi.business",
+    elementType: "all",
+    stylers: [{ visibility: "off" }],
+  },
+  // Hide attraction POIs
+  {
+    featureType: "poi.attraction",
+    elementType: "all",
+    stylers: [{ visibility: "off" }],
+  },
+  // Reduce vegetation color intensity
+  {
+    featureType: "landscape.natural",
+    elementType: "geometry.fill",
+    stylers: [{ saturation: -30 }, { lightness: 10 }],
+  },
+  // Emphasize roads
+  {
+    featureType: "road",
+    elementType: "geometry.fill",
+    stylers: [{ saturation: -20 }, { lightness: 5 }],
+  },
+  // Increase road label visibility
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ weight: 0.5 }],
+  },
+];
+
+/**
+ * Navigation mode map style - even cleaner
+ */
+const NAVIGATION_MAP_STYLE = [
+  ...MINIMAL_MAP_STYLE,
+  // Hide all POIs during navigation
+  {
+    featureType: "poi",
+    elementType: "all",
+    stylers: [{ visibility: "off" }],
+  },
+  // Hide transit stations
+  {
+    featureType: "transit",
+    elementType: "all",
+    stylers: [{ visibility: "off" }],
+  },
+];
 
 function getMarkerColor(
   category: PlaceCategory,
@@ -71,6 +160,49 @@ function getCategoryIcon(category: PlaceCategory): string {
   return iconMap[category] || "place";
 }
 
+/**
+ * Memoized Marker component for performance
+ */
+const MapMarkerItem = memo(function MapMarkerItem({
+  marker,
+  isSelected,
+  colorScheme,
+  onPress,
+}: {
+  marker: MapMarker;
+  isSelected: boolean;
+  colorScheme: "light" | "dark";
+  onPress: () => void;
+}) {
+  const markerColor = getMarkerColor(marker.category, isSelected, colorScheme);
+
+  return (
+    <Marker
+      identifier={marker.id}
+      coordinate={marker.coordinate}
+      title={marker.title}
+      description={marker.description}
+      onPress={onPress}
+      // Performance: Disable view tracking on Android once marker is rendered
+      tracksViewChanges={Platform.OS === "ios"}
+    >
+      <View
+        style={[
+          styles.markerContainer,
+          isSelected && styles.markerContainerSelected,
+          { backgroundColor: markerColor },
+        ]}
+      >
+        <MaterialIcons
+          name={getCategoryIcon(marker.category) as any}
+          size={isSelected ? 20 : 16}
+          color="#fff"
+        />
+      </View>
+    </Marker>
+  );
+});
+
 export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
   function MapAdapter(
     {
@@ -78,8 +210,13 @@ export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
       selectedMarkerId,
       userLocation,
       initialRegion,
+      mapType = "standard",
       routePolyline,
       polylineColor,
+      showPolylineStroke = true,
+      hideBusinessPOI = false,
+      cameraPitch,
+      cameraHeading,
       onMarkerPress,
       onRegionChange,
       onMapPress,
@@ -89,14 +226,38 @@ export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
     ref
   ) {
     const mapRef = useRef<MapView>(null);
-    const colors = Colors[colorScheme];
-    const thePolylineColor = polylineColor || colors.tint;
+    const mapColors = MapColors[colorScheme];
+
+    // Determine polyline colors
+    const strokeColor = mapColors.routePolylineStroke;
+    const routeColor = polylineColor || mapColors.routePolyline;
+
+    // Convert mapType prop to react-native-maps MapType
+    const mapTypeValue: MapType = useMemo(() => {
+      switch (mapType) {
+        case "satellite":
+          return "satellite";
+        case "hybrid":
+          return "hybrid";
+        default:
+          return "standard";
+      }
+    }, [mapType]);
+
+    // Select appropriate map style
+    const customMapStyle = useMemo(() => {
+      if (mapType !== "standard") return undefined;
+      return hideBusinessPOI ? NAVIGATION_MAP_STYLE : MINIMAL_MAP_STYLE;
+    }, [mapType, hideBusinessPOI]);
 
     useImperativeHandle(ref, () => ({
       animateToRegion: (region: MapRegion, duration = 500) => {
         mapRef.current?.animateToRegion(region, duration);
       },
-      animateToCoordinate: (coordinate: { latitude: number; longitude: number }) => {
+      animateToCoordinate: (coordinate: {
+        latitude: number;
+        longitude: number;
+      }) => {
         mapRef.current?.animateToRegion(
           {
             ...coordinate,
@@ -105,6 +266,12 @@ export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
           },
           500
         );
+      },
+      animateCamera: (camera: Partial<Camera>, duration = 500) => {
+        mapRef.current?.animateCamera(camera, { duration });
+      },
+      getCamera: async () => {
+        return mapRef.current?.getCamera();
       },
     }));
 
@@ -127,61 +294,77 @@ export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
       [onMarkerPress]
     );
 
+    // Initial camera with pitch/heading if provided
+    const initialCamera: Camera | undefined = useMemo(() => {
+      if (cameraPitch !== undefined || cameraHeading !== undefined) {
+        return {
+          center: {
+            latitude: initialRegion.latitude,
+            longitude: initialRegion.longitude,
+          },
+          pitch: cameraPitch ?? 0,
+          heading: cameraHeading ?? 0,
+          zoom: 15,
+        };
+      }
+      return undefined;
+    }, [initialRegion, cameraPitch, cameraHeading]);
+
     return (
       <View style={styles.container}>
         <MapView
           ref={mapRef}
           style={styles.map}
           provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
-          initialRegion={initialRegion}
+          mapType={mapTypeValue}
+          customMapStyle={customMapStyle}
+          initialRegion={!initialCamera ? initialRegion : undefined}
+          initialCamera={initialCamera}
           showsUserLocation={showsUserLocation}
           showsMyLocationButton={false}
           showsCompass={false}
+          showsTraffic={false}
+          showsBuildings={mapType === "satellite" || mapType === "hybrid"}
+          showsIndoors={false}
           onRegionChangeComplete={handleRegionChangeComplete}
           onPress={onMapPress}
           mapPadding={{ top: 120, right: 0, bottom: 200, left: 0 }}
+          // Performance optimizations
+          loadingEnabled
+          moveOnMarkerPress={false}
+          pitchEnabled
+          rotateEnabled
         >
-          {markers.map((marker) => {
-            const isSelected = marker.id === selectedMarkerId;
-            const markerColor = getMarkerColor(
-              marker.category,
-              isSelected,
-              colorScheme
-            );
+          {/* Render markers with memoization */}
+          {markers.map((marker) => (
+            <MapMarkerItem
+              key={marker.id}
+              marker={marker}
+              isSelected={marker.id === selectedMarkerId}
+              colorScheme={colorScheme}
+              onPress={() => handleMarkerPress(marker.id)}
+            />
+          ))}
 
-            return (
-              <Marker
-                key={marker.id}
-                identifier={marker.id}
-                coordinate={marker.coordinate}
-                title={marker.title}
-                description={marker.description}
-                onPress={() => handleMarkerPress(marker.id)}
-              >
-                <View
-                  style={[
-                    styles.markerContainer,
-                    isSelected && styles.markerContainerSelected,
-                    { backgroundColor: markerColor },
-                  ]}
-                >
-                  <MaterialIcons
-                    name={getCategoryIcon(marker.category) as any}
-                    size={isSelected ? 20 : 16}
-                    color="#fff"
-                  />
-                </View>
-              </Marker>
-            );
-          })}
+          {/* Route Polyline with Stroke (White outline) */}
+          {routePolyline && routePolyline.length > 0 && showPolylineStroke && (
+            <Polyline
+              coordinates={routePolyline}
+              strokeColor={strokeColor}
+              strokeWidth={8}
+              lineCap="round"
+              lineJoin="round"
+            />
+          )}
 
-          {/* Route Polyline */}
+          {/* Route Polyline (Inner color) */}
           {routePolyline && routePolyline.length > 0 && (
             <Polyline
               coordinates={routePolyline}
-              strokeColor={thePolylineColor}
-              strokeWidth={4}
-              lineDashPattern={[0]}
+              strokeColor={routeColor}
+              strokeWidth={5}
+              lineCap="round"
+              lineJoin="round"
             />
           )}
         </MapView>
@@ -189,6 +372,10 @@ export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
     );
   }
 );
+
+/**
+ * Mock Map View for testing/fallback
+ */
 export function MockMapView({
   markers,
   selectedMarkerId,
