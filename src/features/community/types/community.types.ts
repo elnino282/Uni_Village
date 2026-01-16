@@ -6,6 +6,7 @@ import type { ItineraryShareData } from '@/features/itinerary/types/itinerary.ty
 import type { ChannelInvite } from '@/shared/types';
 
 export type CommunityTab = 'posts' | 'messages';
+export type ContentFilterTab = 'posts' | 'itineraries' | 'channels';
 
 export interface PostLocation {
   id: string;

@@ -61,6 +61,7 @@ export const MOCK_POSTS: CommunityPost[] = [
     ],
     likesCount: 42,
     commentsCount: 8,
+    sharesCount: 5,
     isLiked: false,
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
@@ -79,6 +80,7 @@ export const MOCK_POSTS: CommunityPost[] = [
     ],
     likesCount: 128,
     commentsCount: 23,
+    sharesCount: 12,
     isLiked: true,
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
     updatedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
@@ -96,6 +98,7 @@ export const MOCK_POSTS: CommunityPost[] = [
     ],
     likesCount: 56,
     commentsCount: 34,
+    sharesCount: 7,
     isLiked: false,
     createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(), // 8 hours ago
     updatedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
