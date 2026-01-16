@@ -13,6 +13,21 @@ export interface Place {
     description?: string;
     isOpen?: boolean;
     priceLevel?: 1 | 2 | 3 | 4; // $ to $$$$
+    // Extended fields for Place Details
+    businessStatus?: 'OPERATIONAL' | 'CLOSED_TEMPORARILY' | 'CLOSED_PERMANENTLY';
+    editorialSummary?: string;
+    phone?: string;
+    internationalPhone?: string;
+    website?: string;
+    photos?: PlacePhoto[];
+    openingHoursText?: string[];
+}
+
+export interface PlacePhoto {
+    name: string;
+    widthPx: number;
+    heightPx: number;
+    url?: string;
 }
 
 export type PlaceCategory =
