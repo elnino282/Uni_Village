@@ -1,31 +1,42 @@
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Colors, MapColors, Shadows } from "@/shared/constants/theme";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React, {
-    forwardRef,
-    useCallback,
-    useImperativeHandle,
-    useRef,
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef
 } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import type {
-    MapMarker,
-    MapRegion,
-    PlaceCategory,
-    UserLocation,
+  MapMarker,
+  MapRegion,
+  PlaceCategory,
+  UserLocation,
 } from "../types";
+
+/** Coordinate for polyline rendering */
+export interface PolylineCoord {
+  latitude: number;
+  longitude: number;
+}
 
 export interface MapAdapterProps {
   markers: MapMarker[];
   selectedMarkerId?: string | null;
   userLocation?: UserLocation | null;
   initialRegion: MapRegion;
+  /** Route polyline coordinates */
+  routePolyline?: PolylineCoord[];
+  /** Polyline color (default: theme tint) */
+  polylineColor?: string;
   onMarkerPress?: (markerId: string) => void;
   onRegionChange?: (region: MapRegion) => void;
   onMapPress?: () => void;
   showsUserLocation?: boolean;
   colorScheme?: "light" | "dark";
 }
+
 
 export interface MapAdapterRef {
   animateToRegion: (region: MapRegion, duration?: number) => void;
@@ -67,6 +78,8 @@ export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
       selectedMarkerId,
       userLocation,
       initialRegion,
+      routePolyline,
+      polylineColor,
       onMarkerPress,
       onRegionChange,
       onMapPress,
@@ -76,11 +89,14 @@ export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
     ref
   ) {
     const mapRef = useRef<MapView>(null);
+    const colors = Colors[colorScheme];
+    const thePolylineColor = polylineColor || colors.tint;
+
     useImperativeHandle(ref, () => ({
       animateToRegion: (region: MapRegion, duration = 500) => {
         mapRef.current?.animateToRegion(region, duration);
       },
-      animateToCoordinate: (coordinate) => {
+      animateToCoordinate: (coordinate: { latitude: number; longitude: number }) => {
         mapRef.current?.animateToRegion(
           {
             ...coordinate,
@@ -158,6 +174,16 @@ export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
               </Marker>
             );
           })}
+
+          {/* Route Polyline */}
+          {routePolyline && routePolyline.length > 0 && (
+            <Polyline
+              coordinates={routePolyline}
+              strokeColor={thePolylineColor}
+              strokeWidth={4}
+              lineDashPattern={[0]}
+            />
+          )}
         </MapView>
       </View>
     );
