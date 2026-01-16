@@ -194,7 +194,7 @@ function mapManeuver(maneuver?: string): RouteStep['maneuver'] {
  * Decode Google Maps polyline to array of coordinates
  * Reference: https://developers.google.com/maps/documentation/utilities/polylinealgorithm
  */
-function decodePolyline(encoded: string): Location[] {
+export function decodePolyline(encoded: string): Location[] {
   const points: Location[] = [];
   let index = 0;
   let lat = 0;

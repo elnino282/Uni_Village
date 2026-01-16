@@ -4,6 +4,14 @@
  * Exports all map-related services for Google Maps API integration.
  */
 
+// Google Maps Client (unified API client)
+export {
+    GoogleMapsClient,
+    MapError, getGoogleMapsClient, resetGoogleMapsClient,
+    type ClientConfig,
+    type MapErrorCode
+} from './GoogleMapsClient';
+
 // Places API Service
 export {
     autocomplete,
