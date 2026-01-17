@@ -37,6 +37,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Place } from "../types";
 import { PhotoCarousel } from "./PhotoCarousel";
+import { SkeletonPlaceCard } from "./SkeletonPlaceCard";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -45,6 +46,8 @@ export interface PlaceBottomSheetProps {
     place: Place | null;
     /** List of recently viewed places */
     recentlyViewed?: Place[];
+    /** Whether place data is loading */
+    isLoading?: boolean;
     /** Callback when a place is selected */
     onPlaceSelect?: (place: Place) => void;
     /** Callback when directions button is pressed */
@@ -240,6 +243,7 @@ export const PlaceBottomSheet = forwardRef<
     {
         place,
         recentlyViewed = [],
+        isLoading = false,
         onPlaceSelect,
         onDirections,
         onViewDetails,
@@ -372,8 +376,10 @@ export const PlaceBottomSheet = forwardRef<
                     </Text>
                 </View>
 
-                {/* Selected Place Card */}
-                {place && (
+                {/* Selected Place Card or Loading Skeleton */}
+                {isLoading ? (
+                    <SkeletonPlaceCard colorScheme={colorScheme} />
+                ) : place && (
                     <PlaceCard
                         place={place}
                         onPress={handleViewDetails}
