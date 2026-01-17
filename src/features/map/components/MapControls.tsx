@@ -1,6 +1,6 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing } from '@/shared/constants/spacing';
 import { BorderRadius, Colors, MapColors, Shadows } from '@/shared/constants/theme';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React, { memo } from 'react';
 import {
     ActivityIndicator,
@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface MapControlsProps {
     onLayersPress?: () => void;
@@ -26,11 +27,15 @@ export const MapControls = memo(function MapControls({
     isLoadingLocation = false,
     colorScheme = 'light',
 }: MapControlsProps) {
+    const insets = useSafeAreaInsets();
     const colors = Colors[colorScheme];
     const mapColors = MapColors[colorScheme];
 
+    // Bottom position accounts for bottom sheet (120px) + tab bar safe area
+    const bottomPosition = 140 + Math.max(insets.bottom, 20);
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { bottom: bottomPosition }]}>
             {/* Layers Button */}
             <TouchableOpacity
                 style={[
@@ -105,7 +110,6 @@ const styles = StyleSheet.create({
     container: {
         position: 'absolute',
         right: Spacing.screenPadding,
-        bottom: 220,
         gap: Spacing.sm,
     },
     controlButton: {

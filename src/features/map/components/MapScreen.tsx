@@ -1,139 +1,64 @@
 /**
  * MapScreen - Fully integrated with Google Maps APIs (Redesigned UI/UX)
  *
+ * REFACTORED: Using shared utilities and extracted components
+ * - Removed duplicate category mappings (now in constants)
+ * - Removed inline conversion functions (now in utils)
+ * - Using extracted overlay components
+ *
  * Features:
  * - Places Autocomplete for search
  * - Nearby search based on user location
  * - Directions with route overlay
- * - Category filtering
+ * - Category filtering with modal selector
  * - Bottom Sheet for place details (Gorhom)
  * - Navigation Banner for turn-by-turn
- * - Map type switching
- * - Optimized performance
+ * - Map type switching with modal
  */
 
 import {
     getDirections,
     type NavigationRoute,
     type TravelMode,
-} from "@/lib/maps/googleMapsService";
-import { Spacing } from "@/shared/constants/spacing";
-import { useColorScheme } from "@/shared/hooks/useColorScheme";
-import * as ExpoLocation from "expo-location";
-import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { Alert, Keyboard, StyleSheet, View, TouchableOpacity } from "react-native";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaView } from "react-native-safe-area-context";
+} from '@/lib/maps/googleMapsService';
+import { useColorScheme } from '@/shared/hooks/useColorScheme';
+import * as ExpoLocation from 'expo-location';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Keyboard, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+    CATEGORY_TO_GOOGLE_TYPES,
+    MAP_CONFIG,
+    type MapTypeOption,
+} from '../constants/mapConstants';
 import {
     getPlaceDetails,
     searchNearby,
     type NearbyPlace,
     type PlaceDetails,
-} from "../services/placesService";
-import { useMapStore } from "../store/mapStore";
-import type { MapMarker, Place, PlaceCategory, UserLocation } from "../types";
-import { CategoryChips } from "./CategoryChips";
-import { MapAdapter, MapAdapterRef } from "./MapAdapter";
-import { MapControls } from "./MapControls";
-import { NavigationBanner } from "./NavigationBanner";
-import { PlaceBottomSheet, PlaceBottomSheetRef } from "./PlaceBottomSheet";
-import { PlacesAutocomplete } from "./PlacesAutocomplete";
-import { RouteOverlay } from "./RouteOverlay";
-import { SearchBar } from "./SearchBar";
-import { DirectionsSetup } from "./DirectionsSetup";
-import { SortControl, SortOption } from "./SortControl";
-
-// Type mapping from Google Place types to app categories
-const GOOGLE_TYPE_TO_CATEGORY: Record<string, PlaceCategory> = {
-    restaurant: "restaurant",
-    food: "restaurant",
-    cafe: "cafe",
-    coffee_shop: "cafe",
-    lodging: "hotel",
-    hotel: "hotel",
-    shopping_mall: "shopping",
-    store: "shopping",
-    supermarket: "shopping",
-    movie_theater: "entertainment",
-    amusement_park: "entertainment",
-    night_club: "entertainment",
-    school: "education",
-    university: "education",
-    library: "education",
-};
-
-// Category to Google Place types mapping
-const CATEGORY_TO_GOOGLE_TYPES: Record<PlaceCategory, string[]> = {
-    restaurant: ["restaurant"],
-    cafe: ["cafe"],
-    hotel: ["lodging"],
-    shopping: ["shopping_mall", "store"],
-    entertainment: ["movie_theater", "amusement_park"],
-    education: ["school", "university"],
-    home: [],
-    other: [],
-};
-
-function mapGoogleTypeToCategory(types: string[]): PlaceCategory {
-    for (const type of types) {
-        if (GOOGLE_TYPE_TO_CATEGORY[type]) {
-            return GOOGLE_TYPE_TO_CATEGORY[type];
-        }
-    }
-    return "other";
-}
-
-function convertNearbyPlaceToPlace(nearbyPlace: NearbyPlace): Place {
-    return {
-        id: nearbyPlace.placeId,
-        name: nearbyPlace.name,
-        category: mapGoogleTypeToCategory(nearbyPlace.types),
-        rating: nearbyPlace.rating || 4.0,
-        ratingCount: nearbyPlace.userRatingCount,
-        distanceKm: (nearbyPlace.distanceMeters || 0) / 1000,
-        tags: [],
-        thumbnail:
-            "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400",
-        lat: nearbyPlace.location.latitude,
-        lng: nearbyPlace.location.longitude,
-        address: nearbyPlace.formattedAddress,
-        isOpen: undefined,
-    };
-}
-
-function convertPlaceDetailsToPlace(details: PlaceDetails): Place {
-    return {
-        id: details.placeId,
-        name: details.name,
-        category: mapGoogleTypeToCategory(details.types),
-        rating: details.rating || 4.0,
-        ratingCount: details.userRatingCount,
-        distanceKm: 0,
-        tags: [],
-        thumbnail:
-            details.photos && details.photos.length > 0
-                ? `https://places.googleapis.com/v1/${details.photos[0].name}/media?maxWidthPx=400&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
-                : "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400",
-        lat: details.location.latitude,
-        lng: details.location.longitude,
-        address: details.formattedAddress,
-        isOpen: details.openingHours?.openNow,
-        // Extended fields
-        photos: details.photos,
-        editorialSummary: details.editorialSummary,
-        businessStatus: details.businessStatus,
-        phone: details.phoneNumber,
-        internationalPhone: details.internationalPhoneNumber,
-        website: details.website,
-        openingHoursText: details.openingHours?.weekdayDescriptions,
-    };
-}
+} from '../services/placesService';
+import { useMapStore } from '../store/mapStore';
+import type { MapMarker, Place, PlaceCategory, UserLocation } from '../types';
+import {
+    convertNearbyPlaceToPlace,
+    convertPlaceDetailsToPlace,
+    mapGoogleTypeToCategory,
+} from '../utils/placeConverters';
+import { DirectionsSetup } from './DirectionsSetup';
+import { MapAdapter, MapAdapterRef } from './MapAdapter';
+import { MapControls } from './MapControls';
+import { MapSearchOverlay } from './MapSearchOverlay';
+import { MapTypeSelectorModal } from './MapTypeSelectorModal';
+import { NavigationBanner } from './NavigationBanner';
+import { NavigationControls } from './NavigationControls';
+import { PlaceBottomSheet, PlaceBottomSheetRef } from './PlaceBottomSheet';
+import { RouteOverlay } from './RouteOverlay';
+import { SortOption } from './SortControl';
 
 export function MapScreen() {
     const router = useRouter();
-    const colorScheme = useColorScheme() ?? "light";
+    const colorScheme = useColorScheme() ?? 'light';
     const mapRef = useRef<MapAdapterRef>(null);
     const bottomSheetRef = useRef<PlaceBottomSheetRef>(null);
 
@@ -151,7 +76,6 @@ export function MapScreen() {
     } = useMapStore();
 
     // Local UI state
-    const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [places, setPlaces] = useState<NearbyPlace[]>([]);
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
     const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
@@ -162,11 +86,11 @@ export function MapScreen() {
     const [sortOption, setSortOption] = useState<SortOption>('distance');
 
     // Map display state
-    const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
+    const [mapType, setMapType] = useState<MapTypeOption>('standard');
+    const [showMapTypeModal, setShowMapTypeModal] = useState(false);
 
     // Route state
-    const [navigationRoute, setNavigationRoute] =
-        useState<NavigationRoute | null>(null);
+    const [navigationRoute, setNavigationRoute] = useState<NavigationRoute | null>(null);
     const [isLoadingRoute, setIsLoadingRoute] = useState(false);
     const [showRouteOverlay, setShowRouteOverlay] = useState(false);
 
@@ -198,11 +122,11 @@ export function MapScreen() {
 
     // Fetch nearby places when location or category changes
     const fetchNearbyPlaces = useCallback(
-        async (location: UserLocation, category: PlaceCategory | "all") => {
+        async (location: UserLocation, category: PlaceCategory | 'all') => {
             setIsLoadingPlaces(true);
             try {
                 const includedTypes =
-                    category === "all" ? undefined : CATEGORY_TO_GOOGLE_TYPES[category];
+                    category === 'all' ? undefined : CATEGORY_TO_GOOGLE_TYPES[category];
 
                 // Skip if category has no types (like 'home')
                 if (includedTypes && includedTypes.length === 0) {
@@ -216,9 +140,9 @@ export function MapScreen() {
                         latitude: location.latitude,
                         longitude: location.longitude,
                     },
-                    radius: 2000,
+                    radius: MAP_CONFIG.DEFAULT_RADIUS,
                     includedTypes,
-                    maxResultCount: 20,
+                    maxResultCount: MAP_CONFIG.MAX_NEARBY_RESULTS,
                 });
 
                 setPlaces(results);
@@ -229,7 +153,7 @@ export function MapScreen() {
                     setSelectedPlace(firstPlace);
                 }
             } catch (error) {
-                console.error("Error fetching nearby places:", error);
+                console.error('Error fetching nearby places:', error);
             } finally {
                 setIsLoadingPlaces(false);
             }
@@ -267,10 +191,10 @@ export function MapScreen() {
                 longitude: newLocation.longitude,
             });
         } catch (error) {
-            console.error("Error getting location:", error);
+            console.error('Error getting location:', error);
             Alert.alert(
-                "Lỗi",
-                "Không thể lấy vị trí hiện tại. Vui lòng kiểm tra cài đặt GPS."
+                'Lỗi',
+                'Không thể lấy vị trí hiện tại. Vui lòng kiểm tra cài đặt GPS.'
             );
         } finally {
             setIsLoadingLocation(false);
@@ -283,29 +207,26 @@ export function MapScreen() {
             try {
                 const { status } =
                     await ExpoLocation.requestForegroundPermissionsAsync();
-                if (status === "granted") {
+                if (status === 'granted') {
                     getCurrentLocation();
                 } else {
                     Alert.alert(
-                        "Cần quyền vị trí",
-                        "Vui lòng cho phép truy cập vị trí để sử dụng đầy đủ tính năng bản đồ"
+                        'Cần quyền vị trí',
+                        'Vui lòng cho phép truy cập vị trí để sử dụng đầy đủ tính năng bản đồ'
                     );
                 }
             } catch (error) {
-                console.error("Error requesting location permission:", error);
+                console.error('Error requesting location permission:', error);
             }
         };
 
         requestPermission();
     }, [getCurrentLocation]);
 
-    // Handle search text change
+    // Handle search query change
     const handleSearchChange = useCallback(
         (text: string) => {
             setSearchQuery(text);
-            if (text.length >= 2) {
-                setIsSearchFocused(true);
-            }
         },
         [setSearchQuery]
     );
@@ -313,7 +234,6 @@ export function MapScreen() {
     // Handle place selection from autocomplete
     const handlePlaceSelectFromAutocomplete = useCallback(
         async (placeDetails: PlaceDetails) => {
-            setIsSearchFocused(false);
             setSearchQuery(placeDetails.name);
             Keyboard.dismiss();
 
@@ -337,7 +257,7 @@ export function MapScreen() {
 
     // Handle category change
     const handleCategoryPress = useCallback(
-        (category: PlaceCategory | "all") => {
+        (category: PlaceCategory | 'all') => {
             setActiveCategory(category);
             setSelectedPlace(null);
         },
@@ -379,7 +299,6 @@ export function MapScreen() {
 
     // Handle map press (deselect)
     const handleMapPress = useCallback(() => {
-        setIsSearchFocused(false);
         Keyboard.dismiss();
     }, []);
 
@@ -410,19 +329,14 @@ export function MapScreen() {
         }
     }, []);
 
-    // Handle layers button - toggle map type
+    // Handle layers button - open map type modal
     const handleLayersPress = useCallback(() => {
-        Alert.alert("Lớp bản đồ", "Chọn kiểu bản đồ", [
-            {
-                text: "Tiêu chuẩn",
-                onPress: () => setMapType("standard"),
-            },
-            {
-                text: "Vệ tinh",
-                onPress: () => setMapType("satellite"),
-            },
-            { text: "Hủy", style: "cancel" },
-        ]);
+        setShowMapTypeModal(true);
+    }, []);
+
+    // Handle map type selection
+    const handleMapTypeSelect = useCallback((type: MapTypeOption) => {
+        setMapType(type);
     }, []);
 
     // Handle place selection from bottom sheet
@@ -439,8 +353,8 @@ export function MapScreen() {
         async (place: Place) => {
             if (!userLocation) {
                 Alert.alert(
-                    "Lỗi",
-                    "Vui lòng bật định vị để sử dụng tính năng chỉ đường"
+                    'Lỗi',
+                    'Vui lòng bật định vị để sử dụng tính năng chỉ đường'
                 );
                 return;
             }
@@ -451,28 +365,31 @@ export function MapScreen() {
     );
 
     // Handle Confirm Directions
-    const handleConfirmDirections = useCallback(async ({ origin, mode }: { origin: string; mode: TravelMode }) => {
-        setShowDirectionsSetup(false);
-        if (!selectedPlace || !userLocation) return;
+    const handleConfirmDirections = useCallback(
+        async ({ mode }: { origin: string; mode: TravelMode }) => {
+            setShowDirectionsSetup(false);
+            if (!selectedPlace || !userLocation) return;
 
-        setIsLoadingRoute(true);
-        setShowRouteOverlay(true);
+            setIsLoadingRoute(true);
+            setShowRouteOverlay(true);
 
-        try {
-            const route = await getDirections(
-                { latitude: userLocation.latitude, longitude: userLocation.longitude },
-                { latitude: selectedPlace.lat, longitude: selectedPlace.lng },
-                { mode }
-            );
-            setNavigationRoute(route);
-        } catch (error) {
-            console.error("Error getting directions:", error);
-            Alert.alert("Lỗi", "Không thể lấy chỉ đường. Vui lòng thử lại.");
-            setShowRouteOverlay(false);
-        } finally {
-            setIsLoadingRoute(false);
-        }
-    }, [selectedPlace, userLocation]);
+            try {
+                const route = await getDirections(
+                    { latitude: userLocation.latitude, longitude: userLocation.longitude },
+                    { latitude: selectedPlace.lat, longitude: selectedPlace.lng },
+                    { mode }
+                );
+                setNavigationRoute(route);
+            } catch (error) {
+                console.error('Error getting directions:', error);
+                Alert.alert('Lỗi', 'Không thể lấy chỉ đường. Vui lòng thử lại.');
+                setShowRouteOverlay(false);
+            } finally {
+                setIsLoadingRoute(false);
+            }
+        },
+        [selectedPlace, userLocation]
+    );
 
     // Handle close route overlay
     const handleCloseRouteOverlay = useCallback(() => {
@@ -503,12 +420,12 @@ export function MapScreen() {
 
     // Handle mic press
     const handleMicPress = useCallback(() => {
-        Alert.alert("Tìm kiếm giọng nói", "Tính năng đang phát triển");
+        Alert.alert('Tìm kiếm giọng nói', 'Tính năng đang phát triển');
     }, []);
 
     // Handle profile press
     const handleProfilePress = useCallback(() => {
-        router.push("/(tabs)/profile" as any);
+        router.push('/(tabs)/profile' as any);
     }, [router]);
 
     // Handle bottom sheet close
@@ -554,50 +471,19 @@ export function MapScreen() {
 
             {/* Search Overlay (hidden during navigation) */}
             {!isNavigating && !showDirectionsSetup && (
-                <SafeAreaView
-                    style={styles.overlay}
-                    edges={["top"]}
-                    pointerEvents="box-none"
-                >
-                    {/* Search Bar */}
-                    <View style={styles.searchContainer}>
-                        <SearchBar
-                            value={searchQuery}
-                            onChangeText={handleSearchChange}
-                            onFocus={() => setIsSearchFocused(true)}
-                            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                            onMicPress={handleMicPress}
-                            onProfilePress={handleProfilePress}
-                            colorScheme={colorScheme}
-                        />
-
-                        {/* Autocomplete Dropdown */}
-                        <PlacesAutocomplete
-                            query={searchQuery}
-                            isVisible={isSearchFocused && searchQuery.length >= 2}
-                            onPlaceSelect={handlePlaceSelectFromAutocomplete}
-                            onClose={() => setIsSearchFocused(false)}
-                            userLocation={userLocation ?? undefined}
-                            colorScheme={colorScheme}
-                        />
-                    </View>
-
-                    {/* Category Chips & Sort */}
-                    <View style={styles.chipsContainer}>
-                        <CategoryChips
-                            activeCategory={activeCategory}
-                            onCategoryPress={handleCategoryPress}
-                            colorScheme={colorScheme}
-                        />
-                         <View style={styles.sortContainer}>
-                             <SortControl
-                                sortOption={sortOption}
-                                onSortChange={setSortOption}
-                                colorScheme={colorScheme}
-                             />
-                        </View>
-                    </View>
-                </SafeAreaView>
+                <MapSearchOverlay
+                    searchQuery={searchQuery}
+                    onSearchChange={handleSearchChange}
+                    activeCategory={activeCategory}
+                    onCategoryChange={handleCategoryPress}
+                    sortOption={sortOption}
+                    onSortChange={setSortOption}
+                    onPlaceSelect={handlePlaceSelectFromAutocomplete}
+                    userLocation={userLocation}
+                    onMicPress={handleMicPress}
+                    onProfilePress={handleProfilePress}
+                    colorScheme={colorScheme}
+                />
             )}
 
             {/* Directions Setup Overlay */}
@@ -623,20 +509,10 @@ export function MapScreen() {
                     colorScheme={colorScheme}
                 />
             ) : (
-                <View style={styles.navigationButtons}>
-                     <TouchableOpacity
-                        style={[styles.navButton, { backgroundColor: '#EF4444' }]}
-                        onPress={handleExitNavigation}
-                    >
-                        <MaterialIcons name="close" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.navButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
-                        onPress={() => Alert.alert("Voice", "Đã bật dẫn đường giọng nói")}
-                    >
-                        <MaterialIcons name="volume-up" size={24} color="#fff" />
-                    </TouchableOpacity>
-                </View>
+                <NavigationControls
+                    onExit={handleExitNavigation}
+                    colorScheme={colorScheme}
+                />
             )}
 
             {/* Place Bottom Sheet (hidden during navigation, route overlay and setup) */}
@@ -662,6 +538,15 @@ export function MapScreen() {
                     colorScheme={colorScheme}
                 />
             )}
+
+            {/* Map Type Selector Modal */}
+            <MapTypeSelectorModal
+                visible={showMapTypeModal}
+                selectedType={mapType}
+                onSelect={handleMapTypeSelect}
+                onClose={() => setShowMapTypeModal(false)}
+                colorScheme={colorScheme}
+            />
         </GestureHandlerRootView>
     );
 }
@@ -670,46 +555,9 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    overlay: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 10,
-    },
-    searchContainer: {
-        paddingHorizontal: Spacing.screenPadding,
-        paddingTop: Spacing.sm,
-        paddingBottom: Spacing.sm,
-        position: "relative",
-        zIndex: 20,
-    },
-    chipsContainer: {
-        zIndex: 10,
-        gap: Spacing.xs,
-    },
-    sortContainer: {
-        paddingLeft: Spacing.screenPadding,
-        alignItems: 'flex-start',
-    },
     fullScreenOverlay: {
         ...StyleSheet.absoluteFillObject,
         zIndex: 50,
         backgroundColor: '#fff',
-    },
-    navigationButtons: {
-        position: 'absolute',
-        bottom: Spacing.screenPadding + 20,
-        right: Spacing.screenPadding,
-        alignItems: 'center',
-    },
-    navButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: Spacing.md,
-        ...Shadows.lg,
     },
 });
