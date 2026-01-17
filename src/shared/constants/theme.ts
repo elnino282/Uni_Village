@@ -55,6 +55,18 @@ export const Colors = {
         selectedChipBg: '#eff6ff',
         selectedChipBorder: '#bedbff',
         checkboxBorder: '#d1d5dc',
+        // Auth UI colors (from Figma)
+        authInputBorder: '#51A2FF',
+        authInputBackground: 'rgba(239, 246, 255, 0.5)',
+        authInputPlaceholder: 'rgba(0, 111, 227, 0.7)',
+        authPrimaryButton: '#22C55E',
+        authPrimaryButtonPressed: '#16A34A',
+        authTitleText: '#1E3A8A',
+        authLinkText: '#2B7FFF',
+        authDividerLine: '#E5E7EB',
+        authGradientStart: '#EFF6FF',
+        authGradientMid: '#FFFFFF',
+        authGradientEnd: '#F0FDF4',
     },
     dark: {
         text: '#ECEDEE',
@@ -102,6 +114,18 @@ export const Colors = {
         selectedChipBg: '#1e3a5f',
         selectedChipBorder: '#3b82f6',
         checkboxBorder: '#4a5056',
+        // Auth UI colors (dark mode variants)
+        authInputBorder: '#3B82F6',
+        authInputBackground: 'rgba(30, 58, 95, 0.5)',
+        authInputPlaceholder: 'rgba(96, 165, 250, 0.7)',
+        authPrimaryButton: '#22C55E',
+        authPrimaryButtonPressed: '#16A34A',
+        authTitleText: '#E0E7FF',
+        authLinkText: '#60A5FA',
+        authDividerLine: '#374151',
+        authGradientStart: '#1E293B',
+        authGradientMid: '#1E1E1E',
+        authGradientEnd: '#14532D',
     },
 } as const;
 
