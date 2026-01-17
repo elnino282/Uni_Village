@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    Keyboard,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -11,6 +12,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -76,6 +78,10 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
                 return false;
         }
     }, [activeTab, postContent, selectedChannel, selectedItinerary, isSubmitting]);
+
+    const dismissKeyboard = useCallback(() => {
+        Keyboard.dismiss();
+    }, []);
 
     const handleClose = () => {
         if (Platform.OS !== 'web') {
@@ -316,37 +322,41 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
             </View>
 
             {/* Content */}
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-            >
-                {/* Text Input - always shown unless empty state */}
-                {!shouldShowEmptyState && (
-                    <>
-                        <TextInput
-                            style={[
-                                styles.textInput,
-                                { color: colors.text },
-                            ]}
-                            placeholder={getPlaceholder()}
-                            placeholderTextColor={colors.textSecondary}
-                            value={getCurrentContent()}
-                            onChangeText={setCurrentContent}
-                            multiline
-                            autoFocus={activeTab === 'post'}
-                            textAlignVertical="top"
-                        />
+            <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
+                <View style={{ flex: 1 }}>
+                    <ScrollView
+                        style={styles.scrollView}
+                        contentContainerStyle={styles.scrollContent}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="on-drag"
+                    >
+                        {/* Text Input - always shown unless empty state */}
+                        {!shouldShowEmptyState && (
+                            <>
+                                <TextInput
+                                    style={[
+                                        styles.textInput,
+                                        { color: colors.text },
+                                    ]}
+                                    placeholder={getPlaceholder()}
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={getCurrentContent()}
+                                    onChangeText={setCurrentContent}
+                                    multiline
+                                    autoFocus={activeTab === 'post'}
+                                    textAlignVertical="top"
+                                />
+                            </>
+                        )}
 
-                    </>
-                )}
+                        {/* Empty state for Channel/Itinerary */}
+                        {renderEmptyState()}
 
-                {/* Empty state for Channel/Itinerary */}
-                {renderEmptyState()}
-
-                {/* Selected Channel/Itinerary cards */}
-                {renderSelectedContent()}
-            </ScrollView>
+                        {/* Selected Channel/Itinerary cards */}
+                        {renderSelectedContent()}
+                    </ScrollView>
+                </View>
+            </TouchableWithoutFeedback>
 
             {/* Bottom toolbar */}
             <View
