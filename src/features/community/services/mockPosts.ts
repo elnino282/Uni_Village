@@ -2,9 +2,19 @@ import { MOCK_ITINERARY_SHARE } from '@/features/itinerary/mock/itineraryShareMo
 import type { CommunityPost, CommunityPostsResponse } from '../types';
 
 /**
+ * CreatePostData interface for creating new posts
+ */
+export interface CreatePostData {
+  content: string;
+  visibility?: 'public' | 'followers' | 'private';
+  imageUrl?: string;
+  locations?: Array<{ id: string; name: string }>;
+}
+
+/**
  * Mock post data matching Figma design
  */
-export const MOCK_POSTS: CommunityPost[] = [
+const INITIAL_MOCK_POSTS: CommunityPost[] = [
   {
     id: 'post-itinerary',
     author: {
@@ -105,6 +115,12 @@ export const MOCK_POSTS: CommunityPost[] = [
   },
 ];
 
+// Mutable store for mock posts (allows adding new posts)
+let postsStore: CommunityPost[] = [...INITIAL_MOCK_POSTS];
+
+// Export MOCK_POSTS for backward compatibility
+export const MOCK_POSTS = INITIAL_MOCK_POSTS;
+
 /**
  * Simulated API delay
  */
@@ -120,18 +136,45 @@ export const communityService = {
     const { page, limit } = params;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
-    const paginatedData = MOCK_POSTS.slice(startIndex, endIndex);
+    const paginatedData = postsStore.slice(startIndex, endIndex);
 
     return {
       data: paginatedData,
       pagination: {
         page,
         limit,
-        total: MOCK_POSTS.length,
-        totalPages: Math.ceil(MOCK_POSTS.length / limit),
-        hasMore: endIndex < MOCK_POSTS.length,
+        total: postsStore.length,
+        totalPages: Math.ceil(postsStore.length / limit),
+        hasMore: endIndex < postsStore.length,
       },
     };
+  },
+
+  createPost: async (data: CreatePostData): Promise<CommunityPost> => {
+    await delay(500); // Simulate network delay
+
+    const newPost: CommunityPost = {
+      id: `post-${Date.now()}`,
+      author: {
+        id: 'current-user',
+        displayName: 'Bạn',
+        avatarUrl: 'https://ui-avatars.com/api/?name=User&background=3B82F6&color=fff',
+      },
+      content: data.content,
+      imageUrl: data.imageUrl,
+      locations: data.locations || [],
+      likesCount: 0,
+      commentsCount: 0,
+      sharesCount: 0,
+      isLiked: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Add new post to the beginning of the store
+    postsStore = [newPost, ...postsStore];
+
+    return newPost;
   },
 
   likePost: async (postId: string): Promise<{ success: boolean }> => {
@@ -154,3 +197,4 @@ export const communityService = {
     return { success: true };
   },
 };
+

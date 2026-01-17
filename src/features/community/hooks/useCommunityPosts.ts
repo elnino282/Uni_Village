@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { communityService } from '../services';
+import { communityService, type CreatePostData } from '../services';
 import type { CommunityPostsResponse } from '../types';
 
 const COMMUNITY_POSTS_KEY = ['community', 'posts'];
@@ -11,6 +11,21 @@ export function useCommunityPosts(page = 1, limit = 20) {
   return useQuery<CommunityPostsResponse>({
     queryKey: [...COMMUNITY_POSTS_KEY, { page, limit }],
     queryFn: () => communityService.getPosts({ page, limit }),
+  });
+}
+
+/**
+ * Hook to create a new community post
+ */
+export function useCreateCommunityPost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreatePostData) => communityService.createPost(data),
+    onSuccess: () => {
+      // Invalidate all community posts queries to refetch with new post
+      queryClient.invalidateQueries({ queryKey: COMMUNITY_POSTS_KEY });
+    },
   });
 }
 
@@ -68,3 +83,4 @@ export function useBlockPost() {
     },
   });
 }
+

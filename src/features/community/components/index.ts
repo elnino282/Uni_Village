@@ -6,6 +6,7 @@ export { CommunityScreen } from './CommunityScreen';
 export { CommunitySearchBar } from './CommunitySearchBar';
 export { CommunitySegmentedTabs } from './CommunitySegmentedTabs';
 export { ContentTabChips } from './ContentTabChips';
+export { EditPrivacySheet } from './EditPrivacySheet';
 export { ItineraryList } from './ItineraryList';
 export { ItineraryListCard } from './ItineraryListCard';
 export { MessagesTab } from './MessagesTab';
@@ -15,6 +16,7 @@ export { PostHeader } from './PostHeader';
 export { PostLocations } from './PostLocations';
 export { PostMedia } from './PostMedia';
 export { PostOverflowMenu } from './PostOverflowMenu';
+export { PostOwnerMenu } from './PostOwnerMenu';
 
 // Messages components
 export { ChannelItem } from './ChannelItem';
