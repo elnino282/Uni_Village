@@ -21,6 +21,8 @@ import { Button } from '@/shared/components/ui';
 import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 
+import { useCreateCommunityPost } from '@/features/community/hooks/useCommunityPosts';
+
 import { ChooseChannelSheet } from '../components/ChooseChannelSheet';
 import { ChooseItinerarySheet } from '../components/ChooseItinerarySheet';
 import { PostVisibilityDropdown } from '../components/PostVisibilityDropdown';
@@ -61,12 +63,15 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
     const channelSheetRef = useRef<BottomSheet>(null);
     const itinerarySheetRef = useRef<BottomSheet>(null);
 
+    // Create post mutation
+    const { mutateAsync: createCommunityPost, isPending: isCreating } = useCreateCommunityPost();
+
     // Can submit when:
     // - Tab is 'post' and content is not empty
     // - Tab is 'channel' and a channel is selected (content optional)
     // - Tab is 'itinerary' and an itinerary is selected (content optional)
     const canSubmit = useMemo(() => {
-        if (isSubmitting) return false;
+        if (isSubmitting || isCreating) return false;
         switch (activeTab) {
             case 'post':
                 return postContent.trim().length > 0;
@@ -77,7 +82,7 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
             default:
                 return false;
         }
-    }, [activeTab, postContent, selectedChannel, selectedItinerary, isSubmitting]);
+    }, [activeTab, postContent, selectedChannel, selectedItinerary, isSubmitting, isCreating]);
 
     const dismissKeyboard = useCallback(() => {
         Keyboard.dismiss();
@@ -98,20 +103,19 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
 
-        // TODO: Implement actual post creation API call
-        console.log('Creating post:', {
-            tab: activeTab,
-            content: activeTab === 'post' ? postContent : activeTab === 'channel' ? channelContent : itineraryContent,
-            visibility: activeTab === 'post' ? postVisibility : 'public',
-            channel: selectedChannel,
-            itinerary: selectedItinerary,
-        });
+        try {
+            await createCommunityPost({
+                content: activeTab === 'post' ? postContent : activeTab === 'channel' ? channelContent : itineraryContent,
+                visibility: activeTab === 'post' ? postVisibility : 'public',
+            });
 
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        setIsSubmitting(false);
-        router.back();
+            setIsSubmitting(false);
+            router.back();
+        } catch (error) {
+            console.error('Failed to create post:', error);
+            setIsSubmitting(false);
+            // TODO: Show error toast
+        }
     };
 
     const openChannelSheet = useCallback(() => {
