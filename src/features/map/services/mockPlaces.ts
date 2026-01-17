@@ -17,6 +17,30 @@ export const CATEGORY_CHIPS: CategoryChip[] = [
     { id: 'entertainment', label: 'Giải trí', icon: 'sports-esports' },
 ];
 
+const MOCK_REVIEWS = [
+    {
+        id: 'r1',
+        authorName: 'Nguyễn Văn A',
+        rating: 5,
+        text: 'Địa điểm tuyệt vời, nhân viên thân thiện.',
+        relativeTimeDescription: '2 ngày trước'
+    },
+    {
+        id: 'r2',
+        authorName: 'Trần Thị B',
+        rating: 4,
+        text: 'Không gian đẹp nhưng hơi ồn vào giờ cao điểm.',
+        relativeTimeDescription: '1 tuần trước'
+    },
+    {
+        id: 'r3',
+        authorName: 'Lê Văn C',
+        rating: 5,
+        text: 'Đồ uống ngon, giá cả hợp lý.',
+        relativeTimeDescription: '3 tuần trước'
+    }
+];
+
 export const MOCK_PLACES: Place[] = [
     {
         id: '1',
@@ -33,6 +57,7 @@ export const MOCK_PLACES: Place[] = [
         description: 'Quán cà phê yên tĩnh, không gian rộng rãi phù hợp học tập',
         isOpen: true,
         priceLevel: 2,
+        reviews: MOCK_REVIEWS,
     },
     {
         id: '2',
@@ -49,6 +74,7 @@ export const MOCK_PLACES: Place[] = [
         description: 'Phở truyền thống Sài Gòn, mở cửa từ 6h sáng',
         isOpen: true,
         priceLevel: 1,
+        reviews: [MOCK_REVIEWS[0], MOCK_REVIEWS[2]],
     },
     {
         id: '3',

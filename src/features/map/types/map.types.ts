@@ -21,6 +21,16 @@ export interface Place {
     website?: string;
     photos?: PlacePhoto[];
     openingHoursText?: string[];
+    reviews?: Review[];
+}
+
+export interface Review {
+    id: string;
+    authorName: string;
+    authorPhoto?: string;
+    rating: number;
+    text: string;
+    relativeTimeDescription: string;
 }
 
 export interface PlacePhoto {

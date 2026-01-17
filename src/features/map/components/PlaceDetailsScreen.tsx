@@ -30,6 +30,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { getPhotoUrl } from "../services/placesService";
 import type { Place, PlacePhoto } from "../types";
+import { ReviewsList } from "./ReviewsList";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_SPACING = 4;
@@ -432,6 +433,14 @@ export function PlaceDetailsScreen() {
                                     ))}
                                 </View>
                             </View>
+                        </>
+                    )}
+
+                    {/* Reviews Section */}
+                    {place.reviews && place.reviews.length > 0 && (
+                        <>
+                            <View style={[styles.divider, { backgroundColor: colors.muted }]} />
+                            <ReviewsList reviews={place.reviews} colorScheme={colorScheme} />
                         </>
                     )}
                 </View>

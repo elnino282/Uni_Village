@@ -15,13 +15,15 @@
 import {
     getDirections,
     type NavigationRoute,
+    type TravelMode,
 } from "@/lib/maps/googleMapsService";
 import { Spacing } from "@/shared/constants/spacing";
 import { useColorScheme } from "@/shared/hooks/useColorScheme";
 import * as ExpoLocation from "expo-location";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Keyboard, StyleSheet, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { Alert, Keyboard, StyleSheet, View, TouchableOpacity } from "react-native";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -40,6 +42,8 @@ import { PlaceBottomSheet, PlaceBottomSheetRef } from "./PlaceBottomSheet";
 import { PlacesAutocomplete } from "./PlacesAutocomplete";
 import { RouteOverlay } from "./RouteOverlay";
 import { SearchBar } from "./SearchBar";
+import { DirectionsSetup } from "./DirectionsSetup";
+import { SortControl, SortOption } from "./SortControl";
 
 // Type mapping from Google Place types to app categories
 const GOOGLE_TYPE_TO_CATEGORY: Record<string, PlaceCategory> = {
@@ -153,6 +157,10 @@ export function MapScreen() {
     const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
     const [recentlyViewed, setRecentlyViewed] = useState<Place[]>([]);
 
+    // Enhanced UI state
+    const [showDirectionsSetup, setShowDirectionsSetup] = useState(false);
+    const [sortOption, setSortOption] = useState<SortOption>('distance');
+
     // Map display state
     const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
 
@@ -166,8 +174,18 @@ export function MapScreen() {
     const [isNavigating, setIsNavigating] = useState(false);
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
+    // Sorting Logic
+    const sortedPlaces = useMemo(() => {
+        const placesCopy = [...places];
+        if (sortOption === 'distance') {
+            return placesCopy.sort((a, b) => (a.distanceMeters || 0) - (b.distanceMeters || 0));
+        } else {
+            return placesCopy.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        }
+    }, [places, sortOption]);
+
     // Convert places to markers
-    const markers: MapMarker[] = places.map((place) => ({
+    const markers: MapMarker[] = sortedPlaces.map((place) => ({
         id: place.placeId,
         coordinate: {
             latitude: place.location.latitude,
@@ -377,6 +395,21 @@ export function MapScreen() {
         }
     }, [userLocation, getCurrentLocation]);
 
+    // Handle Zoom
+    const handleZoomIn = useCallback(async () => {
+        const camera = await mapRef.current?.getCamera();
+        if (camera) {
+            mapRef.current?.animateCamera({ zoom: (camera.zoom || 15) + 1 });
+        }
+    }, []);
+
+    const handleZoomOut = useCallback(async () => {
+        const camera = await mapRef.current?.getCamera();
+        if (camera) {
+            mapRef.current?.animateCamera({ zoom: (camera.zoom || 15) - 1 });
+        }
+    }, []);
+
     // Handle layers button - toggle map type
     const handleLayersPress = useCallback(() => {
         Alert.alert("Lớp bản đồ", "Chọn kiểu bản đồ", [
@@ -401,7 +434,7 @@ export function MapScreen() {
         });
     }, []);
 
-    // Handle get directions
+    // Handle get directions (Setup)
     const handleGetDirections = useCallback(
         async (place: Place) => {
             if (!userLocation) {
@@ -411,27 +444,35 @@ export function MapScreen() {
                 );
                 return;
             }
-
-            setIsLoadingRoute(true);
-            setShowRouteOverlay(true);
-
-            try {
-                const route = await getDirections(
-                    { latitude: userLocation.latitude, longitude: userLocation.longitude },
-                    { latitude: place.lat, longitude: place.lng },
-                    { mode: "driving" }
-                );
-                setNavigationRoute(route);
-            } catch (error) {
-                console.error("Error getting directions:", error);
-                Alert.alert("Lỗi", "Không thể lấy chỉ đường. Vui lòng thử lại.");
-                setShowRouteOverlay(false);
-            } finally {
-                setIsLoadingRoute(false);
-            }
+            setSelectedPlace(place);
+            setShowDirectionsSetup(true);
         },
         [userLocation]
     );
+
+    // Handle Confirm Directions
+    const handleConfirmDirections = useCallback(async ({ origin, mode }: { origin: string; mode: TravelMode }) => {
+        setShowDirectionsSetup(false);
+        if (!selectedPlace || !userLocation) return;
+
+        setIsLoadingRoute(true);
+        setShowRouteOverlay(true);
+
+        try {
+            const route = await getDirections(
+                { latitude: userLocation.latitude, longitude: userLocation.longitude },
+                { latitude: selectedPlace.lat, longitude: selectedPlace.lng },
+                { mode }
+            );
+            setNavigationRoute(route);
+        } catch (error) {
+            console.error("Error getting directions:", error);
+            Alert.alert("Lỗi", "Không thể lấy chỉ đường. Vui lòng thử lại.");
+            setShowRouteOverlay(false);
+        } finally {
+            setIsLoadingRoute(false);
+        }
+    }, [selectedPlace, userLocation]);
 
     // Handle close route overlay
     const handleCloseRouteOverlay = useCallback(() => {
@@ -512,7 +553,7 @@ export function MapScreen() {
             )}
 
             {/* Search Overlay (hidden during navigation) */}
-            {!isNavigating && (
+            {!isNavigating && !showDirectionsSetup && (
                 <SafeAreaView
                     style={styles.overlay}
                     edges={["top"]}
@@ -541,27 +582,65 @@ export function MapScreen() {
                         />
                     </View>
 
-                    {/* Category Chips */}
+                    {/* Category Chips & Sort */}
                     <View style={styles.chipsContainer}>
                         <CategoryChips
                             activeCategory={activeCategory}
                             onCategoryPress={handleCategoryPress}
                             colorScheme={colorScheme}
                         />
+                         <View style={styles.sortContainer}>
+                             <SortControl
+                                sortOption={sortOption}
+                                onSortChange={setSortOption}
+                                colorScheme={colorScheme}
+                             />
+                        </View>
                     </View>
                 </SafeAreaView>
             )}
 
-            {/* Map Controls */}
-            <MapControls
-                onLayersPress={handleLayersPress}
-                onMyLocationPress={handleMyLocationPress}
-                isLoadingLocation={isLoadingLocation}
-                colorScheme={colorScheme}
-            />
+            {/* Directions Setup Overlay */}
+            {showDirectionsSetup && selectedPlace && (
+                <View style={styles.fullScreenOverlay}>
+                    <DirectionsSetup
+                        destination={selectedPlace}
+                        onStartNavigation={handleConfirmDirections}
+                        onClose={() => setShowDirectionsSetup(false)}
+                        colorScheme={colorScheme}
+                    />
+                </View>
+            )}
 
-            {/* Place Bottom Sheet (hidden during navigation and route overlay) */}
-            {!isNavigating && !showRouteOverlay && (
+            {/* Map Controls (Hidden during navigation to show Nav Buttons) */}
+            {!isNavigating ? (
+                <MapControls
+                    onLayersPress={handleLayersPress}
+                    onMyLocationPress={handleMyLocationPress}
+                    onZoomIn={handleZoomIn}
+                    onZoomOut={handleZoomOut}
+                    isLoadingLocation={isLoadingLocation}
+                    colorScheme={colorScheme}
+                />
+            ) : (
+                <View style={styles.navigationButtons}>
+                     <TouchableOpacity
+                        style={[styles.navButton, { backgroundColor: '#EF4444' }]}
+                        onPress={handleExitNavigation}
+                    >
+                        <MaterialIcons name="close" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.navButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+                        onPress={() => Alert.alert("Voice", "Đã bật dẫn đường giọng nói")}
+                    >
+                        <MaterialIcons name="volume-up" size={24} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* Place Bottom Sheet (hidden during navigation, route overlay and setup) */}
+            {!isNavigating && !showRouteOverlay && !showDirectionsSetup && (
                 <PlaceBottomSheet
                     ref={bottomSheetRef}
                     place={selectedPlace}
@@ -607,5 +686,30 @@ const styles = StyleSheet.create({
     },
     chipsContainer: {
         zIndex: 10,
+        gap: Spacing.xs,
+    },
+    sortContainer: {
+        paddingLeft: Spacing.screenPadding,
+        alignItems: 'flex-start',
+    },
+    fullScreenOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 50,
+        backgroundColor: '#fff',
+    },
+    navigationButtons: {
+        position: 'absolute',
+        bottom: Spacing.screenPadding + 20,
+        right: Spacing.screenPadding,
+        alignItems: 'center',
+    },
+    navButton: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.md,
+        ...Shadows.lg,
     },
 });
