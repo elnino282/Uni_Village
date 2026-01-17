@@ -22,7 +22,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SelectDestinationsMap, SelectDestinationsMapRef } from "@/features/itinerary/components/SelectDestinationsMap";
-import { MOCK_PLACES } from "@/features/map/services/mockPlaces";
+import { useNearbyPlaces, useUserLocation } from "@/features/map/hooks";
 import type { MapMarker, MapRegion, Place } from "@/features/map/types";
 import { Colors, useColorScheme } from "@/shared";
 
@@ -54,12 +54,12 @@ interface SelectDestinationsScreenProps {
   onBack?: () => void;
 }
 
-export function SelectDestinationsScreen({ 
-  tripData, 
-  tripId, 
-  existingDestinations, 
+export function SelectDestinationsScreen({
+  tripData,
+  tripId,
+  existingDestinations,
   isAddingToExisting,
-  onBack 
+  onBack
 }: SelectDestinationsScreenProps) {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
@@ -69,15 +69,25 @@ export function SelectDestinationsScreen({
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['30%', '65%', '90%'], []);
 
+  // Get user location and nearby places from API
+  const { location: userLocation } = useUserLocation();
+  const { displayPlaces: nearbyPlaces, isLoading: isLoadingPlaces } = useNearbyPlaces(
+    userLocation,
+    'all',
+    { radius: 2000, maxResults: 20 }
+  );
+
   // Initialize with existing destinations if adding to existing trip
-  const [selectedDestinations, setSelectedDestinations] = useState<SelectedDestination[]>(() => {
-    if (isAddingToExisting && existingDestinations) {
-      // Map existing destinations to SelectedDestination format
+  const [selectedDestinations, setSelectedDestinations] = useState<SelectedDestination[]>([]);
+
+  // Update selected destinations when nearbyPlaces load and existingDestinations are provided
+  useEffect(() => {
+    if (isAddingToExisting && existingDestinations && nearbyPlaces.length > 0) {
       const mapped = existingDestinations
         .map(dest => {
-          const place = MOCK_PLACES.find(p => p.id === dest.id);
+          const place = nearbyPlaces.find(p => p.id === dest.id);
           if (!place) return null;
-          
+
           return {
             place,
             order: dest.order,
@@ -90,14 +100,13 @@ export function SelectDestinationsScreen({
           } as SelectedDestination;
         })
         .filter((d): d is SelectedDestination => d !== null);
-      return mapped;
+      setSelectedDestinations(mapped);
     }
-    return [];
-  });
+  }, [isAddingToExisting, existingDestinations, nearbyPlaces]);
 
   // Store initial count to track if user made changes
   const initialDestinationCount = useRef(existingDestinations?.length || 0);
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showTimePickerFor, setShowTimePickerFor] = useState<string | null>(null);
   const [tempTime, setTempTime] = useState(new Date());
@@ -105,14 +114,9 @@ export function SelectDestinationsScreen({
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const confirmOpacity = useRef(new Animated.Value(0)).current;
 
-  // Get nearby places
-  const nearbyPlaces = useMemo(() => {
-    return MOCK_PLACES.filter(p => p.distanceKm < 2);
-  }, []);
-
   const filteredPlaces = useMemo(() => {
     if (!searchQuery.trim()) return nearbyPlaces;
-    return nearbyPlaces.filter(p => 
+    return nearbyPlaces.filter(p =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.address?.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -431,7 +435,7 @@ export function SelectDestinationsScreen({
                         </Pressable>
                         <Pressable
                           style={[styles.actionButton, { backgroundColor: colors.success }]}
-                          onPress={() => {}}
+                          onPress={() => { }}
                         >
                           <Ionicons name="checkmark-circle" size={16} color="#fff" />
                         </Pressable>
@@ -458,7 +462,7 @@ export function SelectDestinationsScreen({
                     alert("Vui lòng chọn ít nhất một địa điểm");
                     return;
                   }
-                  
+
                   const destinationsData = selectedDestinations.map(d => ({
                     id: d.place.id,
                     name: d.place.name,
@@ -474,12 +478,12 @@ export function SelectDestinationsScreen({
                       // Update existing trip
                       const tripsJson = await AsyncStorage.getItem('@trips');
                       const trips = tripsJson ? JSON.parse(tripsJson) : [];
-                      
+
                       const tripIndex = trips.findIndex((t: any) => t.id === tripId);
                       if (tripIndex !== -1) {
                         trips[tripIndex].destinations = destinationsData;
                         await AsyncStorage.setItem('@trips', JSON.stringify(trips));
-                        
+
                         // Navigate back to itinerary detail
                         router.back();
                       }
@@ -499,10 +503,10 @@ export function SelectDestinationsScreen({
                       // Get existing trips
                       const tripsJson = await AsyncStorage.getItem('@trips');
                       const trips = tripsJson ? JSON.parse(tripsJson) : [];
-                      
+
                       // Add new trip
                       trips.push(newTrip);
-                      
+
                       // Save back to AsyncStorage
                       await AsyncStorage.setItem('@trips', JSON.stringify(trips));
 
@@ -524,7 +528,7 @@ export function SelectDestinationsScreen({
                 }}
               >
                 <Text style={styles.continueButtonText}>
-                  {isAddingToExisting 
+                  {isAddingToExisting
                     ? `Cập nhật lịch trình (${selectedDestinations.length}) →`
                     : `Hoàn tất lịch trình (${selectedDestinations.length}) →`
                   }
@@ -543,8 +547,8 @@ export function SelectDestinationsScreen({
             onRequestClose={() => setShowDiscardConfirm(false)}
           >
             <Animated.View style={[styles.confirmOverlay, { opacity: confirmOpacity }]}>
-              <Pressable 
-                style={StyleSheet.absoluteFill} 
+              <Pressable
+                style={StyleSheet.absoluteFill}
                 onPress={() => setShowDiscardConfirm(false)}
               />
               <View
@@ -587,105 +591,105 @@ export function SelectDestinationsScreen({
           </Modal>
         )}
 
-      {/* Time Picker Modal */}
-      {showTimePickerFor && (
-        <Modal
-          visible={true}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowTimePickerFor(null)}
-        >
-          <View style={styles.modalOverlay}>
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              onPress={() => setShowTimePickerFor(null)}
-            />
-            
-            <View style={[styles.timePickerCard, { backgroundColor: colors.card || "#fff" }]}>
-              <View style={styles.timePickerHeader}>
-                <Text style={[styles.timePickerTitle, { color: colors.text }]}>
-                  Chọn thời gian xuất phát
-                </Text>
-                <Pressable onPress={() => setShowTimePickerFor(null)}>
-                  <Ionicons name="close" size={22} color={colors.icon} />
-                </Pressable>
-              </View>
+        {/* Time Picker Modal */}
+        {showTimePickerFor && (
+          <Modal
+            visible={true}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowTimePickerFor(null)}
+          >
+            <View style={styles.modalOverlay}>
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={() => setShowTimePickerFor(null)}
+              />
 
-              <View style={styles.timePickerBody}>
-                <Text style={[styles.timePickerLabel, { color: secondaryTextColor }]}>
-                  Địa điểm xuất phát: {selectedDestinations.find(d => d.place.id === showTimePickerFor)?.place.name}
-                </Text>
-                <Text style={[styles.timePickerHint, { color: secondaryTextColor }]}>
-                  Thời gian xuất phát
-                </Text>
+              <View style={[styles.timePickerCard, { backgroundColor: colors.card || "#fff" }]}>
+                <View style={styles.timePickerHeader}>
+                  <Text style={[styles.timePickerTitle, { color: colors.text }]}>
+                    Chọn thời gian xuất phát
+                  </Text>
+                  <Pressable onPress={() => setShowTimePickerFor(null)}>
+                    <Ionicons name="close" size={22} color={colors.icon} />
+                  </Pressable>
+                </View>
 
-                {Platform.OS === 'ios' ? (
-                  <View style={styles.iosTimePickerContainer}>
-                    <DateTimePicker
-                      value={tempTime}
-                      mode="time"
-                      display="spinner"
-                      onChange={(_, date) => {
-                        if (date) setTempTime(date);
-                      }}
-                      textColor={colors.text}
-                    />
-                  </View>
-                ) : (
-                  <View style={styles.androidTimeDisplay}>
-                    <Ionicons name="time-outline" size={32} color={colors.info} />
-                    <Text style={[styles.androidTimeText, { color: colors.text }]}>
-                      {formatTime(tempTime)}
+                <View style={styles.timePickerBody}>
+                  <Text style={[styles.timePickerLabel, { color: secondaryTextColor }]}>
+                    Địa điểm xuất phát: {selectedDestinations.find(d => d.place.id === showTimePickerFor)?.place.name}
+                  </Text>
+                  <Text style={[styles.timePickerHint, { color: secondaryTextColor }]}>
+                    Thời gian xuất phát
+                  </Text>
+
+                  {Platform.OS === 'ios' ? (
+                    <View style={styles.iosTimePickerContainer}>
+                      <DateTimePicker
+                        value={tempTime}
+                        mode="time"
+                        display="spinner"
+                        onChange={(_, date) => {
+                          if (date) setTempTime(date);
+                        }}
+                        textColor={colors.text}
+                      />
+                    </View>
+                  ) : (
+                    <View style={styles.androidTimeDisplay}>
+                      <Ionicons name="time-outline" size={32} color={colors.info} />
+                      <Text style={[styles.androidTimeText, { color: colors.text }]}>
+                        {formatTime(tempTime)}
+                      </Text>
+                    </View>
+                  )}
+
+                  <Text style={[styles.timePickerFootnote, { color: secondaryTextColor }]}>
+                    Bạn có thể thay đổi sau khi tạo lịch trình
+                  </Text>
+                  <Text style={[styles.timePickerRecommend, { color: colors.info }]}>
+                    Hệ thống gợi ý: {formatTime(new Date(new Date().setHours(14, 30)))}
+                  </Text>
+                </View>
+
+                <View style={styles.timePickerActions}>
+                  <Pressable
+                    style={[styles.timePickerButton, { borderColor: colors.border }]}
+                    onPress={() => setShowTimePickerFor(null)}
+                  >
+                    <Text style={[styles.timePickerButtonText, { color: colors.text }]}>
+                      Hủy
                     </Text>
-                  </View>
-                )}
-
-                <Text style={[styles.timePickerFootnote, { color: secondaryTextColor }]}>
-                  Bạn có thể thay đổi sau khi tạo lịch trình
-                </Text>
-                <Text style={[styles.timePickerRecommend, { color: colors.info }]}>
-                  Hệ thống gợi ý: {formatTime(new Date(new Date().setHours(14, 30)))}
-                </Text>
-              </View>
-
-              <View style={styles.timePickerActions}>
-                <Pressable
-                  style={[styles.timePickerButton, { borderColor: colors.border }]}
-                  onPress={() => setShowTimePickerFor(null)}
-                >
-                  <Text style={[styles.timePickerButtonText, { color: colors.text }]}>
-                    Hủy
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.timePickerButton, styles.timePickerButtonPrimary, { backgroundColor: colors.info }]}
-                  onPress={handleTimeConfirm}
-                >
-                  <Text style={styles.timePickerButtonPrimaryText}>
-                    Xác nhận
-                  </Text>
-                </Pressable>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.timePickerButton, styles.timePickerButtonPrimary, { backgroundColor: colors.info }]}
+                    onPress={handleTimeConfirm}
+                  >
+                    <Text style={styles.timePickerButtonPrimaryText}>
+                      Xác nhận
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
-          </View>
 
-          {Platform.OS === 'android' && showTimePicker && (
-            <DateTimePicker
-              value={tempTime}
-              mode="time"
-              display="default"
-              onChange={(_, date) => {
-                setShowTimePicker(false);
-                if (date) {
-                  setTempTime(date);
-                  // Auto confirm on Android
-                  setTimeout(() => handleTimeConfirm(), 100);
-                }
-              }}
-            />
-          )}
-        </Modal>
-      )}
+            {Platform.OS === 'android' && showTimePicker && (
+              <DateTimePicker
+                value={tempTime}
+                mode="time"
+                display="default"
+                onChange={(_, date) => {
+                  setShowTimePicker(false);
+                  if (date) {
+                    setTempTime(date);
+                    // Auto confirm on Android
+                    setTimeout(() => handleTimeConfirm(), 100);
+                  }
+                }}
+              />
+            )}
+          </Modal>
+        )}
       </View>
     </GestureHandlerRootView>
   );
