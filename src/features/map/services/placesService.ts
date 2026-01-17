@@ -375,32 +375,6 @@ export function clearPlacesCache(): void {
 
 /**
  * Map Google place types to app categories
+ * @deprecated Use mapGoogleTypeToCategory from '../utils/placeConverters' instead
  */
-export function mapPlaceTypeToCategory(types: string[]): string {
-    const typeMapping: Record<string, string> = {
-        restaurant: 'restaurant',
-        food: 'restaurant',
-        meal_takeaway: 'restaurant',
-        cafe: 'cafe',
-        coffee_shop: 'cafe',
-        lodging: 'hotel',
-        hotel: 'hotel',
-        shopping_mall: 'shopping',
-        store: 'shopping',
-        supermarket: 'shopping',
-        movie_theater: 'entertainment',
-        amusement_park: 'entertainment',
-        night_club: 'entertainment',
-        school: 'education',
-        university: 'education',
-        library: 'education',
-    };
-
-    for (const type of types) {
-        if (typeMapping[type]) {
-            return typeMapping[type];
-        }
-    }
-
-    return 'other';
-}
+export { mapGoogleTypeToCategory as mapPlaceTypeToCategory } from '../utils/placeConverters';

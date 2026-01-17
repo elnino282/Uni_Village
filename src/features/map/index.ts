@@ -1,6 +1,6 @@
 /**
  * Map Feature Module
- * 
+ *
  * Provides Google Maps integration with:
  * - Places search & autocomplete
  * - Directions & routing
@@ -15,10 +15,15 @@ export {
     MapAdapter,
     MapControls,
     MapScreen,
+    MapSearchOverlay,
+    MapTypeSelectorModal,
     MockMapView,
+    NavigationControls,
     PlacesAutocomplete,
     RouteOverlay,
     SearchBar,
+    SkeletonPlaceCard,
+    SkeletonPlaceList,
     SuggestionCard
 } from './components';
 
@@ -36,20 +41,39 @@ export {
     useMapStore,
     useSearchQuery,
     useSelectedPlaceId,
-    useUserLocation as useUserLocationStore
+    useUserLocation as useUserLocationFromStore
 } from './store';
 
 // Services (re-export key functions)
 export {
-    GoogleMapsClient,
-    MapError, autocomplete,
+    autocomplete,
     geocode,
     getDistance,
     getGoogleMapsClient,
     getPlaceDetails,
-    getReadableAddress, reverseGeocode,
+    getReadableAddress, GoogleMapsClient,
+    MapError, reverseGeocode,
     searchNearby
 } from './services';
+
+// Constants
+export {
+    CATEGORY_CONFIG,
+    CATEGORY_TO_GOOGLE_TYPES,
+    GOOGLE_TYPE_TO_CATEGORY,
+    MAP_CONFIG,
+    MAP_TYPE_OPTIONS
+} from './constants';
+export type { MapTypeOption } from './constants';
+
+// Utils
+export {
+    convertNearbyPlaceToPlace,
+    convertPlaceDetailsToPlace,
+    formatDistance,
+    getPlacePhotoUrl,
+    mapGoogleTypeToCategory
+} from './utils';
 
 // Types
 export type {
@@ -82,3 +106,4 @@ export type {
     UseNearbyPlacesResult,
     UseUserLocationResult
 } from './hooks';
+
