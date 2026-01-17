@@ -10,10 +10,10 @@ import type { FeedResponse } from '../types';
 export function useFeed() {
     const query = useInfiniteQuery<FeedResponse>({
         queryKey: ['feed'],
-        queryFn: ({ pageParam = 1 }) => feedApi.getFeed({ page: pageParam as number, limit: 20 }),
+        queryFn: ({ pageParam = 0 }) => feedApi.getFeed({ page: pageParam as number, size: 20 }),
         getNextPageParam: (lastPage) =>
             lastPage.pagination.hasMore ? lastPage.pagination.page + 1 : undefined,
-        initialPageParam: 1,
+        initialPageParam: 0,
     });
 
     const feedItems = query.data?.pages.flatMap((page) => page.data) ?? [];

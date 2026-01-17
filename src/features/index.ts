@@ -10,6 +10,8 @@ export * from './community';
 export * from './feed';
 export * from './itinerary';
 export * from './map';
+export * from './places';
 export * from './post';
 export * from './profile';
+export * from './tours';
 

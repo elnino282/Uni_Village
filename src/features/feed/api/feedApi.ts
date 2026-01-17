@@ -9,5 +9,6 @@ import type { FeedResponse } from '../types';
 
 export const feedApi = {
     getFeed: (params: PaginationParams): Promise<FeedResponse> =>
-        apiClient.get<FeedResponse>(API_ENDPOINTS.POSTS.FEED, { params }),
+        apiClient.get<FeedResponse>(API_ENDPOINTS.POSTS.LIST, { params }),
 };
+
