@@ -25,6 +25,13 @@ import {
     PlaceDetails,
     PlacePrediction,
 } from '../services/placesService';
+import { calculateDistance, formatDistance } from '../utils/placeConverters';
+
+// Extended prediction with distance info
+interface PredictionWithDistance extends PlacePrediction {
+    distanceKm?: number;
+    isLoadingDistance?: boolean;
+}
 
 interface PlacesAutocompleteProps {
     /** Search query string */
@@ -43,6 +50,9 @@ interface PlacesAutocompleteProps {
     emptyPlaceholder?: string;
 }
 
+// Cache for place locations to avoid repeated API calls
+const locationCache = new Map<string, { lat: number; lng: number }>();
+
 export const PlacesAutocomplete = memo(function PlacesAutocomplete({
     query,
     isVisible,
@@ -52,12 +62,79 @@ export const PlacesAutocomplete = memo(function PlacesAutocomplete({
     colorScheme = 'light',
     emptyPlaceholder = 'Nhập tối thiểu 2 ký tự để tìm kiếm',
 }: PlacesAutocompleteProps) {
-    const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
+    const [predictions, setPredictions] = useState<PredictionWithDistance[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     const colors = Colors[colorScheme];
+
+    // Fetch distance for predictions
+    const fetchDistances = useCallback(async (preds: PlacePrediction[]) => {
+        if (!userLocation || preds.length === 0) return;
+
+        // Cancel any ongoing distance fetches
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
+        // Fetch locations in parallel for predictions that don't have cached locations
+        const fetchPromises = preds.map(async (pred) => {
+            // Check cache first
+            if (locationCache.has(pred.placeId)) {
+                const cached = locationCache.get(pred.placeId)!;
+                const distanceKm = calculateDistance(
+                    userLocation.latitude,
+                    userLocation.longitude,
+                    cached.lat,
+                    cached.lng
+                );
+                return { placeId: pred.placeId, distanceKm };
+            }
+
+            try {
+                const details = await getPlaceDetails(pred.placeId);
+                if (details) {
+                    // Cache the location
+                    locationCache.set(pred.placeId, {
+                        lat: details.location.latitude,
+                        lng: details.location.longitude,
+                    });
+
+                    const distanceKm = calculateDistance(
+                        userLocation.latitude,
+                        userLocation.longitude,
+                        details.location.latitude,
+                        details.location.longitude
+                    );
+                    return { placeId: pred.placeId, distanceKm };
+                }
+            } catch (error) {
+                // Silently fail for individual distance calculations
+            }
+            return { placeId: pred.placeId, distanceKm: undefined };
+        });
+
+        try {
+            const results = await Promise.all(fetchPromises);
+
+            // Update predictions with distances
+            setPredictions(current =>
+                current.map(pred => {
+                    const result = results.find(r => r.placeId === pred.placeId);
+                    return {
+                        ...pred,
+                        distanceKm: result?.distanceKm,
+                        isLoadingDistance: false,
+                    };
+                })
+            );
+        } catch (error) {
+            // If aborted, just ignore
+        }
+    }, [userLocation]);
 
     // Debounced autocomplete search
     useEffect(() => {
@@ -85,7 +162,18 @@ export const PlacesAutocomplete = memo(function PlacesAutocomplete({
                     countries: ['vn'],
                     limit: 5,
                 });
-                setPredictions(results);
+
+                // Set predictions with loading state for distance
+                const predictionsWithLoading: PredictionWithDistance[] = results.map(r => ({
+                    ...r,
+                    isLoadingDistance: !!userLocation,
+                }));
+                setPredictions(predictionsWithLoading);
+
+                // Fetch distances in background
+                if (userLocation) {
+                    fetchDistances(results);
+                }
             } catch (error) {
                 console.error('Autocomplete error:', error);
                 setPredictions([]);
@@ -99,7 +187,7 @@ export const PlacesAutocomplete = memo(function PlacesAutocomplete({
                 clearTimeout(debounceRef.current);
             }
         };
-    }, [query, isVisible, userLocation]);
+    }, [query, isVisible, userLocation, fetchDistances]);
 
     const handleSelectPrediction = useCallback(
         async (prediction: PlacePrediction) => {
@@ -122,26 +210,44 @@ export const PlacesAutocomplete = memo(function PlacesAutocomplete({
     );
 
     const renderPredictionItem = useCallback(
-        ({ item }: { item: PlacePrediction }) => (
+        ({ item, index }: { item: PredictionWithDistance; index: number }) => (
             <TouchableOpacity
-                style={[styles.predictionItem, { borderBottomColor: colors.border }]}
+                style={[
+                    styles.predictionItem,
+                    index === 0 && styles.predictionItemFirst,
+                    index === predictions.length - 1 && styles.predictionItemLast,
+                ]}
                 onPress={() => handleSelectPrediction(item)}
-                activeOpacity={0.7}
+                activeOpacity={0.6}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.mainText}, ${item.secondaryText}${item.distanceKm ? `, ${formatDistance(item.distanceKm)}` : ''}`}
             >
-                <View style={styles.predictionIcon}>
+                <View style={[styles.predictionIcon, { backgroundColor: `${colors.tint}15` }]}>
                     <MaterialIcons
                         name="location-on"
-                        size={20}
+                        size={18}
                         color={colors.tint}
                     />
                 </View>
                 <View style={styles.predictionContent}>
-                    <Text
-                        style={[styles.predictionMainText, { color: colors.text }]}
-                        numberOfLines={1}
-                    >
-                        {item.mainText}
-                    </Text>
+                    <View style={styles.predictionHeader}>
+                        <Text
+                            style={[styles.predictionMainText, { color: colors.text }]}
+                            numberOfLines={1}
+                        >
+                            {item.mainText}
+                        </Text>
+                        {/* Distance badge */}
+                        {item.isLoadingDistance ? (
+                            <ActivityIndicator size={10} color={colors.icon} style={styles.distanceLoader} />
+                        ) : item.distanceKm !== undefined ? (
+                            <View style={[styles.distanceBadge, { backgroundColor: `${colors.tint}15` }]}>
+                                <Text style={[styles.distanceText, { color: colors.tint }]}>
+                                    {formatDistance(item.distanceKm)}
+                                </Text>
+                            </View>
+                        ) : null}
+                    </View>
                     <Text
                         style={[styles.predictionSecondaryText, { color: colors.icon }]}
                         numberOfLines={1}
@@ -149,19 +255,26 @@ export const PlacesAutocomplete = memo(function PlacesAutocomplete({
                         {item.secondaryText}
                     </Text>
                 </View>
-                <MaterialIcons
-                    name="north-west"
-                    size={16}
-                    color={colors.icon}
-                />
+                <View style={styles.arrowContainer}>
+                    <MaterialIcons
+                        name="north-west"
+                        size={14}
+                        color={colors.icon}
+                    />
+                </View>
             </TouchableOpacity>
         ),
-        [colors, handleSelectPrediction]
+        [colors, handleSelectPrediction, predictions.length]
     );
 
     const keyExtractor = useCallback(
         (item: PlacePrediction) => item.placeId,
         []
+    );
+
+    const ItemSeparatorComponent = useCallback(
+        () => <View style={[styles.separator, { backgroundColor: colors.border }]} />,
+        [colors.border]
     );
 
     if (!isVisible) {
@@ -183,7 +296,7 @@ export const PlacesAutocomplete = memo(function PlacesAutocomplete({
             {/* Search loading indicator */}
             {isLoading && (
                 <View style={styles.searchingRow}>
-                    <ActivityIndicator size="small" color={colors.icon} />
+                    <ActivityIndicator size="small" color={colors.tint} />
                     <Text style={[styles.searchingText, { color: colors.icon }]}>
                         Đang tìm kiếm...
                     </Text>
@@ -193,14 +306,21 @@ export const PlacesAutocomplete = memo(function PlacesAutocomplete({
             {/* No results or waiting for input */}
             {!isLoading && predictions.length === 0 && (
                 <View style={styles.emptyState}>
-                    <MaterialIcons
-                        name="search"
-                        size={24}
-                        color={colors.icon}
-                    />
+                    <View style={[styles.emptyIconContainer, { backgroundColor: `${colors.tint}10` }]}>
+                        <MaterialIcons
+                            name={query.length < 2 ? 'search' : 'location-off'}
+                            size={24}
+                            color={colors.tint}
+                        />
+                    </View>
                     <Text style={[styles.emptyText, { color: colors.icon }]}>
                         {query.length < 2 ? emptyPlaceholder : 'Không tìm thấy kết quả'}
                     </Text>
+                    {query.length >= 2 && (
+                        <Text style={[styles.emptyHint, { color: colors.icon }]}>
+                            Thử nhập từ khóa khác hoặc địa chỉ cụ thể hơn
+                        </Text>
+                    )}
                 </View>
             )}
 
@@ -210,6 +330,7 @@ export const PlacesAutocomplete = memo(function PlacesAutocomplete({
                     data={predictions}
                     renderItem={renderPredictionItem}
                     keyExtractor={keyExtractor}
+                    ItemSeparatorComponent={ItemSeparatorComponent}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.listContent}
@@ -234,7 +355,7 @@ const styles = StyleSheet.create({
         right: 0,
         marginTop: Spacing.xs,
         borderRadius: BorderRadius.lg,
-        maxHeight: 300,
+        maxHeight: 320,
         ...Shadows.card,
         overflow: 'hidden',
     },
@@ -248,54 +369,108 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         fontSize: Typography.sizes.sm,
+        fontWeight: Typography.weights.medium as any,
     },
     searchingRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: Spacing.md,
+        padding: Spacing.lg,
         gap: Spacing.sm,
     },
     searchingText: {
         fontSize: Typography.sizes.sm,
     },
     emptyState: {
-        padding: Spacing.lg,
+        padding: Spacing.xl,
         alignItems: 'center',
         gap: Spacing.sm,
+    },
+    emptyIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.xs,
     },
     emptyText: {
         fontSize: Typography.sizes.sm,
         textAlign: 'center',
+        fontWeight: Typography.weights.medium as any,
+    },
+    emptyHint: {
+        fontSize: Typography.sizes.xs,
+        textAlign: 'center',
+        opacity: 0.7,
     },
     listContent: {
-        paddingVertical: Spacing.xs,
+        paddingVertical: Spacing.sm,
     },
     predictionItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: Spacing.sm,
+        paddingVertical: Spacing.md,
         paddingHorizontal: Spacing.md,
-        borderBottomWidth: StyleSheet.hairlineWidth,
+        marginHorizontal: Spacing.sm,
+        borderRadius: BorderRadius.md,
+    },
+    predictionItemFirst: {
+        marginTop: 0,
+    },
+    predictionItemLast: {
+        marginBottom: 0,
     },
     predictionIcon: {
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: Spacing.sm,
+        marginRight: Spacing.md,
     },
     predictionContent: {
         flex: 1,
         marginRight: Spacing.sm,
     },
+    predictionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 2,
+    },
     predictionMainText: {
         fontSize: Typography.sizes.base,
         fontWeight: Typography.weights.medium as any,
-        marginBottom: 2,
+        flex: 1,
+    },
+    distanceLoader: {
+        marginLeft: Spacing.xs,
+    },
+    distanceBadge: {
+        paddingHorizontal: Spacing.xs,
+        paddingVertical: 2,
+        borderRadius: BorderRadius.sm,
+        marginLeft: Spacing.xs,
+    },
+    distanceText: {
+        fontSize: Typography.sizes.xs,
+        fontWeight: Typography.weights.medium as any,
     },
     predictionSecondaryText: {
         fontSize: Typography.sizes.sm,
+        lineHeight: Typography.sizes.sm * 1.3,
+    },
+    arrowContainer: {
+        width: 24,
+        height: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: 0.5,
+    },
+    separator: {
+        height: StyleSheet.hairlineWidth,
+        marginHorizontal: Spacing.md,
+        marginLeft: Spacing.md + 36 + Spacing.md, // Align with text content
     },
     poweredBy: {
         padding: Spacing.sm,
@@ -306,3 +481,4 @@ const styles = StyleSheet.create({
         fontSize: Typography.sizes.xs,
     },
 });
+

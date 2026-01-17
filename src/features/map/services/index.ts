@@ -62,3 +62,10 @@ export {
     type TravelMode
 } from './distanceMatrixService';
 
+// Offline Cache Service
+export {
+    cacheNearbyPlaces, cachePlaceDetails, cleanupExpiredCache, clearMapCache,
+    getCacheStats, getCachedNearbyPlaces,
+    getCachedPlaceDetails
+} from './placesCacheService';
+

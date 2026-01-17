@@ -91,6 +91,10 @@ export interface MapState {
     userLocation: UserLocation | null;
     isLoadingLocation: boolean;
 
+    // Map display options
+    showsTraffic: boolean;
+    mapType: 'standard' | 'satellite' | 'hybrid';
+
     setSelectedPlaceId: (id: string | null) => void;
     setActiveCategory: (category: PlaceCategory | 'all') => void;
     setSearchQuery: (query: string) => void;
@@ -98,6 +102,8 @@ export interface MapState {
     setRegion: (region: MapRegion) => void;
     setUserLocation: (location: UserLocation | null) => void;
     setIsLoadingLocation: (loading: boolean) => void;
+    setShowsTraffic: (shows: boolean) => void;
+    setMapType: (type: 'standard' | 'satellite' | 'hybrid') => void;
     resetMapState: () => void;
 }
 

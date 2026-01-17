@@ -14,7 +14,7 @@ import type { PlaceCategory, UserLocation } from '../types';
 import { CategoryChips } from './CategoryChips';
 import { PlacesAutocomplete } from './PlacesAutocomplete';
 import { SearchBar } from './SearchBar';
-import { SortControl, SortOption } from './SortControl';
+
 
 interface MapSearchOverlayProps {
     /** Current search query */
@@ -25,10 +25,7 @@ interface MapSearchOverlayProps {
     activeCategory: PlaceCategory | 'all';
     /** Callback when category is selected */
     onCategoryChange: (category: PlaceCategory | 'all') => void;
-    /** Current sort option */
-    sortOption: SortOption;
-    /** Callback when sort option changes */
-    onSortChange: (option: SortOption) => void;
+
     /** Callback when place is selected from autocomplete */
     onPlaceSelect: (placeDetails: PlaceDetails) => void;
     /** User location for biasing search results */
@@ -46,8 +43,6 @@ export const MapSearchOverlay = memo(function MapSearchOverlay({
     onSearchChange,
     activeCategory,
     onCategoryChange,
-    sortOption,
-    onSortChange,
     onPlaceSelect,
     userLocation,
     onMicPress,
@@ -102,6 +97,7 @@ export const MapSearchOverlay = memo(function MapSearchOverlay({
                     onFocus={handleSearchFocus}
                     onBlur={handleSearchBlur}
                     onMicPress={onMicPress}
+                    onClear={handleAutocompleteClose}
                     onProfilePress={onProfilePress}
                     colorScheme={colorScheme}
                 />
@@ -117,20 +113,13 @@ export const MapSearchOverlay = memo(function MapSearchOverlay({
                 />
             </View>
 
-            {/* Category Chips & Sort */}
+            {/* Category Chips */}
             <View style={styles.chipsContainer}>
                 <CategoryChips
                     activeCategory={activeCategory}
                     onCategoryPress={onCategoryChange}
                     colorScheme={colorScheme}
                 />
-                <View style={styles.sortContainer}>
-                    <SortControl
-                        sortOption={sortOption}
-                        onSortChange={onSortChange}
-                        colorScheme={colorScheme}
-                    />
-                </View>
             </View>
         </SafeAreaView>
     );
@@ -153,10 +142,5 @@ const styles = StyleSheet.create({
     },
     chipsContainer: {
         zIndex: 10,
-        gap: Spacing.xs,
-    },
-    sortContainer: {
-        paddingLeft: Spacing.screenPadding,
-        alignItems: 'flex-start',
     },
 });

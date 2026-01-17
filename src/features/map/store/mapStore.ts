@@ -7,6 +7,7 @@
  * - Search query
  * - Map region
  * - User location
+ * - Map display options (traffic, map type)
  */
 
 import { create } from 'zustand';
@@ -28,6 +29,9 @@ const initialState = {
     region: DEFAULT_REGION,
     userLocation: null as UserLocation | null,
     isLoadingLocation: false,
+    // Map display options
+    showsTraffic: false,
+    mapType: 'standard' as 'standard' | 'satellite' | 'hybrid',
 };
 
 export const useMapStore = create<MapState>((set) => ({
@@ -56,6 +60,12 @@ export const useMapStore = create<MapState>((set) => ({
     setIsLoadingLocation: (loading: boolean) =>
         set({ isLoadingLocation: loading }),
 
+    setShowsTraffic: (shows: boolean) =>
+        set({ showsTraffic: shows }),
+
+    setMapType: (type: 'standard' | 'satellite' | 'hybrid') =>
+        set({ mapType: type }),
+
     resetMapState: () =>
         set(initialState),
 }));
@@ -68,3 +78,5 @@ export const useActiveCategory = () => useMapStore((state) => state.activeCatego
 export const useSearchQuery = () => useMapStore((state) => state.searchQuery);
 export const useMapRegion = () => useMapStore((state) => state.region);
 export const useUserLocation = () => useMapStore((state) => state.userLocation);
+export const useShowsTraffic = () => useMapStore((state) => state.showsTraffic);
+export const useMapType = () => useMapStore((state) => state.mapType);

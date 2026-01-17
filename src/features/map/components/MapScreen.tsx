@@ -52,9 +52,9 @@ import { MapSearchOverlay } from './MapSearchOverlay';
 import { MapTypeSelectorModal } from './MapTypeSelectorModal';
 import { NavigationBanner } from './NavigationBanner';
 import { NavigationControls } from './NavigationControls';
+import { OfflineBanner } from './OfflineBanner';
 import { PlaceBottomSheet, PlaceBottomSheetRef } from './PlaceBottomSheet';
 import { RouteOverlay } from './RouteOverlay';
-import { SortOption } from './SortControl';
 
 export function MapScreen() {
     const router = useRouter();
@@ -69,10 +69,12 @@ export function MapScreen() {
         region,
         userLocation,
         isLoadingLocation,
+        showsTraffic,
         setActiveCategory,
         setSearchQuery,
         setUserLocation,
         setIsLoadingLocation,
+        setShowsTraffic,
     } = useMapStore();
 
     // Local UI state
@@ -83,7 +85,6 @@ export function MapScreen() {
 
     // Enhanced UI state
     const [showDirectionsSetup, setShowDirectionsSetup] = useState(false);
-    const [sortOption, setSortOption] = useState<SortOption>('distance');
 
     // Map display state
     const [mapType, setMapType] = useState<MapTypeOption>('standard');
@@ -98,15 +99,10 @@ export function MapScreen() {
     const [isNavigating, setIsNavigating] = useState(false);
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-    // Sorting Logic
+    // Sorting Logic - Always sort by distance
     const sortedPlaces = useMemo(() => {
-        const placesCopy = [...places];
-        if (sortOption === 'distance') {
-            return placesCopy.sort((a, b) => (a.distanceMeters || 0) - (b.distanceMeters || 0));
-        } else {
-            return placesCopy.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        }
-    }, [places, sortOption]);
+        return [...places].sort((a, b) => (a.distanceMeters || 0) - (b.distanceMeters || 0));
+    }, [places]);
 
     // Convert places to markers
     const markers: MapMarker[] = sortedPlaces.map((place) => ({
@@ -314,20 +310,7 @@ export function MapScreen() {
         }
     }, [userLocation, getCurrentLocation]);
 
-    // Handle Zoom
-    const handleZoomIn = useCallback(async () => {
-        const camera = await mapRef.current?.getCamera();
-        if (camera) {
-            mapRef.current?.animateCamera({ zoom: (camera.zoom || 15) + 1 });
-        }
-    }, []);
 
-    const handleZoomOut = useCallback(async () => {
-        const camera = await mapRef.current?.getCamera();
-        if (camera) {
-            mapRef.current?.animateCamera({ zoom: (camera.zoom || 15) - 1 });
-        }
-    }, []);
 
     // Handle layers button - open map type modal
     const handleLayersPress = useCallback(() => {
@@ -451,11 +434,15 @@ export function MapScreen() {
                 routePolyline={navigationRoute?.polylinePoints}
                 showPolylineStroke
                 hideBusinessPOI={isNavigating}
+                showsTraffic={showsTraffic}
                 onMarkerPress={handleMarkerPress}
                 onMapPress={handleMapPress}
                 showsUserLocation
                 colorScheme={colorScheme}
             />
+
+            {/* Offline Banner */}
+            <OfflineBanner />
 
             {/* Navigation Banner (shown during navigation) */}
             {isNavigating && currentStep && (
@@ -476,8 +463,6 @@ export function MapScreen() {
                     onSearchChange={handleSearchChange}
                     activeCategory={activeCategory}
                     onCategoryChange={handleCategoryPress}
-                    sortOption={sortOption}
-                    onSortChange={setSortOption}
                     onPlaceSelect={handlePlaceSelectFromAutocomplete}
                     userLocation={userLocation}
                     onMicPress={handleMicPress}
@@ -503,14 +488,14 @@ export function MapScreen() {
                 <MapControls
                     onLayersPress={handleLayersPress}
                     onMyLocationPress={handleMyLocationPress}
-                    onZoomIn={handleZoomIn}
-                    onZoomOut={handleZoomOut}
                     isLoadingLocation={isLoadingLocation}
                     colorScheme={colorScheme}
                 />
             ) : (
                 <NavigationControls
                     onExit={handleExitNavigation}
+                    onMyLocationPress={handleMyLocationPress}
+                    isLoadingLocation={isLoadingLocation}
                     colorScheme={colorScheme}
                 />
             )}

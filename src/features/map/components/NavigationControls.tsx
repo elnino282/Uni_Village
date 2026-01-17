@@ -1,47 +1,40 @@
 /**
  * NavigationControls - Navigation mode control buttons
  *
- * Displays exit and voice buttons during active navigation.
+ * Displays exit and my-location buttons during active navigation.
  * Extracted from MapScreen for better component separation.
  */
 
 import { Spacing } from '@/shared/constants/spacing';
-import { Colors, Shadows } from '@/shared/constants/theme';
+import { Colors, MapColors, Shadows } from '@/shared/constants/theme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React, { memo } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface NavigationControlsProps {
     /** Callback when exit button is pressed */
     onExit: () => void;
-    /** Callback when voice button is pressed */
-    onVoiceToggle?: () => void;
-    /** Whether voice guidance is enabled */
-    voiceEnabled?: boolean;
+    /** Callback when my location button is pressed */
+    onMyLocationPress?: () => void;
+    /** Whether location is currently being fetched */
+    isLoadingLocation?: boolean;
     /** Color scheme */
     colorScheme?: 'light' | 'dark';
 }
 
 export const NavigationControls = memo(function NavigationControls({
     onExit,
-    onVoiceToggle,
-    voiceEnabled = true,
+    onMyLocationPress,
+    isLoadingLocation = false,
     colorScheme = 'light',
 }: NavigationControlsProps) {
     const insets = useSafeAreaInsets();
     const colors = Colors[colorScheme];
+    const mapColors = MapColors[colorScheme];
 
     // Bottom position accounts for safe area + some padding
     const bottomPosition = Spacing.screenPadding + Math.max(insets.bottom, 20) + 20;
-
-    const handleVoicePress = () => {
-        if (onVoiceToggle) {
-            onVoiceToggle();
-        } else {
-            Alert.alert('Giọng nói', voiceEnabled ? 'Đã tắt dẫn đường giọng nói' : 'Đã bật dẫn đường giọng nói');
-        }
-    };
 
     return (
         <View style={[styles.container, { bottom: bottomPosition }]}>
@@ -54,17 +47,18 @@ export const NavigationControls = memo(function NavigationControls({
                 <MaterialIcons name="close" size={24} color="#fff" />
             </TouchableOpacity>
 
-            {/* Voice Toggle Button */}
+            {/* My Location Button */}
             <TouchableOpacity
-                style={[styles.button, styles.voiceButton]}
-                onPress={handleVoicePress}
-                activeOpacity={0.8}
+                style={[styles.button, styles.myLocationButton, { backgroundColor: mapColors.controlBackground }]}
+                onPress={onMyLocationPress}
+                activeOpacity={0.7}
+                disabled={isLoadingLocation}
             >
-                <MaterialIcons
-                    name={voiceEnabled ? 'volume-up' : 'volume-off'}
-                    size={24}
-                    color="#fff"
-                />
+                {isLoadingLocation ? (
+                    <ActivityIndicator size="small" color={colors.tint} />
+                ) : (
+                    <MaterialIcons name="my-location" size={24} color={colors.tint} />
+                )}
             </TouchableOpacity>
         </View>
     );
@@ -88,7 +82,7 @@ const styles = StyleSheet.create({
     exitButton: {
         backgroundColor: '#EF4444',
     },
-    voiceButton: {
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    myLocationButton: {
+        // Background color set dynamically via mapColors.controlBackground
     },
 });

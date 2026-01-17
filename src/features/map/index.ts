@@ -11,26 +11,34 @@
 // Components
 export {
     CategoryChips,
+    LaneGuidance,
+    LocationPermissionModal,
     LocationPicker,
     MapAdapter,
     MapControls,
     MapScreen,
     MapSearchOverlay,
     MapTypeSelectorModal,
+    MarkerCluster,
     MockMapView,
     NavigationControls,
+    OfflineBanner,
     PlacesAutocomplete,
+    RouteAlternatives,
     RouteOverlay,
     SearchBar,
     SkeletonPlaceCard,
     SkeletonPlaceList,
-    SuggestionCard
+    SuggestionCard,
+    TrafficToggle
 } from './components';
 
 // Hooks
 export {
     useDirections,
+    useIsOnline,
     useNearbyPlaces,
+    useNetworkStatus,
     useUserLocation
 } from './hooks';
 
@@ -39,15 +47,24 @@ export {
     useActiveCategory,
     useMapRegion,
     useMapStore,
+    useMapType,
     useSearchQuery,
     useSelectedPlaceId,
+    useShowsTraffic,
     useUserLocation as useUserLocationFromStore
 } from './store';
 
 // Services (re-export key functions)
 export {
     autocomplete,
+    cacheNearbyPlaces,
+    cachePlaceDetails,
+    cleanupExpiredCache,
+    clearMapCache,
     geocode,
+    getCachedNearbyPlaces,
+    getCachedPlaceDetails,
+    getCacheStats,
     getDistance,
     getGoogleMapsClient,
     getPlaceDetails,

@@ -13,8 +13,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 interface MapControlsProps {
     onLayersPress?: () => void;
     onMyLocationPress?: () => void;
-    onZoomIn?: () => void;
-    onZoomOut?: () => void;
     isLoadingLocation?: boolean;
     colorScheme?: 'light' | 'dark';
 }
@@ -22,8 +20,6 @@ interface MapControlsProps {
 export const MapControls = memo(function MapControls({
     onLayersPress,
     onMyLocationPress,
-    onZoomIn,
-    onZoomOut,
     isLoadingLocation = false,
     colorScheme = 'light',
 }: MapControlsProps) {
@@ -53,33 +49,6 @@ export const MapControls = memo(function MapControls({
                 />
             </TouchableOpacity>
 
-            {/* Zoom In Button */}
-            {onZoomIn && (
-                <TouchableOpacity
-                    style={[
-                        styles.controlButton,
-                        { backgroundColor: mapColors.controlBackground },
-                    ]}
-                    onPress={onZoomIn}
-                    activeOpacity={0.7}
-                >
-                    <MaterialIcons name="add" size={24} color={colors.icon} />
-                </TouchableOpacity>
-            )}
-
-            {/* Zoom Out Button */}
-            {onZoomOut && (
-                <TouchableOpacity
-                    style={[
-                        styles.controlButton,
-                        { backgroundColor: mapColors.controlBackground },
-                    ]}
-                    onPress={onZoomOut}
-                    activeOpacity={0.7}
-                >
-                    <MaterialIcons name="remove" size={24} color={colors.icon} />
-                </TouchableOpacity>
-            )}
 
             {/* My Location Button */}
             <TouchableOpacity

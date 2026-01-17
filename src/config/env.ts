@@ -45,4 +45,19 @@ export function validateEnv(): void {
     if (missing.length > 0 && !__DEV__) {
         console.warn(`Missing required environment variables: ${missing.join(', ')}`);
     }
+
+    // Warn about Google Maps API key for map features
+    if (!env.GOOGLE_MAPS_API_KEY) {
+        console.warn(
+            'GOOGLE_MAPS_API_KEY not configured. Map features may not work. ' +
+            'Get your key from: https://console.cloud.google.com/google/maps-apis'
+        );
+    }
+}
+
+/**
+ * Check if Google Maps is properly configured
+ */
+export function isGoogleMapsConfigured(): boolean {
+    return Boolean(env.GOOGLE_MAPS_API_KEY);
 }

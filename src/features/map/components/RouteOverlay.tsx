@@ -19,10 +19,17 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RouteAlternatives, type RouteOption } from './RouteAlternatives';
 
 interface RouteOverlayProps {
     /** Route data from Directions API */
     route: NavigationRoute | null;
+    /** Alternative routes for comparison */
+    alternativeRoutes?: RouteOption[];
+    /** Selected route ID when using alternatives */
+    selectedRouteId?: string;
+    /** Callback when selecting alternative route */
+    onRouteSelect?: (routeId: string) => void;
     /** Whether the route is loading */
     isLoading?: boolean;
     /** Callback to start navigation */
@@ -35,6 +42,9 @@ interface RouteOverlayProps {
 
 export const RouteOverlay = memo(function RouteOverlay({
     route,
+    alternativeRoutes,
+    selectedRouteId,
+    onRouteSelect,
     isLoading = false,
     onStartNavigation,
     onClose,
@@ -120,6 +130,17 @@ export const RouteOverlay = memo(function RouteOverlay({
                             </Text>
                         </View>
                     </View>
+
+                    {/* Route Alternatives (when available) */}
+                    {alternativeRoutes && alternativeRoutes.length > 0 && onRouteSelect && (
+                        <View style={styles.alternativesSection}>
+                            <RouteAlternatives
+                                routes={alternativeRoutes}
+                                selectedRouteId={selectedRouteId || alternativeRoutes[0].id}
+                                onRouteSelect={onRouteSelect}
+                            />
+                        </View>
+                    )}
 
                     {/* Turn-by-turn instructions */}
                     <View style={styles.stepsSection}>
@@ -289,6 +310,9 @@ const styles = StyleSheet.create({
     },
     stepMeta: {
         fontSize: Typography.sizes.xs,
+    },
+    alternativesSection: {
+        marginBottom: Spacing.md,
     },
     startButton: {
         flexDirection: 'row',

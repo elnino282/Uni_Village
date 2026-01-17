@@ -8,10 +8,12 @@ export { useDirections, type LatLng, type UseDirectionsOptions, type UseDirectio
 export { useNearbyPlaces, type UseNearbyPlacesOptions, type UseNearbyPlacesResult } from './useNearbyPlaces';
 export { useUserLocation, type LocationOptions, type UseUserLocationResult } from './useUserLocation';
 
-// Camera animation for navigation
 export {
     calculateHeading, msToKmh, useCameraAnimation, type CameraConfig,
     type UseCameraAnimationOptions,
     type UseCameraAnimationResult
 } from './useCameraAnimation';
+
+// Network status detection
+export { useIsOnline, useNetworkStatus, type NetworkStatus, type UseNetworkStatusResult } from './useNetworkStatus';
 

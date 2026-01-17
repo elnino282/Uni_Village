@@ -28,3 +28,17 @@ export { MapTypeSelectorModal } from './MapTypeSelectorModal';
 export { NavigationControls } from './NavigationControls';
 export { SkeletonPlaceCard, SkeletonPlaceList } from './SkeletonPlaceCard';
 
+// Offline & Traffic Layer components
+export { OfflineBanner } from './OfflineBanner';
+export { TrafficToggle } from './TrafficToggle';
+
+// Navigation enhancement
+export { LaneGuidance, type Lane, type LaneIndication } from './LaneGuidance';
+
+// Permission handling
+export { LocationPermissionModal, type LocationPermissionStatus } from './LocationPermissionModal';
+
+// Route & Performance components
+export { MarkerCluster } from './MarkerCluster';
+export { RouteAlternatives, type RouteOption } from './RouteAlternatives';
+

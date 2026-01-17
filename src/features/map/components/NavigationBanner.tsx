@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { memo, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LaneGuidance, type Lane } from './LaneGuidance';
 
 export interface NavigationBannerProps {
     /** Current navigation step */
@@ -30,6 +31,10 @@ export interface NavigationBannerProps {
     eta?: string;
     /** Total remaining distance */
     remainingDistance?: string;
+    /** Lane guidance data */
+    lanes?: Lane[];
+    /** Current speed limit in km/h */
+    speedLimit?: number;
     /** Color scheme */
     colorScheme?: "light" | "dark";
     /** Whether navigation is in progress */
@@ -154,6 +159,8 @@ export const NavigationBanner = memo(function NavigationBanner({
     nextStreetName,
     eta,
     remainingDistance,
+    lanes,
+    speedLimit,
     colorScheme = "light",
     isNavigating = true,
 }: NavigationBannerProps) {
@@ -232,6 +239,13 @@ export const NavigationBanner = memo(function NavigationBanner({
                         )}
                     </View>
                 )}
+
+                {/* Lane Guidance & Speed Limit */}
+                {(lanes && lanes.length > 0) || speedLimit ? (
+                    <View style={styles.laneGuidanceContainer}>
+                        <LaneGuidance lanes={lanes || []} speedLimit={speedLimit} />
+                    </View>
+                ) : null}
             </LinearGradient>
         </View>
     );
@@ -302,5 +316,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: Typography.weights.medium as any,
         color: "#FFFFFF",
+    },
+    laneGuidanceContainer: {
+        marginTop: Spacing.sm,
+        paddingTop: Spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: "rgba(255, 255, 255, 0.2)",
     },
 });

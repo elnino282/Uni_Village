@@ -7,6 +7,7 @@
  * - Place details with actions
  * - Recently viewed list
  * - Safe area handling
+ * - Google Maps-style UX: header + quick actions visible immediately
  */
 
 import { Spacing } from "@/shared/constants/spacing";
@@ -29,6 +30,8 @@ import React, {
 import {
     Dimensions,
     Image,
+    Linking,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -73,53 +76,57 @@ export interface PlaceBottomSheetRef {
     snapToIndex: (index: number) => void;
 }
 
-/** Memoized Place Card Component */
-const PlaceCard = memo(function PlaceCard({
+/** Place Header Component - Shows name, rating, category, close button */
+const PlaceHeader = memo(function PlaceHeader({
     place,
-    onPress,
-    onDirections,
+    onClose,
+    onShare,
+    onBookmark,
     colorScheme = "light",
-    compact = false,
 }: {
     place: Place;
-    onPress?: () => void;
-    onDirections?: () => void;
+    onClose?: () => void;
+    onShare?: () => void;
+    onBookmark?: () => void;
     colorScheme?: "light" | "dark";
-    compact?: boolean;
 }) {
     const colors = Colors[colorScheme];
 
-    return (
-        <TouchableOpacity
-            style={[styles.placeCard, compact && styles.placeCardCompact]}
-            onPress={onPress}
-            activeOpacity={0.7}
-        >
-            {/* Thumbnail */}
-            <Image
-                source={{ uri: place.thumbnail }}
-                style={[styles.thumbnail, compact && styles.thumbnailCompact]}
-                resizeMode="cover"
-            />
+    // Get category label
+    const categoryLabel = useMemo(() => {
+        const categoryMap: Record<string, string> = {
+            restaurant: "Nhà hàng",
+            cafe: "Quán cà phê",
+            hotel: "Khách sạn",
+            hospital: "Bệnh viện",
+            school: "Trường học",
+            shopping: "Mua sắm",
+            entertainment: "Giải trí",
+            other: "Địa điểm",
+        };
+        return categoryMap[place.category] || "Địa điểm";
+    }, [place.category]);
 
-            {/* Info */}
-            <View style={styles.placeInfo}>
-                {/* Name */}
+    return (
+        <View style={styles.placeHeader}>
+            {/* Main content */}
+            <View style={styles.placeHeaderContent}>
+                {/* Place name */}
                 <Text
-                    style={[styles.placeName, { color: colors.text }]}
-                    numberOfLines={1}
+                    style={[styles.placeHeaderName, { color: colors.text }]}
+                    numberOfLines={2}
                 >
                     {place.name}
                 </Text>
 
-                {/* Meta Row */}
-                <View style={styles.metaRow}>
+                {/* Meta row: rating, reviews, distance, category */}
+                <View style={styles.placeHeaderMeta}>
                     {/* Rating */}
-                    <View style={styles.ratingContainer}>
-                        <MaterialIcons name="star" size={14} color="#FBBF24" />
-                        <Text style={[styles.ratingText, { color: colors.text }]}>
+                    <View style={styles.ratingBadge}>
+                        <Text style={[styles.ratingValue, { color: colors.text }]}>
                             {place.rating.toFixed(1)}
                         </Text>
+                        <MaterialIcons name="star" size={12} color="#FBBF24" />
                         {place.ratingCount && (
                             <Text style={[styles.ratingCount, { color: colors.icon }]}>
                                 ({place.ratingCount})
@@ -127,65 +134,132 @@ const PlaceCard = memo(function PlaceCard({
                         )}
                     </View>
 
+                    {/* Separator */}
+                    <Text style={[styles.metaSeparator, { color: colors.icon }]}>•</Text>
+
                     {/* Distance */}
                     {place.distanceKm > 0 && (
-                        <View style={styles.distanceContainer}>
-                            <MaterialIcons
-                                name="directions-walk"
-                                size={14}
-                                color={colors.icon}
-                            />
-                            <Text style={[styles.distanceText, { color: colors.icon }]}>
-                                {place.distanceKm < 1
-                                    ? `${Math.round(place.distanceKm * 1000)} m`
-                                    : `${place.distanceKm.toFixed(1)} km`}
-                            </Text>
-                        </View>
+                        <>
+                            <View style={styles.distanceBadge}>
+                                <MaterialIcons name="directions-car" size={12} color={colors.icon} />
+                                <Text style={[styles.distanceValue, { color: colors.icon }]}>
+                                    {place.distanceKm < 1
+                                        ? `${Math.round(place.distanceKm * 1000)} m`
+                                        : `${place.distanceKm.toFixed(1)} km`}
+                                </Text>
+                            </View>
+                            <Text style={[styles.metaSeparator, { color: colors.icon }]}>•</Text>
+                        </>
                     )}
 
-                    {/* Open Status */}
-                    {place.isOpen !== undefined && (
-                        <View style={styles.statusContainer}>
-                            <View
-                                style={[
-                                    styles.statusDot,
-                                    { backgroundColor: place.isOpen ? "#22C55E" : "#EF4444" },
-                                ]}
-                            />
-                            <Text
-                                style={[
-                                    styles.statusText,
-                                    { color: place.isOpen ? "#22C55E" : "#EF4444" },
-                                ]}
-                            >
-                                {place.isOpen ? "Mở cửa" : "Đóng cửa"}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-
-                {/* Address */}
-                {place.address && !compact && (
-                    <Text
-                        style={[styles.addressText, { color: colors.icon }]}
-                        numberOfLines={1}
-                    >
-                        {place.address}
+                    {/* Category */}
+                    <Text style={[styles.categoryLabel, { color: colors.icon }]}>
+                        {categoryLabel}
                     </Text>
-                )}
+                </View>
             </View>
 
-            {/* Direction Button (for main place only) */}
-            {onDirections && !compact && (
+            {/* Action buttons */}
+            <View style={styles.placeHeaderActions}>
                 <TouchableOpacity
-                    style={[styles.directionsButton, { backgroundColor: colors.tint }]}
-                    onPress={onDirections}
+                    style={styles.headerIconButton}
+                    onPress={onBookmark}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <MaterialIcons name="bookmark-outline" size={22} color={colors.icon} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.headerIconButton}
+                    onPress={onShare}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <MaterialIcons name="share" size={22} color={colors.icon} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.headerIconButton}
+                    onPress={onClose}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <MaterialIcons name="close" size={22} color={colors.icon} />
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+});
+
+/** Quick Actions Component - Directions, Start, Call, Save buttons */
+const QuickActions = memo(function QuickActions({
+    place,
+    onDirections,
+    onStart,
+    onCall,
+    onSave,
+    colorScheme = "light",
+}: {
+    place: Place;
+    onDirections?: () => void;
+    onStart?: () => void;
+    onCall?: () => void;
+    onSave?: () => void;
+    colorScheme?: "light" | "dark";
+}) {
+    const colors = Colors[colorScheme];
+    const hasPhone = !!place.phone;
+
+    return (
+        <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickActionsContainer}
+        >
+            {/* Directions - Primary action */}
+            <TouchableOpacity
+                style={[styles.quickActionButton, styles.quickActionPrimary]}
+                onPress={onDirections}
+                activeOpacity={0.8}
+            >
+                <MaterialIcons name="directions" size={18} color="#fff" />
+                <Text style={styles.quickActionPrimaryText}>Chỉ đường</Text>
+            </TouchableOpacity>
+
+            {/* Start navigation */}
+            <TouchableOpacity
+                style={[styles.quickActionButton, styles.quickActionSecondary, { borderColor: colors.border }]}
+                onPress={onStart || onDirections}
+                activeOpacity={0.7}
+            >
+                <MaterialIcons name="navigation" size={18} color={colors.text} />
+                <Text style={[styles.quickActionSecondaryText, { color: colors.text }]}>
+                    Bắt đầu
+                </Text>
+            </TouchableOpacity>
+
+            {/* Call - only if phone available */}
+            {hasPhone && (
+                <TouchableOpacity
+                    style={[styles.quickActionButton, styles.quickActionSecondary, { borderColor: colors.border }]}
+                    onPress={onCall}
                     activeOpacity={0.7}
                 >
-                    <MaterialIcons name="directions" size={20} color="#fff" />
+                    <MaterialIcons name="call" size={18} color={colors.text} />
+                    <Text style={[styles.quickActionSecondaryText, { color: colors.text }]}>
+                        Gọi
+                    </Text>
                 </TouchableOpacity>
             )}
-        </TouchableOpacity>
+
+            {/* Save */}
+            <TouchableOpacity
+                style={[styles.quickActionButton, styles.quickActionSecondary, { borderColor: colors.border }]}
+                onPress={onSave}
+                activeOpacity={0.7}
+            >
+                <MaterialIcons name="bookmark-outline" size={18} color={colors.text} />
+            </TouchableOpacity>
+        </ScrollView>
     );
 });
 
@@ -259,10 +333,10 @@ export const PlaceBottomSheet = forwardRef<
     const colors = Colors[colorScheme];
     const mapColors = MapColors[colorScheme];
 
-    // Snap points: collapsed (for header), half screen, full screen
+    // Snap points: collapsed (show header + actions), half screen, full screen
     const snapPoints = useMemo(() => {
-        const collapsed = 120;
-        const half = SCREEN_HEIGHT * 0.4;
+        const collapsed = 220; // Increased to show header + quick actions
+        const half = SCREEN_HEIGHT * 0.45;
         const full = SCREEN_HEIGHT * 0.85;
         return [collapsed, half, full];
     }, []);
@@ -299,13 +373,6 @@ export const PlaceBottomSheet = forwardRef<
         []
     );
 
-    // Handle place press
-    const handlePlacePress = useCallback(() => {
-        if (place && onPlaceSelect) {
-            onPlaceSelect(place);
-        }
-    }, [place, onPlaceSelect]);
-
     // Handle directions press
     const handleDirectionsPress = useCallback(() => {
         if (place && onDirections) {
@@ -327,6 +394,31 @@ export const PlaceBottomSheet = forwardRef<
             }
         }
     }, [place, onViewDetails, router]);
+
+    // Handle close
+    const handleClose = useCallback(() => {
+        bottomSheetRef.current?.close();
+        onClose?.();
+    }, [onClose]);
+
+    // Handle call
+    const handleCall = useCallback(() => {
+        if (place?.phone) {
+            Linking.openURL(`tel:${place.phone}`);
+        }
+    }, [place]);
+
+    // Handle share
+    const handleShare = useCallback(() => {
+        // TODO: Implement share functionality
+        console.log("Share:", place?.name);
+    }, [place]);
+
+    // Handle bookmark
+    const handleBookmark = useCallback(() => {
+        // TODO: Implement bookmark functionality
+        console.log("Bookmark:", place?.name);
+    }, [place]);
 
     // Don't render if no place
     if (!place && recentlyViewed.length === 0) {
@@ -359,70 +451,76 @@ export const PlaceBottomSheet = forwardRef<
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Photo Carousel (Quick View) */}
-                {place && place.photos && place.photos.length > 0 && (
-                    <PhotoCarousel
-                        photos={place.photos}
-                        onPhotoPress={handleViewDetails}
-                        onViewAllPress={handleViewDetails}
-                        colorScheme={colorScheme}
-                    />
-                )}
-
-                {/* Section Header */}
-                <View style={styles.header}>
-                    <Text style={[styles.headerTitle, { color: colors.text }]}>
-                        Địa điểm gợi ý gần bạn
-                    </Text>
-                </View>
-
-                {/* Selected Place Card or Loading Skeleton */}
                 {isLoading ? (
                     <SkeletonPlaceCard colorScheme={colorScheme} />
-                ) : place && (
-                    <PlaceCard
-                        place={place}
-                        onPress={handleViewDetails}
-                        onDirections={handleDirectionsPress}
-                        colorScheme={colorScheme}
-                    />
-                )}
+                ) : place ? (
+                    <>
+                        {/* Place Header - Always visible */}
+                        <PlaceHeader
+                            place={place}
+                            onClose={handleClose}
+                            onShare={handleShare}
+                            onBookmark={handleBookmark}
+                            colorScheme={colorScheme}
+                        />
 
-                {/* Action Buttons */}
-                {place && (
-                    <View style={styles.actionsRow}>
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: colors.muted }]}
-                            activeOpacity={0.7}
-                        >
-                            <MaterialIcons name="bookmark-outline" size={18} color={colors.text} />
-                            <Text style={[styles.actionText, { color: colors.text }]}>
-                                Lưu
-                            </Text>
-                        </TouchableOpacity>
+                        {/* Quick Actions - Always visible */}
+                        <QuickActions
+                            place={place}
+                            onDirections={handleDirectionsPress}
+                            onCall={handleCall}
+                            onSave={handleBookmark}
+                            colorScheme={colorScheme}
+                        />
 
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: colors.muted }]}
-                            activeOpacity={0.7}
-                        >
-                            <MaterialIcons name="share" size={18} color={colors.text} />
-                            <Text style={[styles.actionText, { color: colors.text }]}>
-                                Chia sẻ
-                            </Text>
-                        </TouchableOpacity>
+                        {/* Photo Carousel - Below fold */}
+                        {place.photos && place.photos.length > 0 && (
+                            <View style={styles.photosSection}>
+                                <PhotoCarousel
+                                    photos={place.photos}
+                                    onPhotoPress={handleViewDetails}
+                                    onViewAllPress={handleViewDetails}
+                                    colorScheme={colorScheme}
+                                />
+                            </View>
+                        )}
 
-                        <TouchableOpacity
-                            style={[styles.actionButton, styles.directionsActionButton]}
-                            onPress={handleDirectionsPress}
-                            activeOpacity={0.7}
-                        >
-                            <MaterialIcons name="directions" size={18} color="#fff" />
-                            <Text style={[styles.actionText, { color: "#fff" }]}>
-                                Chỉ đường
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
+                        {/* Address */}
+                        {place.address && (
+                            <TouchableOpacity
+                                style={styles.addressRow}
+                                onPress={handleViewDetails}
+                                activeOpacity={0.7}
+                            >
+                                <MaterialIcons name="location-on" size={20} color={colors.icon} />
+                                <Text
+                                    style={[styles.addressText, { color: colors.text }]}
+                                    numberOfLines={2}
+                                >
+                                    {place.address}
+                                </Text>
+                                <MaterialIcons name="chevron-right" size={20} color={colors.icon} />
+                            </TouchableOpacity>
+                        )}
+
+                        {/* Opening Hours */}
+                        {place.isOpen !== undefined && (
+                            <View style={styles.infoRow}>
+                                <MaterialIcons name="schedule" size={20} color={colors.icon} />
+                                <View style={styles.openStatusContainer}>
+                                    <Text
+                                        style={[
+                                            styles.openStatusText,
+                                            { color: place.isOpen ? "#22C55E" : "#EF4444" },
+                                        ]}
+                                    >
+                                        {place.isOpen ? "Đang mở cửa" : "Đã đóng cửa"}
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+                    </>
+                ) : null}
 
                 {/* Recently Viewed Section */}
                 <RecentlyViewedSection
@@ -451,117 +549,128 @@ const styles = StyleSheet.create({
     contentContainer: {
         paddingHorizontal: Spacing.md,
     },
-    header: {
-        paddingVertical: Spacing.sm,
-    },
-    headerTitle: {
-        fontSize: Typography.sizes.lg,
-        fontWeight: Typography.weights.semibold as any,
-    },
-    placeCard: {
+    // Place Header styles
+    placeHeader: {
         flexDirection: "row",
-        alignItems: "center",
-        padding: Spacing.sm,
-        gap: Spacing.md,
-        backgroundColor: "transparent",
-    },
-    placeCardCompact: {
-        padding: Spacing.xs,
+        paddingVertical: Spacing.sm,
         gap: Spacing.sm,
     },
-    thumbnail: {
-        width: 80,
-        height: 80,
-        borderRadius: BorderRadius.lg,
-    },
-    thumbnailCompact: {
-        width: 56,
-        height: 56,
-        borderRadius: BorderRadius.md,
-    },
-    placeInfo: {
+    placeHeaderContent: {
         flex: 1,
         gap: Spacing.xs,
     },
-    placeName: {
-        fontSize: Typography.sizes.md,
-        fontWeight: Typography.weights.semibold as any,
+    placeHeaderName: {
+        fontSize: Typography.sizes.xl,
+        fontWeight: Typography.weights.bold as any,
+        lineHeight: Typography.sizes.xl * 1.2,
     },
-    metaRow: {
+    placeHeaderMeta: {
         flexDirection: "row",
         alignItems: "center",
-        gap: Spacing.sm,
+        gap: Spacing.xs,
         flexWrap: "wrap",
     },
-    ratingContainer: {
+    ratingBadge: {
         flexDirection: "row",
         alignItems: "center",
         gap: 2,
     },
-    ratingText: {
+    ratingValue: {
         fontSize: Typography.sizes.sm,
         fontWeight: Typography.weights.medium as any,
     },
     ratingCount: {
         fontSize: Typography.sizes.sm,
     },
-    distanceContainer: {
+    metaSeparator: {
+        fontSize: Typography.sizes.sm,
+    },
+    distanceBadge: {
         flexDirection: "row",
         alignItems: "center",
         gap: 2,
     },
-    distanceText: {
+    distanceValue: {
         fontSize: Typography.sizes.sm,
     },
-    statusContainer: {
+    categoryLabel: {
+        fontSize: Typography.sizes.sm,
+    },
+    placeHeaderActions: {
         flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
+        gap: Spacing.xs,
     },
-    statusDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-    },
-    statusText: {
-        fontSize: Typography.sizes.xs,
-        fontWeight: Typography.weights.medium as any,
-    },
-    addressText: {
-        fontSize: Typography.sizes.sm,
-    },
-    directionsButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+    headerIconButton: {
+        width: 36,
+        height: 36,
         alignItems: "center",
         justifyContent: "center",
-        ...Shadows.md,
     },
-    actionsRow: {
+    // Quick Actions styles
+    quickActionsContainer: {
         flexDirection: "row",
         gap: Spacing.sm,
-        paddingVertical: Spacing.md,
+        paddingVertical: Spacing.sm,
         paddingHorizontal: Spacing.xs,
     },
-    actionButton: {
-        flex: 1,
+    quickActionButton: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
         gap: Spacing.xs,
         paddingVertical: Spacing.sm,
-        borderRadius: BorderRadius.lg,
+        paddingHorizontal: Spacing.md,
+        borderRadius: BorderRadius.pill,
     },
-    directionsActionButton: {
+    quickActionPrimary: {
         backgroundColor: "#4285F4",
     },
-    actionText: {
+    quickActionPrimaryText: {
+        color: "#fff",
+        fontSize: Typography.sizes.sm,
+        fontWeight: Typography.weights.semibold as any,
+    },
+    quickActionSecondary: {
+        borderWidth: 1,
+        backgroundColor: "transparent",
+    },
+    quickActionSecondaryText: {
         fontSize: Typography.sizes.sm,
         fontWeight: Typography.weights.medium as any,
     },
+    // Photos section
+    photosSection: {
+        marginTop: Spacing.sm,
+    },
+    // Address row
+    addressRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: Spacing.md,
+        gap: Spacing.sm,
+    },
+    addressText: {
+        flex: 1,
+        fontSize: Typography.sizes.sm,
+        lineHeight: Typography.sizes.sm * 1.4,
+    },
+    // Info row
+    infoRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: Spacing.sm,
+        gap: Spacing.sm,
+    },
+    openStatusContainer: {
+        flex: 1,
+    },
+    openStatusText: {
+        fontSize: Typography.sizes.sm,
+        fontWeight: Typography.weights.medium as any,
+    },
+    // Recently viewed section
     recentSection: {
-        marginTop: Spacing.md,
+        marginTop: Spacing.lg,
         gap: Spacing.sm,
     },
     sectionTitle: {

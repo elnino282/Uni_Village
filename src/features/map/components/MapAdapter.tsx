@@ -64,6 +64,8 @@ export interface MapAdapterProps {
   onRegionChange?: (region: MapRegion) => void;
   onMapPress?: () => void;
   showsUserLocation?: boolean;
+  /** Show traffic layer overlay */
+  showsTraffic?: boolean;
   colorScheme?: "light" | "dark";
 }
 
@@ -221,6 +223,7 @@ export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
       onRegionChange,
       onMapPress,
       showsUserLocation = true,
+      showsTraffic = false,
       colorScheme = "light",
     },
     ref
@@ -323,7 +326,7 @@ export const MapAdapter = forwardRef<MapAdapterRef, MapAdapterProps>(
           showsUserLocation={showsUserLocation}
           showsMyLocationButton={false}
           showsCompass={false}
-          showsTraffic={false}
+          showsTraffic={showsTraffic}
           showsBuildings={mapType === "satellite" || mapType === "hybrid"}
           showsIndoors={false}
           onRegionChangeComplete={handleRegionChangeComplete}
