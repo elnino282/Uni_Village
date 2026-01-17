@@ -22,3 +22,9 @@ export type { PlaceBottomSheetProps, PlaceBottomSheetRef } from './PlaceBottomSh
 export { PhotoCarousel } from './PhotoCarousel';
 export { PlaceDetailsScreen } from './PlaceDetailsScreen';
 
+// Refactored components
+export { MapSearchOverlay } from './MapSearchOverlay';
+export { MapTypeSelectorModal } from './MapTypeSelectorModal';
+export { NavigationControls } from './NavigationControls';
+export { SkeletonPlaceCard, SkeletonPlaceList } from './SkeletonPlaceCard';
+

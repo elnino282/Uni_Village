@@ -21,6 +21,16 @@ export interface Place {
     website?: string;
     photos?: PlacePhoto[];
     openingHoursText?: string[];
+    reviews?: Review[];
+}
+
+export interface Review {
+    id: string;
+    authorName: string;
+    authorPhoto?: string;
+    rating: number;
+    text: string;
+    relativeTimeDescription: string;
 }
 
 export interface PlacePhoto {
@@ -117,7 +127,7 @@ export interface Waypoint {
     placeId?: string;
 }
 
-/** Search result for unified search across mock and real API */
+/** Search result for unified place search */
 export interface SearchResult {
     id: string;
     name: string;
@@ -126,6 +136,6 @@ export interface SearchResult {
     longitude: number;
     category?: PlaceCategory;
     rating?: number;
-    isFromApi: boolean; // true = Google API, false = mock data
+    isFromApi: boolean; // true = from Google API
 }
 

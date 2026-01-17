@@ -18,6 +18,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface RouteOverlayProps {
     /** Route data from Directions API */
@@ -40,6 +41,7 @@ export const RouteOverlay = memo(function RouteOverlay({
     colorScheme = 'light',
 }: RouteOverlayProps) {
     const colors = Colors[colorScheme];
+    const insets = useSafeAreaInsets();
 
     const getManeuverIcon = useCallback((maneuver?: RouteStep['maneuver']): string => {
         switch (maneuver) {
@@ -65,7 +67,7 @@ export const RouteOverlay = memo(function RouteOverlay({
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.card }]}>
+        <View style={[styles.container, { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, Spacing.xl) }]}>
             {/* Header */}
             <View style={styles.header}>
                 {onClose && (
@@ -127,8 +129,9 @@ export const RouteOverlay = memo(function RouteOverlay({
 
                         <ScrollView
                             style={styles.stepsList}
-                            showsVerticalScrollIndicator={false}
+                            showsVerticalScrollIndicator={true}
                             contentContainerStyle={styles.stepsContent}
+                            nestedScrollEnabled={true}
                         >
                             {route.steps.map((step, index) => (
                                 <View
@@ -150,7 +153,6 @@ export const RouteOverlay = memo(function RouteOverlay({
                                     <View style={styles.stepContent}>
                                         <Text
                                             style={[styles.stepInstruction, { color: colors.text }]}
-                                            numberOfLines={2}
                                         >
                                             {step.instruction}
                                         </Text>
@@ -191,7 +193,7 @@ const styles = StyleSheet.create({
         paddingTop: Spacing.md,
         paddingBottom: Spacing.xl,
         paddingHorizontal: Spacing.screenPadding,
-        maxHeight: '50%',
+        maxHeight: '70%',
         ...Shadows.card,
     },
     header: {
@@ -246,7 +248,8 @@ const styles = StyleSheet.create({
     },
     stepsSection: {
         flex: 1,
-        minHeight: 100,
+        minHeight: 120,
+        maxHeight: 280,
     },
     stepsTitle: {
         fontSize: Typography.sizes.sm,
@@ -257,7 +260,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     stepsContent: {
-        paddingBottom: Spacing.sm,
+        paddingBottom: Spacing.lg,
     },
     stepItem: {
         flexDirection: 'row',

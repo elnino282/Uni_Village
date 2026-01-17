@@ -1,7 +1,7 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Spacing } from '@/shared/constants/spacing';
 import { BorderRadius, Colors, MapColors, Shadows } from '@/shared/constants/theme';
 import { Typography } from '@/shared/constants/typography';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React, { memo, useCallback } from 'react';
 import {
     FlatList,
@@ -11,7 +11,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { CATEGORY_CHIPS } from '../services/mockPlaces';
+import { CATEGORY_CHIPS } from '../constants/mapConstants';
 import type { CategoryChip, PlaceCategory } from '../types';
 
 interface CategoryChipsProps {
