@@ -8,6 +8,9 @@ import type { ChannelInvite } from '@/shared/types';
 export type CommunityTab = 'posts' | 'messages';
 export type ContentFilterTab = 'posts' | 'itineraries' | 'channels';
 
+/** Post visibility/privacy level */
+export type PostVisibility = 'public' | 'private';
+
 export interface PostLocation {
   id: string;
   name: string;
@@ -33,6 +36,8 @@ export interface CommunityPost {
   isLiked: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Post visibility: 'public' or 'private' (only me) */
+  visibility?: PostVisibility;
   /** Optional channel invite embedded in post */
   channelInvite?: ChannelInvite;
   /** Optional itinerary share card embedded in post */
@@ -40,6 +45,7 @@ export interface CommunityPost {
   /** Optional tags for the post (e.g., "Lịch trình", "Cà phê") */
   tags?: string[];
 }
+
 
 export interface OverflowMenuItem {
   id: string;
