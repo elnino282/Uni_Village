@@ -1,1 +1,1 @@
-export { postApi } from './postApi';
+export { postsApi, commentsApi, reactionsApi } from './postApi';

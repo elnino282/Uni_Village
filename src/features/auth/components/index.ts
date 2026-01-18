@@ -3,6 +3,7 @@
  */
 
 export * from './AuthDivider';
+export * from './AuthGuard';
 export * from './AuthHeader';
 export * from './AuthInput';
 export * from './PrimaryButton';

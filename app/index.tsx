@@ -1,6 +1,6 @@
-import { Redirect } from 'expo-router';
+import { AuthGuard } from '@/features/auth';
 
 export default function Index() {
-  // Redirect to map tab on app start
-  return <Redirect href="/(tabs)/map" />;
+  // Check auth state and redirect accordingly
+  return <AuthGuard />;
 }

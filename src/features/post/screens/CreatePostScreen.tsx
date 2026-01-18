@@ -22,6 +22,8 @@ import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 
 import { useCreateCommunityPost } from '@/features/community/hooks/useCommunityPosts';
+import { useCreatePost } from '../hooks';
+import { fileUploadService, type PickedFile } from '../services';
 
 import { ChooseChannelSheet } from '../components/ChooseChannelSheet';
 import { ChooseItinerarySheet } from '../components/ChooseItinerarySheet';
@@ -58,23 +60,20 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
     const [selectedItinerary, setSelectedItinerary] = useState<ItineraryForSelection | null>(null);
     const [postVisibility, setPostVisibility] = useState<ChannelVisibility>('public');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState<PickedFile[]>([]);
 
     // Bottom sheet refs
     const channelSheetRef = useRef<BottomSheet>(null);
     const itinerarySheetRef = useRef<BottomSheet>(null);
 
-    // Create post mutation
     const { mutateAsync: createCommunityPost, isPending: isCreating } = useCreateCommunityPost();
+    const { mutateAsync: createRealPost, isPending: isCreatingRealPost } = useCreatePost();
 
-    // Can submit when:
-    // - Tab is 'post' and content is not empty
-    // - Tab is 'channel' and a channel is selected (content optional)
-    // - Tab is 'itinerary' and an itinerary is selected (content optional)
     const canSubmit = useMemo(() => {
-        if (isSubmitting || isCreating) return false;
+        if (isSubmitting || isCreating || isCreatingRealPost) return false;
         switch (activeTab) {
             case 'post':
-                return postContent.trim().length > 0;
+                return postContent.trim().length > 0 || selectedFiles.length > 0;
             case 'channel':
                 return !!selectedChannel;
             case 'itinerary':
@@ -82,7 +81,7 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
             default:
                 return false;
         }
-    }, [activeTab, postContent, selectedChannel, selectedItinerary, isSubmitting, isCreating]);
+    }, [activeTab, postContent, selectedChannel, selectedItinerary, isSubmitting, isCreating, isCreatingRealPost, selectedFiles]);
 
     const dismissKeyboard = useCallback(() => {
         Keyboard.dismiss();
@@ -104,17 +103,25 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
         }
 
         try {
-            await createCommunityPost({
-                content: activeTab === 'post' ? postContent : activeTab === 'channel' ? channelContent : itineraryContent,
-                visibility: activeTab === 'post' ? postVisibility : 'public',
-            });
+            if (activeTab === 'post') {
+                await createRealPost({
+                    content: postContent,
+                    postType: 'EXPERIENCE',
+                    visibility: postVisibility === 'public' ? 'PUBLIC' : 'PRIVATE',
+                    files: selectedFiles,
+                });
+            } else {
+                await createCommunityPost({
+                    content: activeTab === 'channel' ? channelContent : itineraryContent,
+                    visibility: 'public',
+                });
+            }
 
             setIsSubmitting(false);
             router.back();
         } catch (error) {
             console.error('Failed to create post:', error);
             setIsSubmitting(false);
-            // TODO: Show error toast
         }
     };
 
@@ -373,10 +380,20 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
                     },
                 ]}
             >
-                <TouchableOpacity style={styles.toolbarButton}>
+                <TouchableOpacity 
+                    style={styles.toolbarButton}
+                    onPress={async () => {
+                        try {
+                            const files = await fileUploadService.pickImages(true);
+                            setSelectedFiles(prev => [...prev, ...files]);
+                        } catch (error) {
+                            console.error('Failed to pick images:', error);
+                        }
+                    }}
+                >
                     <MaterialIcons name="image" size={24} color="#6A7282" />
                     <Text style={[styles.toolbarText, { color: '#6A7282' }]}>
-                        Ảnh
+                        Ảnh {selectedFiles.length > 0 && `(${selectedFiles.length})`}
                     </Text>
                 </TouchableOpacity>
 
@@ -387,7 +404,6 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
                     </Text>
                 </TouchableOpacity>
 
-                {/* Visibility Selector - nằm cạnh Vị trí khi tab Post được chọn */}
                 {activeTab === 'post' && (
                     <PostVisibilityDropdown
                         visibility={postVisibility}

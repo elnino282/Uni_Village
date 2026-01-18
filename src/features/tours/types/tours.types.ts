@@ -1,97 +1,31 @@
-/**
- * Tours Types
- * TypeScript types for Tours feature
- */
+import type {
+    TourRequest as BackendTourRequest,
+    TourResponse as BackendTourResponse,
+    TourStatus,
+    TourShareRequest as BackendTourShareRequest,
+    TourStopRequest as BackendTourStopRequest,
+    TourStopResponse as BackendTourStopResponse,
+    TourStopReorderRequest as BackendTourStopReorderRequest,
+    CheckInRequest as BackendCheckInRequest,
+    CheckInResponse as BackendCheckInResponse,
+    ItinerarySuggestRequest as BackendItinerarySuggestRequest,
+    SuggestedItinerary as BackendSuggestedItinerary,
+    SuggestedStop as BackendSuggestedStop,
+} from '@/shared/types/backend.types';
 
-import type { PlaceResponse } from '@/features/places/types/places.types';
-import type { TourStatus, Visibility } from '@/shared/types/enums.types';
+export type TourRequest = BackendTourRequest;
+export type TourResponse = BackendTourResponse;
+export type TourShareRequest = BackendTourShareRequest;
+export type TourStopRequest = BackendTourStopRequest;
+export type TourStopResponse = BackendTourStopResponse;
+export type TourStopReorderRequest = BackendTourStopReorderRequest;
+export type CheckInRequest = BackendCheckInRequest;
+export type CheckInResponse = BackendCheckInResponse;
+export type ItinerarySuggestRequest = BackendItinerarySuggestRequest;
+export type SuggestedItinerary = BackendSuggestedItinerary;
+export type SuggestedStop = BackendSuggestedStop;
 
-// ============================================
-// Tour Types
-// ============================================
-
-export interface TourRequest {
-    name: string;
-    description?: string;
-    startTime?: string;
-    endTime?: string;
-}
-
-export interface TourResponse {
-    id: number;
-    userId: number;
-    userName: string;
-    name: string;
-    description: string | null;
-    startTime: string | null;
-    endTime: string | null;
-    status: TourStatus;
-    sharedAsPost: boolean;
-    originalTourId: number | null;
-    stops: TourStopResponse[];
-    staticMapUrl: string | null;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface TourShareRequest {
-    postTitle: string;
-    visibility?: Visibility;
-}
-
-// ============================================
-// Tour Stop Types
-// ============================================
-
-export interface TourStopRequest {
-    placeId: number;
-    note?: string;
-    sequenceOrder?: number;
-}
-
-export interface TourStopResponse {
-    id: number;
-    tourId: number;
-    placeId: number;
-    placeName: string;
-    sequenceOrder: number;
-    note: string | null;
-    place: PlaceResponse | null;
-}
-
-export interface TourStopReorderRequest {
-    stops: TourStopReorderItem[];
-}
-
-export interface TourStopReorderItem {
-    stopId: number;
-    sequenceOrder: number;
-}
-
-// ============================================
-// Check-in Types
-// ============================================
-
-export interface CheckInRequest {
-    placeId: number;
-    tourId?: number;
-    note?: string;
-    checkedInAt?: string;
-}
-
-export interface CheckInResponse {
-    id: number;
-    userId: number;
-    tourId: number | null;
-    placeId: number;
-    placeName: string;
-    checkedInAt: string;
-    note: string | null;
-}
-
-// ============================================
-// Tour Search Params
-// ============================================
+export type { TourStatus };
 
 export interface TourSearchParams {
     status?: TourStatus;
@@ -106,40 +40,4 @@ export interface CheckInSearchParams {
     to?: string;
     page?: number;
     size?: number;
-}
-
-// ============================================
-// AI Itinerary Types
-// ============================================
-
-export interface ItinerarySuggestRequest {
-    mood?: string;
-    startLatitude: number;
-    startLongitude: number;
-    radiusKm?: number;
-    maxStops?: number;
-    maxDurationHours?: number;
-    placeTypes?: string[];
-}
-
-export interface SuggestedItinerary {
-    name: string;
-    mood: string;
-    stops: SuggestedStop[];
-    totalDistanceKm: number;
-    totalDurationMinutes: number;
-    routePolyline: string;
-    mapPreviewUrl: string;
-}
-
-export interface SuggestedStop {
-    sequenceOrder: number;
-    googlePlaceId: string;
-    placeName: string;
-    address: string;
-    latitude: number;
-    longitude: number;
-    rating: number;
-    suggestedDurationMinutes: number;
-    aiReason: string;
 }

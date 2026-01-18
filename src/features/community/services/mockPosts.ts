@@ -8,7 +8,7 @@ export interface CreatePostData {
   content: string;
   visibility?: 'public' | 'followers' | 'private';
   imageUrl?: string;
-  locations?: Array<{ id: string; name: string }>;
+  locations?: { id: string; name: string }[];
 }
 
 /**

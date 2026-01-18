@@ -1,113 +1,44 @@
-/**
- * Post Types
- * TypeScript types for Posts feature - aligned with VNU Guide Backend
- */
+import type {
+    PostResponse as BackendPostResponse,
+    PostType,
+    Visibility,
+    CommentRequest as BackendCommentRequest,
+    CommentResponse as BackendCommentResponse,
+    LikeResponse as BackendLikeResponse,
+    SavedPostResponse as BackendSavedPostResponse,
+    SharePostRequest as BackendSharePostRequest,
+    SharePostResponse as BackendSharePostResponse,
+} from '@/shared/types/backend.types';
 
-import type { MessageType, PostType, Visibility } from '@/shared/types/enums.types';
+export type PostResponse = BackendPostResponse;
+export type Post = BackendPostResponse;
+export type CommentRequest = BackendCommentRequest;
+export type CommentResponse = BackendCommentResponse;
+export type LikeResponse = BackendLikeResponse;
+export type SavedPostResponse = BackendSavedPostResponse;
+export type SharePostRequest = BackendSharePostRequest;
+export type SharePostResponse = BackendSharePostResponse;
 
-// ============================================
-// Post Types
-// ============================================
-
-export interface CreatePostRequest {
-    content?: string;
-    postType: PostType;
-    visibility: Visibility;
-    tourId?: string;
-}
-
-export interface UpdatePostRequest {
-    content?: string;
-    postType?: PostType;
-    visibility?: Visibility;
-}
-
-export interface Post {
-    id: number;
-    content: string | null;
-    postType: PostType;
-    visibility: Visibility;
-    authorId: number;
-    authorName: string;
-    authorAvatarUrl: string | null;
-    mediaUrls: string[];
-    createdAt: string;
-    updatedAt: string;
-    // Extended fields (may be populated by app)
-    likeCount?: number;
-    commentCount?: number;
-    shareCount?: number;
-    isLiked?: boolean;
-    isSaved?: boolean;
-}
-
-// ============================================
-// Comment Types
-// ============================================
-
-export interface CommentRequest {
-    content: string;
-    postId: number;
-    parentCommentId?: number;
-}
-
-export interface CommentResponse {
-    id: number;
-    content: string;
-    authorId: number;
-    authorName: string;
-    authorAvatarUrl: string | null;
-    postId: number;
-    parentCommentId: number | null;
-    likeCount: number;
-    timeStamp: string;
-    isLiked?: boolean;
-}
-
-// ============================================
-// Reaction Types
-// ============================================
-
-export interface LikeResponse {
-    postId: number | null;
-    commentId: number | null;
-    userId: number;
-    isLiked: boolean;
-    likeCount: number;
-}
-
-// ============================================
-// Save & Share Types
-// ============================================
-
-export interface SavedPostResponse {
-    postId: number;
-    userId: number;
-    isSaved: boolean;
-}
-
-export interface SharePostRequest {
-    conversationId: string;
-    message?: string;
-}
-
-export interface SharePostResponse {
-    messageId: number;
-    postId: number;
-    conversationId: string;
-    senderId: number;
-    senderName: string;
-    message: string | null;
-    messageType: MessageType;
-    timestamp: string;
-}
-
-// ============================================
-// Post Search Params
-// ============================================
+export type { PostType, Visibility };
 
 export interface PostSearchParams {
     page?: number;
     size?: number;
+}
+
+export interface CreatePostFormData {
+    content?: string;
+    postType: PostType;
+    visibility: Visibility;
+    tourId?: string;
+    files?: File[];
+}
+
+export interface UpdatePostFormData {
+    content?: string;
+    postType: PostType;
+    visibility: Visibility;
+    tourId?: string;
+    files?: File[];
 }
 

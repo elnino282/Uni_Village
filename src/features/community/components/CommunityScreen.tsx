@@ -1,13 +1,13 @@
 import { useAuthStore } from '@/features/auth';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ItineraryDetailsSheet } from '@/features/itinerary/components/ItineraryDetailsSheet';
 import type { ItineraryShareData } from '@/features/itinerary/types/itinerary.types';
 import type { CreatePostTab } from '@/features/post/types/createPost.types';
-import { LoadingScreen } from '@/shared/components/feedback';
+import { LoadingScreen, ErrorMessage, EmptyState } from '@/shared/components/feedback';
 import { Colors, Spacing } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import {
@@ -59,11 +59,11 @@ export function CommunityScreen() {
     }
   };
 
-  const { data, isLoading, refetch, isRefetching } = useCommunityPosts();
-  const likePostMutation = useLikePost();
-  const savePostMutation = useSavePost();
-  const reportPostMutation = useReportPost();
-  const blockPostMutation = useBlockPost();
+  const { data, isLoading, refetch, isRefetching, isError, error } = useCommunityPosts();
+  const { mutate: likePost, isPending: isLikingPost } = useLikePost();
+  const { mutate: savePost, isPending: isSavingPost } = useSavePost();
+  const { mutate: reportPost, isPending: isReportingPost } = useReportPost();
+  const { mutate: blockPost, isPending: isBlockingPost } = useBlockPost();
 
   // Check if the selected post belongs to current user
   const selectedPost = useMemo(() => {
@@ -119,9 +119,11 @@ export function CommunityScreen() {
 
   const handleLikePress = useCallback(
     (postId: string) => {
-      likePostMutation.mutate(postId);
+      if (!isLikingPost) {
+        likePost(postId);
+      }
     },
-    [likePostMutation]
+    [likePost, isLikingPost]
   );
 
   const handleCommentPress = useCallback(
@@ -140,23 +142,29 @@ export function CommunityScreen() {
 
   const handleSavePost = useCallback(
     (postId: string) => {
-      savePostMutation.mutate(postId);
+      if (!isSavingPost) {
+        savePost(postId);
+      }
     },
-    [savePostMutation]
+    [savePost, isSavingPost]
   );
 
   const handleReportPost = useCallback(
     (postId: string) => {
-      reportPostMutation.mutate({ postId, reason: 'Inappropriate content' });
+      if (!isReportingPost) {
+        reportPost({ postId, reason: 'Inappropriate content' });
+      }
     },
-    [reportPostMutation]
+    [reportPost, isReportingPost]
   );
 
   const handleBlockPost = useCallback(
     (postId: string) => {
-      blockPostMutation.mutate(postId);
+      if (!isBlockingPost) {
+        blockPost(postId);
+      }
     },
-    [blockPostMutation]
+    [blockPost, isBlockingPost]
   );
 
   // Owner menu handlers
@@ -287,6 +295,17 @@ export function CommunityScreen() {
     return <LoadingScreen message="Đang tải bài viết..." />;
   }
 
+  if (isError) {
+    return (
+      <ErrorMessage
+        title="Không thể tải bài viết"
+        message={(error as any)?.message || 'Vui lòng kiểm tra kết nối mạng'}
+        onRetry={() => refetch()}
+        retryLabel="Thử lại"
+      />
+    );
+  }
+
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
       <View testID="community-screen" style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
@@ -324,15 +343,23 @@ export function CommunityScreen() {
                 />
               }
               ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                    {contentFilterTab === 'itineraries'
-                      ? 'Không có bài đăng chia sẻ lịch trình'
+                <EmptyState
+                  icon="post-add"
+                  title={
+                    contentFilterTab === 'itineraries'
+                      ? 'Chưa có lịch trình'
                       : contentFilterTab === 'channels'
-                        ? 'Không có bài đăng mời tham gia Channel'
-                        : 'Không có bài viết'}
-                  </Text>
-                </View>
+                      ? 'Chưa có Channel'
+                      : 'Chưa có bài viết'
+                  }
+                  message={
+                    contentFilterTab === 'itineraries'
+                      ? 'Tạo lịch trình đầu tiên của bạn'
+                      : contentFilterTab === 'channels'
+                      ? 'Tạo hoặc tham gia Channel'
+                      : 'Hãy chia sẻ trải nghiệm của bạn'
+                  }
+                />
               }
             />
 

@@ -1,0 +1,16 @@
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+ 
+export type CommentResponse = {
+    id?: number;
+    content?: string;
+    authorId?: number;
+    authorName?: string;
+    authorAvatarUrl?: string;
+    postId?: number;
+    parentCommentId?: number;
+    likeCount?: number;
+    timeStamp?: string;
+};
+

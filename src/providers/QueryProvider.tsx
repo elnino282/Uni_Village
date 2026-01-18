@@ -10,18 +10,23 @@ import React from 'react';
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            // Data is fresh for 5 minutes
             staleTime: 5 * 60 * 1000,
-            // Cache for 10 minutes
             gcTime: 10 * 60 * 1000,
-            // Retry failed requests 3 times
-            retry: 3,
-            // Refetch on window focus
+            retry: (failureCount, error: any) => {
+                if (error?.status >= 400 && error?.status < 500 && error?.status !== 429) {
+                    return false;
+                }
+                return failureCount < 3;
+            },
             refetchOnWindowFocus: false,
         },
         mutations: {
-            // Retry mutations once
-            retry: 1,
+            retry: (failureCount, error: any) => {
+                if (error?.status >= 400 && error?.status < 500 && error?.status !== 429) {
+                    return false;
+                }
+                return failureCount < 1;
+            },
         },
     },
 });
