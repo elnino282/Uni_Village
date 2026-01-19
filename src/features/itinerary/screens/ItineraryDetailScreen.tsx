@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -12,7 +13,8 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors, useColorScheme } from "@/shared";
+import { BorderRadius, Colors, Shadows, Spacing } from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
 
 interface Destination {
   id: string;
@@ -138,8 +140,13 @@ export function ItineraryDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["bottom"]}>
-      {/* Header with blue background */}
-      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: "#007AFF" }]}>
+      {/* Header with gradient background */}
+      <LinearGradient
+        colors={['#3b82f6', '#2563eb']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top }]}
+      >
         <View style={styles.headerContent}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -166,7 +173,7 @@ export function ItineraryDetailScreen() {
             <Text style={styles.dateTimeText}>{formatTime(tripData.startTime)}</Text>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Starting Point */}
@@ -279,11 +286,18 @@ export function ItineraryDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Button */}
+      {/* Bottom Button with gradient */}
       <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-        <Pressable style={styles.startButton} onPress={handleStartTrip}>
-          <Ionicons name="play-circle" size={20} color="#FFFFFF" />
-          <Text style={styles.startButtonText}>Bắt đầu chuyến đi</Text>
+        <Pressable style={styles.startButtonWrapper} onPress={handleStartTrip}>
+          <LinearGradient
+            colors={['#22c55e', '#16a34a']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.startButton}
+          >
+            <Ionicons name="play-circle" size={20} color="#FFFFFF" />
+            <Text style={styles.startButtonText}>Bắt đầu chuyến đi</Text>
+          </LinearGradient>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -295,15 +309,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingBottom: 16,
+    paddingBottom: Spacing.screenPadding,
   },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md - 4,
   },
   backButton: {
     width: 40,
@@ -314,30 +328,32 @@ const styles = StyleSheet.create({
   headerCenter: {
     flex: 1,
     alignItems: "center",
-    gap: 4,
+    gap: Spacing.xs,
   },
   badge: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    paddingHorizontal: Spacing.md - 4,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.pill,
   },
   badgeText: {
     color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
   headerTitle: {
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: "700",
+    letterSpacing: -0.3,
   },
   dateTimeRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 20,
-    paddingHorizontal: 16,
+    gap: Spacing.lg - 4,
+    paddingHorizontal: Spacing.screenPadding,
   },
   dateTimeItem: {
     flexDirection: "row",
@@ -347,26 +363,29 @@ const styles = StyleSheet.create({
   dateTimeText: {
     color: "#FFFFFF",
     fontSize: 14,
+    fontWeight: "500",
   },
   content: {
     flex: 1,
   },
   section: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
+    marginHorizontal: Spacing.screenPadding,
+    marginTop: Spacing.screenPadding,
+    padding: Spacing.cardPadding,
+    borderRadius: BorderRadius.xl,
     borderWidth: StyleSheet.hairlineWidth,
+    ...Shadows.card,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   locationText: {
     fontSize: 14,
@@ -375,38 +394,39 @@ const styles = StyleSheet.create({
   destinationCard: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: Spacing.md - 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
+    gap: Spacing.md - 4,
   },
   destinationNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#007AFF",
+    width: 30,
+    height: 30,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "#3b82f6",
     alignItems: "center",
     justifyContent: "center",
   },
   destinationNumberText: {
     color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   destinationImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
+    width: 60,
+    height: 60,
+    borderRadius: BorderRadius.md,
   },
   destinationInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xs,
   },
   destinationName: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: -0.2,
   },
   destinationMeta: {
-    gap: 4,
+    gap: Spacing.xs,
   },
   ratingRow: {
     flexDirection: "row",
@@ -431,35 +451,40 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 8,
+    gap: Spacing.md - 4,
+    paddingVertical: Spacing.sm,
   },
   actionText: {
     flex: 1,
     fontSize: 15,
+    fontWeight: "500",
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginHorizontal: 16,
-    marginVertical: 8,
+    marginHorizontal: Spacing.screenPadding,
+    marginVertical: Spacing.sm,
   },
   bottomBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.md - 4,
     borderTopWidth: StyleSheet.hairlineWidth,
+    ...Shadows.sm,
+  },
+  startButtonWrapper: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
   },
   startButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#007AFF",
-    paddingVertical: 14,
-    borderRadius: 12,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.buttonPadding + 2,
+    borderRadius: BorderRadius.lg,
   },
   startButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

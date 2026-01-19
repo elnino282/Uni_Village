@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -14,7 +15,8 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors, useColorScheme } from "@/shared";
+import { BorderRadius, Colors, Shadows, Spacing } from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
 
 interface Destination {
   id: string;

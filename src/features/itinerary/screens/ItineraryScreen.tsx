@@ -1,12 +1,13 @@
 // ItineraryScreen.tsx
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Colors } from '@/shared/constants/theme';
+import { BorderRadius, Colors, Shadows, Spacing } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks/useColorScheme';
 
 type ItineraryTab = 'ongoing' | 'upcoming' | 'past';
@@ -362,12 +363,19 @@ export function ItineraryScreen() {
                 {renderContent()}
             </ScrollView>
 
-            {/* Floating Action Button */}
+            {/* Floating Action Button with Gradient */}
             <Pressable
-                style={[styles.fab, { backgroundColor: colors.info }]}
+                style={styles.fab}
                 onPress={() => router.push('/(modals)/create-itinerary')}
             >
-                <Ionicons name="add" size={28} color="#FFFFFF" />
+                <LinearGradient
+                    colors={['#3b82f6', '#2563eb']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.fabGradient}
+                >
+                    <Ionicons name="add" size={28} color="#FFFFFF" />
+                </LinearGradient>
             </Pressable>
         </SafeAreaView>
     );
@@ -378,32 +386,33 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 20,
-        gap: 8,
+        paddingHorizontal: Spacing.screenPadding,
+        paddingTop: Spacing.md - 4,
+        paddingBottom: Spacing.lg,
+        gap: Spacing.sm,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 2,
+        marginBottom: Spacing.xs - 2,
     },
     title: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: '700',
+        letterSpacing: -0.5,
     },
     tabList: {
         flexDirection: 'row',
-        borderRadius: 12,
+        borderRadius: BorderRadius.lg,
         padding: 4,
         borderWidth: 1,
-        marginBottom: 8,
+        marginBottom: Spacing.sm,
     },
     tab: {
         flex: 1,
         paddingVertical: 10,
-        borderRadius: 10,
+        borderRadius: BorderRadius.md,
         borderWidth: 1,
         alignItems: 'center',
         justifyContent: 'center',
@@ -414,16 +423,17 @@ const styles = StyleSheet.create({
     },
     card: {
         borderWidth: 1,
-        borderRadius: 16,
+        borderRadius: BorderRadius.xl,
         overflow: 'hidden',
+        ...Shadows.card,
     },
     hero: {
         width: '100%',
         height: 170,
     },
     cardBody: {
-        padding: 16,
-        gap: 10,
+        padding: Spacing.cardPadding,
+        gap: Spacing.sm + 2,
     },
     cardTitle: {
         fontSize: 18,
@@ -436,9 +446,10 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     primaryButton: {
-        paddingVertical: 12,
-        borderRadius: 10,
+        paddingVertical: Spacing.buttonPadding,
+        borderRadius: BorderRadius.md,
         alignItems: 'center',
+        ...Shadows.sm,
     },
     primaryButtonText: {
         color: '#fff',
@@ -446,10 +457,10 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     secondaryButton: {
-        paddingVertical: 12,
-        borderRadius: 10,
+        paddingVertical: Spacing.buttonPadding,
+        borderRadius: BorderRadius.md,
         alignItems: 'center',
-        borderWidth: 1,
+        borderWidth: 1.5,
     },
     secondaryButtonText: {
         fontSize: 15,
@@ -461,11 +472,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     chip: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 16,
+        paddingHorizontal: Spacing.md - 4,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.pill,
         borderWidth: 1,
-        marginBottom: 8,
+        marginBottom: Spacing.sm,
     },
     chipText: {
         fontSize: 13,
@@ -473,25 +484,26 @@ const styles = StyleSheet.create({
     },
     emptyContainer: {
         alignItems: 'center',
-        paddingVertical: 48,
-        paddingHorizontal: 16,
-        gap: 8,
+        paddingVertical: Spacing.xl + 16,
+        paddingHorizontal: Spacing.screenPadding,
+        gap: Spacing.sm,
     },
     emptyIconCircle: {
         width: 80,
         height: 80,
-        borderRadius: 40,
+        borderRadius: BorderRadius.full,
         alignItems: 'center',
         justifyContent: 'center',
     },
     bannerCard: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        padding: 12,
-        borderRadius: 12,
+        padding: Spacing.md - 4,
+        borderRadius: BorderRadius.lg,
         borderWidth: 1,
-        marginBottom: 16,
-        gap: 10,
+        marginBottom: Spacing.screenPadding,
+        gap: Spacing.sm + 2,
+        ...Shadows.sm,
     },
     bannerTitle: {
         fontSize: 14,
@@ -511,27 +523,34 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 12,
+        marginBottom: Spacing.md - 4,
+        marginTop: Spacing.xs,
     },
     listHeaderTitle: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 17,
+        fontWeight: '700',
+        letterSpacing: -0.3,
     },
     aiButton: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
+        paddingHorizontal: Spacing.sm + 2,
+        paddingVertical: Spacing.xs + 2,
+        borderRadius: BorderRadius.pill,
+        backgroundColor: 'rgba(59, 130, 246, 0.08)',
     },
     aiButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 13,
+        fontWeight: '700',
     },
     tripCard: {
-        padding: 16,
-        borderRadius: 12,
+        padding: Spacing.cardPadding,
+        borderRadius: BorderRadius.xl,
         borderWidth: 1,
-        marginBottom: 12,
-        gap: 8,
+        marginBottom: Spacing.md - 4,
+        gap: Spacing.sm,
+        ...Shadows.card,
     },
     tripCardHeader: {
         flexDirection: 'row',
@@ -540,22 +559,24 @@ const styles = StyleSheet.create({
     },
     tripCardTitle: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '700',
         flex: 1,
+        letterSpacing: -0.2,
     },
     statusBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 8,
+        paddingHorizontal: Spacing.sm + 2,
+        paddingVertical: 4,
+        borderRadius: BorderRadius.md,
     },
     statusBadgeText: {
         fontSize: 11,
         fontWeight: '700',
+        letterSpacing: 0.5,
     },
     tripCardMeta: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: Spacing.sm,
         flexWrap: 'wrap',
     },
     metaItem: {
@@ -571,9 +592,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
-        paddingVertical: 10,
-        borderRadius: 8,
-        marginTop: 4,
+        paddingVertical: Spacing.md - 6,
+        borderRadius: BorderRadius.md,
+        marginTop: Spacing.xs,
+        ...Shadows.sm,
     },
     viewButtonText: {
         color: '#FFFFFF',
@@ -582,17 +604,18 @@ const styles = StyleSheet.create({
     },
     fab: {
         position: 'absolute',
-        right: 20,
-        bottom: 20,
+        right: Spacing.screenPadding + 4,
+        bottom: Spacing.lg + 4,
         width: 56,
         height: 56,
-        borderRadius: 28,
+        borderRadius: BorderRadius.full,
+        ...Shadows.lg,
+    },
+    fabGradient: {
+        width: '100%',
+        height: '100%',
+        borderRadius: BorderRadius.full,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
     },
 });
