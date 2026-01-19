@@ -1,13 +1,14 @@
+import type { FileUpload } from '@/lib/api';
 import type {
-    PostResponse as BackendPostResponse,
-    PostType,
-    Visibility,
     CommentRequest as BackendCommentRequest,
     CommentResponse as BackendCommentResponse,
     LikeResponse as BackendLikeResponse,
+    PostResponse as BackendPostResponse,
     SavedPostResponse as BackendSavedPostResponse,
     SharePostRequest as BackendSharePostRequest,
     SharePostResponse as BackendSharePostResponse,
+    PostType,
+    Visibility,
 } from '@/shared/types/backend.types';
 
 export type PostResponse = BackendPostResponse;
@@ -31,7 +32,7 @@ export interface CreatePostFormData {
     postType: PostType;
     visibility: Visibility;
     tourId?: string;
-    files?: File[];
+    files?: FileUpload[];
 }
 
 export interface UpdatePostFormData {
@@ -39,6 +40,9 @@ export interface UpdatePostFormData {
     postType: PostType;
     visibility: Visibility;
     tourId?: string;
-    files?: File[];
+    files?: FileUpload[];
 }
+
+// Alias for backward compatibility
+export type CreatePostRequest = CreatePostFormData;
 

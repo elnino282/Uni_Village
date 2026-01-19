@@ -24,27 +24,30 @@ export { PublicProfileScreen } from './components/PublicProfileScreen';
 export { PublicProfileTabs } from './components/PublicProfileTabs';
 
 // Hooks
-export { useProfile } from './hooks/useProfile';
-export { useProfilePosts } from './hooks/useProfilePosts';
-export { usePublicProfile } from './hooks/usePublicProfile';
+export { useFollow } from './hooks/useFollow';
+export { profileKeys, useMyProfile, useProfile } from './hooks/useProfile';
+export { profilePostsKeys, useProfilePosts } from './hooks/useProfilePosts';
+export { publicProfileKeys, usePublicProfile } from './hooks/usePublicProfile';
+export { useUpdateProfile } from './hooks/useUpdateProfile';
+
+// API
+export { profileApi, type FollowersResponse } from './api/profileApi';
 
 // Schemas
 export { editProfileSchema, profileLinkSchema } from './schemas';
 export type { EditProfileFormData } from './schemas';
 
-// Services
-export { getMockProfile, mockProfile } from './services/mockProfile';
-export { fetchProfilePosts, getMockProfilePosts } from './services/mockProfilePosts';
-export { fetchPublicProfile, getMockPublicProfile } from './services/mockPublicProfile';
-export { fetchSavedPosts, getMockSavedPosts } from './services/mockSavedPosts';
-
 // Types
 export type {
   Profile,
-  ProfileLink, ProfilePost,
+  ProfileLink,
+  ProfilePost,
   ProfilePostAuthor,
   ProfilePostLocation,
-  ProfilePostReactions, PublicProfile,
-  PublicProfileTab, UpdateProfileRequest
+  ProfilePostReactions,
+  PublicProfile,
+  PublicProfileTab,
+  UpdateProfileRequest
 } from './types';
+
 

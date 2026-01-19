@@ -1,4 +1,4 @@
-export { useCreatePost as useCreatePostLegacy } from './useCreatePost';
+export * from './useComments';
 export {
     useCreateComment as useCreateCommentLegacy,
     usePostDetail as usePostDetailLegacy,
@@ -6,6 +6,5 @@ export {
     useTogglePostLike
 } from './usePostDetail';
 export * from './usePosts';
-export * from './useComments';
 export * from './useReactions';
 

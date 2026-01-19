@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    Alert,
     Keyboard,
     KeyboardAvoidingView,
     Platform,
@@ -25,8 +26,10 @@ import { useCreateCommunityPost } from '@/features/community/hooks/useCommunityP
 import { useCreatePost } from '../hooks';
 import { fileUploadService, type PickedFile } from '../services';
 
+import { PostType, Visibility } from '@/lib/api/generated';
 import { ChooseChannelSheet } from '../components/ChooseChannelSheet';
 import { ChooseItinerarySheet } from '../components/ChooseItinerarySheet';
+import { MediaPreviewGrid } from '../components/MediaPreviewGrid';
 import { PostVisibilityDropdown } from '../components/PostVisibilityDropdown';
 import { SelectedChannelCard } from '../components/SelectedChannelCard';
 import { SelectedItineraryCard } from '../components/SelectedItineraryCard';
@@ -83,11 +86,43 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
         }
     }, [activeTab, postContent, selectedChannel, selectedItinerary, isSubmitting, isCreating, isCreatingRealPost, selectedFiles]);
 
+    // Check if there's unsaved content
+    const hasUnsavedChanges = useMemo(() => {
+        return postContent.trim().length > 0 ||
+            channelContent.trim().length > 0 ||
+            itineraryContent.trim().length > 0 ||
+            selectedFiles.length > 0;
+    }, [postContent, channelContent, itineraryContent, selectedFiles]);
+
     const dismissKeyboard = useCallback(() => {
         Keyboard.dismiss();
     }, []);
 
+    const handleRemoveFile = useCallback((fileId: string) => {
+        setSelectedFiles((prev) => prev.filter((f) => f.id !== fileId));
+    }, []);
+
     const handleClose = () => {
+        if (hasUnsavedChanges) {
+            Alert.alert(
+                'Huỷ bài viết?',
+                'Bạn có chắc muốn huỷ? Nội dung sẽ bị mất.',
+                [
+                    { text: 'Tiếp tục chỉnh sửa', style: 'cancel' },
+                    {
+                        text: 'Huỷ bài viết',
+                        style: 'destructive',
+                        onPress: () => {
+                            if (Platform.OS !== 'web') {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            }
+                            router.back();
+                        },
+                    },
+                ]
+            );
+            return;
+        }
         if (Platform.OS !== 'web') {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
@@ -106,8 +141,8 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
             if (activeTab === 'post') {
                 await createRealPost({
                     content: postContent,
-                    postType: 'EXPERIENCE',
-                    visibility: postVisibility === 'public' ? 'PUBLIC' : 'PRIVATE',
+                    postType: PostType.EXPERIENCE,
+                    visibility: postVisibility === 'public' ? Visibility.PUBLIC : Visibility.PRIVATE,
                     files: selectedFiles,
                 });
             } else {
@@ -357,6 +392,14 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
                                     autoFocus={activeTab === 'post'}
                                     textAlignVertical="top"
                                 />
+
+                                {/* Media Preview Grid */}
+                                {activeTab === 'post' && selectedFiles.length > 0 && (
+                                    <MediaPreviewGrid
+                                        files={selectedFiles}
+                                        onRemove={handleRemoveFile}
+                                    />
+                                )}
                             </>
                         )}
 
@@ -380,7 +423,7 @@ export function CreatePostScreen({ initialTab = 'post' }: CreatePostScreenProps)
                     },
                 ]}
             >
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.toolbarButton}
                     onPress={async () => {
                         try {

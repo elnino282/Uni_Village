@@ -24,6 +24,20 @@ export const API_ENDPOINTS = {
     },
 
     // ============================================
+    // Profile
+    // ============================================
+    PROFILE: {
+        ME: '/api/v1/profile/me',
+        BY_ID: (userId: number) => `/api/v1/profile/${userId}`,
+        UPDATE: '/api/v1/profile',
+        UPLOAD_AVATAR: '/api/v1/profile/avatar',
+        UPLOAD_COVER: '/api/v1/profile/cover',
+        FOLLOW: (userId: number) => `/api/v1/profile/${userId}/follow`,
+        FOLLOWERS: (userId: number) => `/api/v1/profile/${userId}/followers`,
+        FOLLOWING: (userId: number) => `/api/v1/profile/${userId}/following`,
+    },
+
+    // ============================================
     // Areas
     // ============================================
     AREAS: {

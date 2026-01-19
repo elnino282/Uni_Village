@@ -1,10 +1,9 @@
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
     Alert,
@@ -18,9 +17,8 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useImagePicker } from '../hooks';
+import { useImagePicker, useMyProfile, useUpdateProfile } from '../hooks';
 import { editProfileSchema, type EditProfileFormData } from '../schemas';
-import { mockProfile } from '../services/mockProfile';
 import { EditProfileFormRow } from './EditProfileFormRow';
 import { EditProfileFormSection } from './EditProfileFormSection';
 import { EditProfileHeader } from './EditProfileHeader';
@@ -32,8 +30,26 @@ export function EditProfileScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const bottomSheetRef = useRef<BottomSheet>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const { showImagePickerOptions } = useImagePicker({ aspect: [1, 1], quality: 0.8 });
+    const { showImagePickerOptions: showAvatarPicker } = useImagePicker({ aspect: [1, 1], quality: 0.8 });
+    const { showImagePickerOptions: showCoverPicker } = useImagePicker({ aspect: [16, 9], quality: 0.8 });
+
+    // Fetch current user profile
+    const { profile, isLoading: isProfileLoading } = useMyProfile();
+
+    // Update profile mutation
+    const { updateProfile, isPending: isSubmitting } = useUpdateProfile({
+        onSuccess: () => {
+            router.back();
+        },
+        onError: (error) => {
+            console.error('Failed to save profile:', error);
+            Alert.alert(
+                'Lỗi',
+                'Không thể lưu thay đổi. Vui lòng thử lại.',
+                [{ text: 'OK' }]
+            );
+        },
+    });
 
     // React Hook Form setup with zod resolver
     const {
@@ -41,18 +57,34 @@ export function EditProfileScreen() {
         handleSubmit,
         watch,
         setValue,
+        reset,
         formState: { errors, isDirty },
-    } = useForm<EditProfileFormData>({
+    } = useForm({
         resolver: zodResolver(editProfileSchema),
         defaultValues: {
-            displayName: mockProfile.displayName,
-            bio: mockProfile.bio ?? '',
-            avatarUrl: mockProfile.avatarUrl,
-            coverUrl: mockProfile.coverUrl,
-            interests: [],
+            displayName: '',
+            bio: '',
+            avatarUrl: undefined as string | undefined,
+            coverUrl: undefined as string | undefined,
+            interests: [] as string[],
             isPrivate: false,
         },
+        mode: 'onChange',
     });
+
+    // Update form when profile data loads
+    React.useEffect(() => {
+        if (profile) {
+            reset({
+                displayName: profile.displayName ?? '',
+                bio: profile.bio ?? '',
+                avatarUrl: profile.avatarUrl ?? undefined,
+                coverUrl: profile.coverUrl ?? undefined,
+                interests: profile.interests ?? [],
+                isPrivate: profile.isPrivate ?? false,
+            });
+        }
+    }, [profile, reset]);
 
     const rawInterests = watch('interests');
     const watchedInterests = useMemo(() => rawInterests ?? [], [rawInterests]);
@@ -83,30 +115,33 @@ export function EditProfileScreen() {
     }, [isDirty]);
 
     const onSubmit = async (data: EditProfileFormData) => {
-        setIsSubmitting(true);
         try {
-            // TODO: Replace with actual API call
-            console.log('Saving profile:', data);
-            await new Promise((resolve) => setTimeout(resolve, 1500));
-            router.back();
+            await updateProfile({
+                displayName: data.displayName,
+                bio: data.bio || undefined,
+                avatarUrl: data.avatarUrl,
+                coverUrl: data.coverUrl,
+                interests: data.interests,
+                isPrivate: data.isPrivate,
+            });
         } catch (error) {
-            console.error('Failed to save profile:', error);
-            Alert.alert(
-                'Lỗi',
-                'Không thể lưu thay đổi. Vui lòng thử lại.',
-                [{ text: 'OK' }]
-            );
-        } finally {
-            setIsSubmitting(false);
+            // Error handled in useUpdateProfile
         }
     };
 
     const handleChangeAvatar = useCallback(async () => {
-        const result = await showImagePickerOptions();
+        const result = await showAvatarPicker();
         if (result) {
             setValue('avatarUrl', result.uri, { shouldDirty: true });
         }
-    }, [setValue, showImagePickerOptions]);
+    }, [setValue, showAvatarPicker]);
+
+    const handleChangeCover = useCallback(async () => {
+        const result = await showCoverPicker();
+        if (result) {
+            setValue('coverUrl', result.uri, { shouldDirty: true });
+        }
+    }, [setValue, showCoverPicker]);
 
     const handleOpenInterests = useCallback(() => {
         bottomSheetRef.current?.expand();
@@ -176,38 +211,34 @@ export function EditProfileScreen() {
                                     { backgroundColor: colors.card },
                                 ]}
                             >
-                                {/* Name Section - Read Only with FAB */}
-                                <EditProfileFormSection label="Tên">
+                                {/* Name Section - Editable */}
+                                <EditProfileFormSection label="Tên hiển thị">
                                     <View style={styles.nameRow}>
-                                        <View
-                                            style={[
-                                                styles.nameField,
-                                                styles.nameFieldFlex,
-                                                { backgroundColor: colors.muted },
-                                            ]}
-                                        >
-                                            <MaterialIcons
-                                                name="lock"
-                                                size={16}
-                                                color={colors.textSecondary}
-                                            />
-                                            <Controller
-                                                control={control}
-                                                name="displayName"
-                                                render={({ field: { value } }) => (
-                                                    <Text
-                                                        style={[
-                                                            styles.nameText,
-                                                            { color: colors.textPrimary },
-                                                        ]}
-                                                    >
-                                                        {value} (@{mockProfile.username})
-                                                    </Text>
-                                                )}
-                                            />
-                                        </View>
+                                        <Controller
+                                            control={control}
+                                            name="displayName"
+                                            render={({ field: { onChange, onBlur, value } }) => (
+                                                <TextInput
+                                                    style={[
+                                                        styles.displayNameInput,
+                                                        { color: colors.textPrimary },
+                                                    ]}
+                                                    placeholder="Nhập tên hiển thị"
+                                                    placeholderTextColor={colors.textSecondary}
+                                                    maxLength={50}
+                                                    value={value}
+                                                    onChangeText={onChange}
+                                                    onBlur={onBlur}
+                                                />
+                                            )}
+                                        />
                                         <ProfileFAB onPress={handleChangeAvatar} absolute={false} />
                                     </View>
+                                    {errors.displayName && (
+                                        <Text style={[styles.errorText, { color: colors.error }]}>
+                                            {errors.displayName.message}
+                                        </Text>
+                                    )}
                                 </EditProfileFormSection>
 
                                 {/* Bio Section - Editable */}
@@ -345,6 +376,12 @@ const styles = StyleSheet.create({
     nameText: {
         fontSize: Typography.sizes.md,
         fontWeight: Typography.weights.normal,
+    },
+    displayNameInput: {
+        flex: 1,
+        fontSize: Typography.sizes.md,
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.sm,
     },
     bioInput: {
         fontSize: Typography.sizes.md,

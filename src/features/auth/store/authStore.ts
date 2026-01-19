@@ -31,7 +31,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     // Actions
     setUser: (user) => {
-        set({ user, isAuthenticated: !!user });
+        const { accessToken, refreshToken } = get();
+        set({ user, isAuthenticated: !!accessToken || !!refreshToken || !!user });
         if (user) {
             secureStorage.setJson(STORAGE_KEYS.USER, user);
         } else {
@@ -43,6 +44,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         set({
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
+            isAuthenticated: true,
         });
         secureStorage.set(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
         secureStorage.set(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
@@ -74,7 +76,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                 accessToken,
                 refreshToken,
                 user,
-                isAuthenticated: !!accessToken && !!user,
+                isAuthenticated: !!accessToken || !!refreshToken,
                 isLoading: false,
             });
         } catch (error) {

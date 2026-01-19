@@ -14,17 +14,16 @@ export const editProfileSchema = z.object({
     bio: z
         .string()
         .max(150, 'Tiểu sử không được quá 150 ký tự')
-        .optional(),
+        .optional()
+        .or(z.literal('')),
     avatarUrl: z.string().optional(),
     coverUrl: z.string().optional(),
     interests: z
         .array(z.string())
-        .max(10, 'Tối đa 10 sở thích'),
-    links: z.array(profileLinkSchema),
-    podcastUrl: z
-        .string()
-        .optional(),
-    isPrivate: z.boolean(),
+        .max(10, 'Tối đa 10 sở thích')
+        .optional()
+        .transform(val => val ?? []),
+    isPrivate: z.boolean().optional().transform(val => val ?? false),
 });
 
 export type EditProfileFormData = z.infer<typeof editProfileSchema>;

@@ -18,7 +18,7 @@ interface ProfileTabsProps {
 
 const TABS: { key: ProfileTabKey; label: string }[] = [
     { key: 'my-posts', label: 'Bài viết của tôi' },
-    { key: 'favorites', label: 'Bài viết yêu thích' },
+    { key: 'favorites', label: 'Bài viết đã lưu' },
 ];
 
 export function ProfileTabs({ activeTab, onTabChange }: ProfileTabsProps) {

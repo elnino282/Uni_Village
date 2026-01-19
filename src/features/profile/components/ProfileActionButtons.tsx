@@ -1,6 +1,6 @@
 /**
  * ProfileActionButtons Component
- * Side-by-side Edit and Share profile buttons with responsive scaling
+ * Side-by-side Edit and Share profile buttons with filled style
  */
 
 import { BorderRadius, Colors } from '@/shared/constants';
@@ -26,26 +26,24 @@ export function ProfileActionButtons({
             <Pressable
                 style={({ pressed }) => [
                     styles.button,
-                    styles.secondaryButton,
-                    { borderColor: colors.tint },
+                    { backgroundColor: colors.tint },
                     pressed && styles.pressed,
                 ]}
                 onPress={onEditPress}
             >
-                <Text style={[styles.buttonText, { color: colors.tint }]} numberOfLines={1}>
+                <Text style={styles.buttonText} numberOfLines={1}>
                     Chỉnh sửa trang cá nhân
                 </Text>
             </Pressable>
             <Pressable
                 style={({ pressed }) => [
                     styles.button,
-                    styles.secondaryButton,
-                    { borderColor: colors.tint },
+                    { backgroundColor: colors.tint },
                     pressed && styles.pressed,
                 ]}
                 onPress={onSharePress}
             >
-                <Text style={[styles.buttonText, { color: colors.tint }]} numberOfLines={1}>
+                <Text style={styles.buttonText} numberOfLines={1}>
                     Chia sẻ trang cá nhân
                 </Text>
             </Pressable>
@@ -62,24 +60,22 @@ const styles = StyleSheet.create({
     },
     button: {
         flex: 1,
-        paddingVertical: vs(10),
+        paddingVertical: vs(12),
         paddingHorizontal: s(12),
         borderRadius: ms(BorderRadius.lg),
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: vs(44),
     },
-    secondaryButton: {
-        backgroundColor: 'transparent',
-        borderWidth: 1.5,
-    },
     buttonText: {
-        fontSize: ms(13),
+        fontSize: ms(14),
         fontWeight: '600',
         textAlign: 'center',
+        color: '#FFFFFF',
     },
     pressed: {
-        opacity: 0.8,
+        opacity: 0.85,
         transform: [{ scale: 0.98 }],
     },
 });
+

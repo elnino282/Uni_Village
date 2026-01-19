@@ -25,7 +25,7 @@ import { PublicProfileHeader } from './PublicProfileHeader';
 import { PublicProfileTabs } from './PublicProfileTabs';
 
 interface PublicProfileScreenProps {
-  userId: string;
+  userId: number;
 }
 
 export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
@@ -59,15 +59,11 @@ export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
   }, []);
 
   const handleMessage = useCallback(() => {
-    if (profile?.threadId) {
-      router.push(`/chat/${profile.threadId}`);
-      return;
-    }
-
+    // Navigate to chat with this user
     if (userId) {
       router.push(`/chat/${userId}`);
     }
-  }, [profile?.threadId, userId]);
+  }, [userId]);
 
   const handleMenuPress = useCallback((postId: string) => {
     console.log('Post menu pressed:', postId);
