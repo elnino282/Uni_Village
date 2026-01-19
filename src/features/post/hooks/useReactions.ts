@@ -67,8 +67,6 @@ export function useLikePost() {
                     queryClient.setQueryData(queryKeys.posts.detail(postId), nextPost);
                 }
             }
-            queryClient.invalidateQueries({ queryKey: queryKeys.posts.detail(postId) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
         },
     });
 }
@@ -153,9 +151,6 @@ export function useLikeComment() {
                     return { ...data, pages };
                 });
             }
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.posts.comments(variables.postId, {}),
-            });
         },
     });
 }

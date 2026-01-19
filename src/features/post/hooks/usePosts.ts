@@ -2,7 +2,7 @@ import { queryKeys } from '@/config/queryKeys';
 import { useAuthStore } from '@/features/auth';
 import { getNextPageParam, type Slice } from '@/shared/types/pagination.types';
 import { InfiniteData, QueryKey, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { commentsApi, postsApi } from '../api';
+import { postsApi } from '../api';
 import type { CreatePostFormData, PostResponse, PostSearchParams, SharePostRequest, UpdatePostFormData } from '../types';
 
 const STALE_TIME = {
@@ -260,20 +260,6 @@ export function usePostDetail(postId: string | number | undefined) {
     });
 }
 
-export function usePostComments(postId: string | number | undefined, params: PostSearchParams = {}) {
-    const id = typeof postId === 'string' ? parseInt(postId, 10) : postId;
-    return useInfiniteQuery({
-        queryKey: ['comments', id, params],
-        queryFn: async ({ pageParam = 0 }) => {
-            const response = await commentsApi.getPostComments(id!, { ...params, page: pageParam });
-            return response.result;
-        },
-        initialPageParam: 0,
-        getNextPageParam: (lastPage) => getNextPageParam(lastPage),
-        enabled: !!id && !isNaN(id),
-    });
-}
-
 export function useCreatePost() {
     const queryClient = useQueryClient();
     const currentUser = useAuthStore((state) => state.user);
@@ -324,9 +310,6 @@ export function useCreatePost() {
             if (createdPost && context?.tempId != null) {
                 replacePostInCollections(queryClient, context.tempId, createdPost);
             }
-        },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
         },
     });
 }
@@ -396,10 +379,6 @@ export function useUpdatePost() {
                 );
             }
         },
-        onSettled: (_data, _error, variables) => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.posts.detail(variables.postId) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
-        },
     });
 }
 
@@ -407,13 +386,22 @@ export function useDeletePost() {
     const queryClient = useQueryClient();
 
     // Helper to check if a query key is for comments of a specific post
+    // Uses robust matching to handle all possible query key patterns
     const isCommentsQueryForPost = (queryKey: QueryKey, postId: number) => {
-        if (!Array.isArray(queryKey) || queryKey.length < 3) return false;
-        // Match pattern: ['posts', 'comments', postId, ...] or ['comments', postId, ...]
-        return (
-            (queryKey[0] === 'posts' && queryKey[1] === 'comments' && queryKey[2] === postId) ||
-            (queryKey[0] === 'comments' && queryKey[1] === postId)
+        if (!Array.isArray(queryKey) || queryKey.length < 2) return false;
+        
+        // Check if 'comments' appears anywhere in the query key
+        const hasComments = queryKey.some(segment => segment === 'comments');
+        if (!hasComments) return false;
+        
+        // Check if the postId appears in the query key (as number or matching string)
+        const hasPostId = queryKey.some(segment => 
+            segment === postId || 
+            segment === String(postId) || 
+            (typeof segment === 'number' && segment === postId)
         );
+        
+        return hasPostId;
     };
 
     return useMutation({
@@ -467,7 +455,6 @@ export function useDeletePost() {
             queryClient.removeQueries({
                 predicate: (query) => isCommentsQueryForPost(query.queryKey, postId),
             });
-            queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
         },
     });
 }

@@ -14,6 +14,8 @@ const STALE_TIME = {
 
 export function usePostComments(postId: string | number | undefined, params: PostSearchParams = {}) {
     const id = typeof postId === 'string' ? parseInt(postId, 10) : postId;
+    // Only enable for valid positive IDs to prevent queries for deleted posts
+    const isValidId = id != null && !isNaN(id) && id > 0;
     return useInfiniteQuery({
         queryKey: queryKeys.posts.comments(id!, params),
         queryFn: async ({ pageParam = 0 }) => {
@@ -22,7 +24,7 @@ export function usePostComments(postId: string | number | undefined, params: Pos
         },
         initialPageParam: 0,
         getNextPageParam: (lastPage) => getNextPageParam(lastPage),
-        enabled: !!id && !isNaN(id),
+        enabled: isValidId,
         staleTime: STALE_TIME.COMMENTS,
     });
 }
@@ -134,12 +136,36 @@ export function useCreateComment() {
                 queryClient.setQueryData(queryKeys.posts.detail(variables.postId), context.previousDetail);
             }
         },
-        onSuccess: (_, variables) => {
-            if (variables.postId) {
-                queryClient.invalidateQueries({
-                    queryKey: queryKeys.posts.comments(variables.postId, {}),
+        onSuccess: (response, variables, context) => {
+            const postId = variables.postId;
+            const createdComment = response.result;
+
+            // Replace optimistic comment with the real one from server
+            if (createdComment && postId && !variables.parentCommentId) {
+                const predicate = (query: { queryKey: unknown }) => {
+                    if (!Array.isArray(query.queryKey)) return false;
+                    return (
+                        query.queryKey[0] === queryKeys.posts.all[0] &&
+                        query.queryKey[1] === 'comments' &&
+                        query.queryKey[2] === postId
+                    );
+                };
+
+                queryClient.setQueriesData<CommentInfiniteData>({ predicate }, (data) => {
+                    if (!data || data.pages.length === 0) return data;
+                    const firstPage = data.pages[0];
+                    // Replace the optimistic comment (negative ID) with the real one
+                    const nextContent = firstPage.content.map((comment) =>
+                        comment.id < 0 ? createdComment : comment
+                    );
+                    return {
+                        ...data,
+                        pages: [{ ...firstPage, content: nextContent }, ...data.pages.slice(1)],
+                    };
                 });
             }
+
+            // Only invalidate replies query for nested comments since we don't optimistically update those
             if (variables.parentCommentId) {
                 queryClient.invalidateQueries({
                     queryKey: ['comments', variables.parentCommentId, 'replies'],
