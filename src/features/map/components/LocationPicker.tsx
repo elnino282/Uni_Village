@@ -1,7 +1,9 @@
 /**
  * Location Picker Component
  * 
- * Allows users to select a location by dragging a pin on the map.
+ * Allows users to select a location by:
+ * 1. Searching using Google Places autocomplete
+ * 2. Dragging a pin on the map
  * Uses reverse geocoding to display the address of the selected location.
  */
 
@@ -12,14 +14,20 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    Keyboard,
+    Platform,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getReadableAddress } from '../services/geocodingService';
+import { PlaceDetails } from '../services/placesService';
 import type { MapRegion } from '../types';
 import { MapAdapter, MapAdapterRef } from './MapAdapter';
+import { PlacesAutocomplete } from './PlacesAutocomplete';
 
 interface SelectedLocation {
     latitude: number;
@@ -45,12 +53,15 @@ export const LocationPicker = memo(function LocationPicker({
     colorScheme = 'light',
 }: LocationPickerProps) {
     const mapRef = useRef<MapAdapterRef>(null);
+    const insets = useSafeAreaInsets();
     const [selectedLocation, setSelectedLocation] = useState<{
         latitude: number;
         longitude: number;
     } | null>(initialLocation || null);
     const [address, setAddress] = useState<string>('');
     const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const colors = Colors[colorScheme];
@@ -102,6 +113,30 @@ export const LocationPicker = memo(function LocationPicker({
         });
     }, []);
 
+    const handlePlaceSelect = useCallback((place: PlaceDetails) => {
+        const newLocation = {
+            latitude: place.location.latitude,
+            longitude: place.location.longitude,
+        };
+        setSelectedLocation(newLocation);
+        setAddress(place.formattedAddress);
+        setSearchQuery('');
+        setIsSearchFocused(false);
+        Keyboard.dismiss();
+
+        // Animate map to selected place
+        mapRef.current?.animateToCoordinate(newLocation);
+    }, []);
+
+    const handleCloseAutocomplete = useCallback(() => {
+        setIsSearchFocused(false);
+        Keyboard.dismiss();
+    }, []);
+
+    const handleClearSearch = useCallback(() => {
+        setSearchQuery('');
+    }, []);
+
     const handleConfirm = useCallback(() => {
         if (selectedLocation && address) {
             onLocationSelect({
@@ -135,21 +170,56 @@ export const LocationPicker = memo(function LocationPicker({
                 <View style={[styles.pinShadow, { backgroundColor: colors.text }]} />
             </View>
 
+            {/* Search Bar */}
+            <View style={[styles.searchContainer, { paddingTop: insets.top + Spacing.sm }]}>
+                <View style={[styles.searchBar, { backgroundColor: colors.card }]}>
+                    <TouchableOpacity
+                        onPress={onCancel}
+                        style={styles.backButton}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <MaterialIcons name="arrow-back" size={24} color={colors.icon} />
+                    </TouchableOpacity>
+                    <View style={styles.searchInputContainer}>
+                        <MaterialIcons name="search" size={20} color={colors.icon} />
+                        <TextInput
+                            style={[styles.searchInput, { color: colors.text }]}
+                            placeholder="Tìm kiếm địa điểm..."
+                            placeholderTextColor={colors.icon}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            onFocus={() => setIsSearchFocused(true)}
+                            returnKeyType="search"
+                            autoCorrect={false}
+                            autoCapitalize="none"
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={handleClearSearch}>
+                                <MaterialIcons name="close" size={20} color={colors.icon} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                {/* Places Autocomplete Dropdown */}
+                <PlacesAutocomplete
+                    query={searchQuery}
+                    isVisible={isSearchFocused && searchQuery.length >= 2}
+                    onPlaceSelect={handlePlaceSelect}
+                    onClose={handleCloseAutocomplete}
+                    userLocation={selectedLocation || undefined}
+                    colorScheme={colorScheme}
+                    emptyPlaceholder="Nhập địa điểm để tìm kiếm"
+                />
+            </View>
+
             {/* Bottom Panel */}
             <View style={[styles.bottomPanel, { backgroundColor: colors.card }]}>
                 {/* Header */}
                 <View style={styles.panelHeader}>
-                    <TouchableOpacity
-                        onPress={onCancel}
-                        style={styles.cancelButton}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                        <MaterialIcons name="close" size={24} color={colors.icon} />
-                    </TouchableOpacity>
                     <Text style={[styles.panelTitle, { color: colors.text }]}>
                         Chọn vị trí
                     </Text>
-                    <View style={styles.cancelButton} />
                 </View>
 
                 {/* Selected address */}
@@ -230,6 +300,39 @@ const styles = StyleSheet.create({
         opacity: 0.3,
         marginTop: -8,
     },
+    searchContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: Spacing.screenPadding,
+        zIndex: 10,
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: BorderRadius.lg,
+        paddingHorizontal: Spacing.sm,
+        height: 48,
+        ...Shadows.card,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    searchInputContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: Typography.sizes.base,
+        paddingVertical: Platform.OS === 'ios' ? Spacing.sm : 0,
+    },
     bottomPanel: {
         position: 'absolute',
         bottom: 0,
@@ -245,14 +348,8 @@ const styles = StyleSheet.create({
     panelHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: Spacing.md,
-    },
-    cancelButton: {
-        width: 40,
-        height: 40,
-        alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: Spacing.md,
     },
     panelTitle: {
         fontSize: Typography.sizes.lg,

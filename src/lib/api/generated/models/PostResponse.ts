@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { PostLocationResponse } from './PostLocationResponse';
 import type { PostType } from './PostType';
 import type { Visibility } from './Visibility';
 export type PostResponse = {
@@ -13,6 +14,10 @@ export type PostResponse = {
     authorName?: string;
     authorAvatarUrl?: string;
     mediaUrls?: Array<string>;
+    locations?: Array<PostLocationResponse>;
+    reactionCount?: number;
+    commentCount?: number;
+    isLiked?: boolean;
     createdAt?: string;
     updatedAt?: string;
 };

@@ -22,6 +22,15 @@ export type SharePostResponse = BackendSharePostResponse;
 
 export type { PostType, Visibility };
 
+export interface PostLocation {
+    id: string | number;
+    name: string;
+    address?: string;
+    lat?: number;
+    lng?: number;
+    placeId?: string;
+}
+
 export interface PostSearchParams {
     page?: number;
     size?: number;
@@ -33,6 +42,7 @@ export interface CreatePostFormData {
     visibility: Visibility;
     tourId?: string;
     files?: FileUpload[];
+    locations?: PostLocation[];
 }
 
 export interface UpdatePostFormData {
@@ -41,6 +51,7 @@ export interface UpdatePostFormData {
     visibility: Visibility;
     tourId?: string;
     files?: FileUpload[];
+    locations?: PostLocation[];
 }
 
 // Alias for backward compatibility

@@ -23,6 +23,7 @@ export const postsApi = {
                 postType: data.postType,
                 visibility: data.visibility,
                 tourId: data.tourId,
+                locations: data.locations,
             },
             data.files as FileUpload[] | undefined
         );
@@ -53,6 +54,7 @@ export const postsApi = {
                 postType: data.postType,
                 visibility: data.visibility,
                 tourId: data.tourId,
+                locations: data.locations,
             },
             data.files as FileUpload[] | undefined
         );

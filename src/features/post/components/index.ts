@@ -9,6 +9,7 @@ export { PostDetailHeader } from './PostDetailHeader';
 export { PostDetailMedia } from './PostDetailMedia';
 export { PostDetailScreen } from './PostDetailScreen';
 export { PostLocationChips } from './PostLocationChips';
+export { PostLocationPickerModal } from './PostLocationPickerModal';
 
 // Create Post components
 export { ChooseChannelSheet } from './ChooseChannelSheet';

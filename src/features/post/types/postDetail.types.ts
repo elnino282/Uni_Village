@@ -2,6 +2,8 @@
  * Post Detail Types
  */
 
+import type { PostLocation } from './post.types';
+
 export type PostVisibility = 'public' | 'friends' | 'private';
 
 export interface PostDetailAuthor {
@@ -12,12 +14,7 @@ export interface PostDetailAuthor {
   isVerified?: boolean;
 }
 
-export interface PostDetailLocation {
-  id: string;
-  name: string;
-  lat?: number;
-  lng?: number;
-}
+export type PostDetailLocation = PostLocation;
 
 export interface PostDetail {
   id: string;

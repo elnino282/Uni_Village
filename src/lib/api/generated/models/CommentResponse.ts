@@ -11,6 +11,7 @@ export type CommentResponse = {
     postId?: number;
     parentCommentId?: number;
     likeCount?: number;
+    isLiked?: boolean;
     timeStamp?: string;
 };
 
