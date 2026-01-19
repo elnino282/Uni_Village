@@ -291,29 +291,40 @@ export function ActiveTripScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["bottom"]}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+      {/* Header with gradient */}
+      <LinearGradient
+        colors={['#3b82f6', '#2563eb']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top }]}
+      >
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.icon} />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </Pressable>
         
         <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Lịch trình của tôi</Text>
+          <Text style={styles.headerTitle}>Lịch trình của tôi</Text>
         </View>
 
         <Pressable style={styles.settingsButton}>
-          <Ionicons name="settings-outline" size={22} color={colors.icon} />
+          <Ionicons name="settings-outline" size={22} color="#FFFFFF" />
         </Pressable>
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Trip Header Card */}
+        {/* Trip Header Card with gradient badge */}
         <View style={[styles.tripHeaderCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.tripHeaderTop}>
             <Text style={[styles.tripTitle, { color: colors.text }]}>{tripData.tripName}</Text>
-            <View style={styles.statusBadge}>
+            <LinearGradient
+              colors={['#22c55e', '#16a34a']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.statusBadge}
+            >
+              <Ionicons name="navigate-circle" size={14} color="#FFFFFF" />
               <Text style={styles.statusBadgeText}>Đang diễn ra</Text>
-            </View>
+            </LinearGradient>
           </View>
           
           <Text style={[styles.tripDate, { color: colors.textSecondary }]}>
@@ -340,16 +351,25 @@ export function ActiveTripScreen() {
                       backgroundColor: (isCheckedIn || isSkipped) ? (isCheckedIn ? '#4CAF50' : '#9E9E9E') : colors.border 
                     }]} />
                   )}
-                  <View style={[
-                    styles.timelineCircle,
-                    { 
-                      backgroundColor: isCheckedIn ? '#4CAF50' : dest.isSkipped ? '#9E9E9E' : isCurrent ? '#FF9800' : colors.border,
-                      borderColor: isCheckedIn ? '#4CAF50' : dest.isSkipped ? '#9E9E9E' : isCurrent ? '#FF9800' : colors.border,
-                    }
-                  ]}>
-                    {isCheckedIn && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
-                    {dest.isSkipped && <Ionicons name="close" size={16} color="#FFFFFF" />}
-                  </View>
+                  {isCurrent && !isCheckedIn && !isSkipped ? (
+                    <LinearGradient
+                      colors={['#f59e0b', '#ea580c']}
+                      style={styles.timelineCircle}
+                    >
+                      <Ionicons name="radio-button-on" size={18} color="#FFFFFF" />
+                    </LinearGradient>
+                  ) : (
+                    <View style={[
+                      styles.timelineCircle,
+                      { 
+                        backgroundColor: isCheckedIn ? '#22c55e' : dest.isSkipped ? '#9E9E9E' : colors.border,
+                        borderColor: isCheckedIn ? '#22c55e' : dest.isSkipped ? '#9E9E9E' : colors.border,
+                      }
+                    ]}>
+                      {isCheckedIn && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                      {dest.isSkipped && <Ionicons name="close" size={16} color="#FFFFFF" />}
+                    </View>
+                  )}
                   {!isLast && (
                     <View style={[styles.timelineLine, styles.timelineLineBottom, { 
                       backgroundColor: (isCheckedIn || isSkipped) ? (isCheckedIn ? '#4CAF50' : '#9E9E9E') : colors.border 
@@ -469,11 +489,11 @@ export function ActiveTripScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Buttons */}
+      {/* Bottom Buttons with gradients */}
       <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
         {/* Add Destinations Button */}
         <Pressable 
-          style={[styles.addButton, { backgroundColor: colors.background, borderColor: colors.info, borderWidth: 1 }]}
+          style={styles.addButtonWrapper}
           onPress={() => {
             if (tripData) {
               router.push({
@@ -490,16 +510,26 @@ export function ActiveTripScreen() {
             }
           }}
         >
-          <Ionicons name="add-circle-outline" size={20} color={colors.info} />
-          <Text style={[styles.addButtonText, { color: colors.info }]}>Thêm địa điểm mới</Text>
+          <View style={[styles.addButton, { borderColor: colors.info }]}>
+            <Ionicons name="add-circle-outline" size={20} color={colors.info} />
+            <Text style={[styles.addButtonText, { color: colors.info }]}>Thêm địa điểm mới</Text>
+          </View>
         </Pressable>
 
-        {/* End Trip Button */}
+        {/* End Trip Button with gradient */}
         <Pressable 
-          style={[styles.endButton, { backgroundColor: allCompleted ? '#4CAF50' : '#F44336' }]}
+          style={styles.endButtonWrapper}
           onPress={handleEndTrip}
         >
-          <Text style={styles.endButtonText}>{allCompleted ? 'Hoàn thành & Đóng' : 'Kết thúc chuyến đi'}</Text>
+          <LinearGradient
+            colors={allCompleted ? ['#22c55e', '#16a34a'] : ['#ef4444', '#dc2626']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.endButton}
+          >
+            <Ionicons name={allCompleted ? "checkmark-circle" : "stop-circle"} size={20} color="#FFFFFF" />
+            <Text style={styles.endButtonText}>{allCompleted ? 'Hoàn thành & Đóng' : 'Kết thúc chuyến đi'}</Text>
+          </LinearGradient>
         </Pressable>
       </View>
 
@@ -707,9 +737,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingBottom: Spacing.md - 4,
   },
   backButton: {
     width: 40,
@@ -724,6 +753,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: -0.3,
   },
   settingsButton: {
     width: 40,
@@ -735,53 +766,58 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tripHeaderCard: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
+    marginHorizontal: Spacing.screenPadding,
+    marginTop: Spacing.screenPadding,
+    padding: Spacing.cardPadding,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
+    ...Shadows.card,
   },
   tripHeaderTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   tripTitle: {
     fontSize: 18,
     fontWeight: "700",
     flex: 1,
+    letterSpacing: -0.3,
   },
   statusBadge: {
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: Spacing.md - 4,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.pill,
   },
   statusBadgeText: {
-    color: "#4CAF50",
+    color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   tripDate: {
     fontSize: 14,
   },
   timelineContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: Spacing.screenPadding,
     paddingBottom: 140,
   },
   timelineItem: {
     flexDirection: "row",
-    marginBottom: 16,
+    marginBottom: Spacing.screenPadding,
   },
   timelineLeft: {
     width: 32,
     alignItems: "center",
-    marginRight: 12,
+    marginRight: Spacing.md - 4,
   },
   timelineLine: {
-    width: 2,
+    width: 3,
     flex: 1,
   },
   timelineLineTop: {
@@ -793,16 +829,17 @@ const styles = StyleSheet.create({
   timelineCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: BorderRadius.full,
     borderWidth: 3,
     alignItems: "center",
     justifyContent: "center",
   },
   destinationCard: {
     flex: 1,
-    borderRadius: 12,
-    padding: 12,
-    gap: 12,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md - 4,
+    gap: Spacing.md - 4,
+    ...Shadows.card,
   },
   destinationHeader: {
     flexDirection: "row",
@@ -906,32 +943,46 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.md,
+    paddingBottom: Spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 8,
+    gap: Spacing.md - 4,
+    ...Shadows.lg,
+  },
+  addButtonWrapper: {
+    borderRadius: BorderRadius.lg,
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 12,
+    gap: Spacing.sm - 2,
+    paddingVertical: Spacing.md - 4,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    backgroundColor: 'transparent',
   },
   addButtonText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
+  },
+  endButtonWrapper: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
   },
   endButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.buttonPadding + 2,
+    borderRadius: BorderRadius.lg,
   },
   endButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   modalOverlay: {
     flex: 1,
