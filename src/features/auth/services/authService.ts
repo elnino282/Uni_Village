@@ -1,5 +1,5 @@
 import { authApi } from '../api';
-import type { LoginRequest, RegisterRequest, VerifyRequest, ForgetPasswordRequest } from '../types';
+import type { ForgetPasswordRequest, LoginRequest, RegisterRequest, VerifyRequest } from '../types';
 
 interface AuthResponse {
     success: boolean;
@@ -11,7 +11,7 @@ export const authService = {
         try {
             const data: LoginRequest = { email, password };
             const response = await authApi.login(data);
-            
+
             if (response.result) {
                 return { success: true, message: response.message };
             }
@@ -22,16 +22,14 @@ export const authService = {
     },
 
     register: async (
-        firstname: string,
-        lastname: string,
+        fullname: string,
         email: string,
         username: string,
         password: string
     ): Promise<AuthResponse> => {
         try {
             const data: RegisterRequest = {
-                firstname,
-                lastname,
+                fullname,
                 email,
                 username,
                 password,
@@ -49,7 +47,7 @@ export const authService = {
             const response = isRegister
                 ? await authApi.verifyRegisterOtp(data)
                 : await authApi.verifyForgotPasswordOtp(data);
-            
+
             if (response.result) {
                 return { success: true, message: 'Verification successful' };
             }

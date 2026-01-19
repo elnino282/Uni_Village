@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ItinerarySuggestRequest } from '../models/ItinerarySuggestRequest';
 import type { SuggestedItinerary } from '../models/SuggestedItinerary';
 import type { CancelablePromise } from '../core/CancelablePromise';

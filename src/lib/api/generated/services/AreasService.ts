@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponseAreaList } from '../models/ApiResponseAreaList';
 import type { ApiResponseAreaResponse } from '../models/ApiResponseAreaResponse';
 import type { AreaRequest } from '../models/AreaRequest';

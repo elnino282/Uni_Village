@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponsePlaceList } from '../models/ApiResponsePlaceList';
 import type { ApiResponsePlacePage } from '../models/ApiResponsePlacePage';
 import type { ApiResponsePlaceResponse } from '../models/ApiResponsePlaceResponse';

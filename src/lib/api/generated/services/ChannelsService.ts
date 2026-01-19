@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { AddChannelMemberRequest } from '../models/AddChannelMemberRequest';
 import type { ApiResponseChannelMemberList } from '../models/ApiResponseChannelMemberList';
 import type { ApiResponseChannelResponse } from '../models/ApiResponseChannelResponse';

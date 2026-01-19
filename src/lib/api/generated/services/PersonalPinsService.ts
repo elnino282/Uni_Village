@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponsePersonalPinPage } from '../models/ApiResponsePersonalPinPage';
 import type { ApiResponsePersonalPinResponse } from '../models/ApiResponsePersonalPinResponse';
 import type { PersonalPinRequest } from '../models/PersonalPinRequest';

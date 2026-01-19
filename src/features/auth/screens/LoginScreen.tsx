@@ -71,8 +71,7 @@ export function LoginScreen() {
     }, []);
 
     const handleForgotPassword = useCallback(() => {
-        // TODO: Navigate to forgot password screen
-        Alert.alert('Thông báo', 'Chức năng đang được phát triển');
+        router.push('/(auth)/forgot-password');
     }, []);
 
     const handleRegister = useCallback(() => {

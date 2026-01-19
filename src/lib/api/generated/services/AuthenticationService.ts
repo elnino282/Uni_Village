@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponseAuthenticationResponse } from '../models/ApiResponseAuthenticationResponse';
 import type { ApiResponseVoid } from '../models/ApiResponseVoid';
 import type { AuthenticationRequest } from '../models/AuthenticationRequest';

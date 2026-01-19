@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponseDistrictList } from '../models/ApiResponseDistrictList';
 import type { ApiResponseProvinceList } from '../models/ApiResponseProvinceList';
 import type { ApiResponseWardList } from '../models/ApiResponseWardList';

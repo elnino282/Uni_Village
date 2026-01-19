@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponseString } from '../models/ApiResponseString';
 import type { ChangePasswordRequest } from '../models/ChangePasswordRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';

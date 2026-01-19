@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponseCheckInPage } from '../models/ApiResponseCheckInPage';
 import type { ApiResponseCheckInResponse } from '../models/ApiResponseCheckInResponse';
 import type { CheckInRequest } from '../models/CheckInRequest';

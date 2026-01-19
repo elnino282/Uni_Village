@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponseCommentResponse } from '../models/ApiResponseCommentResponse';
 import type { ApiResponseCommentSlice } from '../models/ApiResponseCommentSlice';
 import type { CommentRequest } from '../models/CommentRequest';

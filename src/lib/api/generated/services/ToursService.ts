@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponseTourPage } from '../models/ApiResponseTourPage';
 import type { ApiResponseTourResponse } from '../models/ApiResponseTourResponse';
 import type { TourRequest } from '../models/TourRequest';

@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponseConversationSlice } from '../models/ApiResponseConversationSlice';
 import type { ApiResponseMediaAttachmentList } from '../models/ApiResponseMediaAttachmentList';
 import type { ApiResponseString } from '../models/ApiResponseString';

@@ -108,4 +108,28 @@ export const fileUploadService = {
             };
         });
     },
+
+    pickAudio: async (): Promise<PickedFile | null> => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permissionResult.granted) {
+            throw new Error('Permission to access media library is required');
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+            allowsMultipleSelection: false,
+        });
+
+        if (result.canceled) {
+            return null;
+        }
+
+        return {
+            id: `audio-${Date.now()}`,
+            uri: result.assets[0].uri,
+            name: `audio-${Date.now()}.mp3`,
+            type: 'audio/mpeg',
+        };
+    },
 };

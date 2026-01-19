@@ -13,7 +13,9 @@ export type WebSocketEventType =
     | 'POST_CHANGED'
     | 'SEND_JOIN_REQUEST'
     | 'ACCEPT_JOIN_REQUEST'
-    | 'REJECT_JOIN_REQUEST';
+    | 'REJECT_JOIN_REQUEST'
+    | 'USER_ONLINE'
+    | 'USER_OFFLINE';
 
 export interface WebSocketMessage<T = unknown> {
     eventType: WebSocketEventType;

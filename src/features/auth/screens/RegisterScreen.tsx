@@ -60,23 +60,32 @@ export function RegisterScreen() {
     const onSubmit = useCallback(async (data: RegisterFormData) => {
         setIsSubmitting(true);
         try {
-            // Tách name thành firstname và lastname
-            const nameParts = data.name.trim().split(' ');
-            const firstname = nameParts[0];
-            const lastname = nameParts.slice(1).join(' ') || firstname; // Nếu chỉ có 1 từ, dùng làm cả firstname và lastname
-
-            // Sử dụng identifier làm email và username
             const result = await authService.register(
-                firstname,
-                lastname,
+                data.name.trim(),
                 data.identifier,
-                data.identifier.split('@')[0], // username từ email
+                data.identifier.split('@')[0],
                 data.password
             );
 
             if (result.success) {
-                // Navigate to main app
-                router.replace({ pathname: '/(tabs)/map' });
+                Alert.alert(
+                    'Thành công',
+                    result.message || 'Mã OTP đã được gửi đến email của bạn',
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => {
+                                router.push({
+                                    pathname: '/(auth)/verify-otp',
+                                    params: {
+                                        email: data.identifier,
+                                        flowType: 'register',
+                                    },
+                                });
+                            },
+                        },
+                    ]
+                );
             } else {
                 Alert.alert('Lỗi', result.message || 'Đã có lỗi xảy ra');
             }
@@ -153,7 +162,7 @@ export function RegisterScreen() {
                             name="name"
                             render={({ field: { onChange, onBlur, value } }) => (
                                 <AuthInput
-                                    placeholder="Họ và tên"
+                                    placeholder="Username"
                                     leftIconName="person-outline"
                                     value={value}
                                     onChangeText={onChange}

@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { ApiResponseTourStopList } from '../models/ApiResponseTourStopList';
 import type { ApiResponseTourStopResponse } from '../models/ApiResponseTourStopResponse';
 import type { TourStopReorderRequest } from '../models/TourStopReorderRequest';

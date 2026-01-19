@@ -1,7 +1,7 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
- 
+/* eslint-disable */
 import type { DistrictResponse } from './DistrictResponse';
 import type { PlaceSuggestionStatus } from './PlaceSuggestionStatus';
 import type { PlaceTypeResponse } from './PlaceTypeResponse';
