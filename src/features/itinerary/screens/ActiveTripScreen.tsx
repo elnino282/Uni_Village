@@ -3,13 +3,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    Image,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -174,33 +174,9 @@ export function ActiveTripScreen() {
   const handleSkipConfirm = async () => {
     if (!tripData || !selectedDestination) return;
 
-    // Mark all previous unchecked destinations as skipped
-    const destIndex = tripData.destinations.findIndex(d => d.id === selectedDestination.id);
-    const updatedDestinations = tripData.destinations.map((d, index) => {
-      if (index < destIndex && !d.isCheckedIn && !d.isSkipped) {
-        return { ...d, isSkipped: true };
-      }
-      return d;
-    });
-
-    setTripData({
-      ...tripData,
-      destinations: updatedDestinations,
-    });
-
-    // Update AsyncStorage
-    try {
-      const tripsJson = await AsyncStorage.getItem('@trips');
-      if (tripsJson) {
-        const trips = JSON.parse(tripsJson);
-        const updatedTrips = trips.map((t: any) => 
-          t.id === tripData.id ? { ...t, destinations: updatedDestinations } : t
-        );
-        await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
-      }
-    } catch (error) {
-      console.error('Failed to skip previous destinations:', error);
-    }
+    // Do NOT mark previous destinations as skipped
+    // User just confirms they want to proceed to this destination
+    // They can still go back and check-in previous destinations later
 
     setShowSkipConfirmModal(false);
 
@@ -529,10 +505,10 @@ export function ActiveTripScreen() {
             onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.modalHeader}>
-              <Ionicons name="alert-circle-outline" size={48} color="#FF9800" />
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Bỏ qua địa điểm?</Text>
+              <Ionicons name="information-circle-outline" size={48} color="#2196F3" />
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Thông báo</Text>
               <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
-                Bạn chưa đi các địa điểm trên. Bạn muốn đi địa điểm này luôn không?
+                Bạn chưa check-in các địa điểm trước. Bạn vẫn có thể quay lại các địa điểm đó sau nha!
               </Text>
               {selectedDestination && (
                 <View style={[styles.destinationPreview, { backgroundColor: colors.background, borderColor: colors.border }]}>
@@ -545,7 +521,7 @@ export function ActiveTripScreen() {
                       {selectedDestination.name}
                     </Text>
                     <Text style={[styles.previewAddress, { color: colors.textSecondary }]} numberOfLines={1}>
-                      Địa điểm bạn chọn
+                      Địa điểm bạn đang chọn
                     </Text>
                   </View>
                 </View>
@@ -563,10 +539,10 @@ export function ActiveTripScreen() {
                 <Text style={[styles.modalButtonText, { color: colors.text }]}>Hủy</Text>
               </Pressable>
               <Pressable
-                style={[styles.modalButton, { backgroundColor: '#FF9800' }]}
+                style={[styles.modalButton, { backgroundColor: '#2196F3' }]}
                 onPress={handleSkipConfirm}
               >
-                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Bỏ qua & Tiếp tục</Text>
+                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Xác nhận</Text>
               </Pressable>
             </View>
           </Pressable>
