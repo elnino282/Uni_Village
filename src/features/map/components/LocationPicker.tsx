@@ -23,6 +23,7 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useUserLocation } from '../hooks/useUserLocation';
 import { getReadableAddress } from '../services/geocodingService';
 import { PlaceDetails } from '../services/placesService';
 import type { MapRegion } from '../types';
@@ -63,6 +64,13 @@ export const LocationPicker = memo(function LocationPicker({
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Use the existing location hook for "Get My Location" functionality
+    const {
+        location: userLocation,
+        isLoading: isLoadingUserLocation,
+        refresh: refreshUserLocation,
+    } = useUserLocation({ enableWatch: false });
 
     const colors = Colors[colorScheme];
 
@@ -147,6 +155,23 @@ export const LocationPicker = memo(function LocationPicker({
         }
     }, [selectedLocation, address, onLocationSelect]);
 
+    // Handle "Get My Location" button press
+    const handleGetMyLocation = useCallback(async () => {
+        await refreshUserLocation();
+    }, [refreshUserLocation]);
+
+    // Animate to user location when it updates
+    useEffect(() => {
+        if (userLocation && isLoadingUserLocation === false) {
+            const newLocation = {
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+            };
+            setSelectedLocation(newLocation);
+            mapRef.current?.animateToCoordinate(newLocation);
+        }
+    }, [userLocation, isLoadingUserLocation]);
+
     return (
         <View style={styles.container}>
             {/* Map */}
@@ -212,6 +237,23 @@ export const LocationPicker = memo(function LocationPicker({
                     emptyPlaceholder="Nhập địa điểm để tìm kiếm"
                 />
             </View>
+
+            {/* My Location FAB */}
+            <TouchableOpacity
+                style={[
+                    styles.myLocationButton,
+                    { backgroundColor: colors.card },
+                ]}
+                onPress={handleGetMyLocation}
+                activeOpacity={0.7}
+                disabled={isLoadingUserLocation}
+            >
+                {isLoadingUserLocation ? (
+                    <ActivityIndicator size="small" color={colors.tint} />
+                ) : (
+                    <MaterialIcons name="my-location" size={24} color={colors.tint} />
+                )}
+            </TouchableOpacity>
 
             {/* Bottom Panel */}
             <View style={[styles.bottomPanel, { backgroundColor: colors.card }]}>
@@ -292,6 +334,17 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(0, 0, 0, 0.3)',
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 4,
+    },
+    myLocationButton: {
+        position: 'absolute',
+        right: Spacing.screenPadding,
+        bottom: 220,
+        width: 48,
+        height: 48,
+        borderRadius: BorderRadius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Shadows.card,
     },
     pinShadow: {
         width: 8,
