@@ -48,7 +48,9 @@ export function ActiveTripScreen() {
   const [tripData, setTripData] = useState<TripData | null>(null);
   const [showEndTripModal, setShowEndTripModal] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [showSkipConfirmModal, setShowSkipConfirmModal] = useState(false);
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
+  const [pendingAction, setPendingAction] = useState<'checkin' | 'navigate' | null>(null);
 
   useEffect(() => {
     loadTripData();
@@ -113,14 +115,111 @@ export function ActiveTripScreen() {
     }
   };
 
+  const hasPreviousUnchecked = (destination: Destination): boolean => {
+    if (!tripData) return false;
+    
+    const destIndex = tripData.destinations.findIndex(d => d.id === destination.id);
+    // Check if any previous destination is not checked in and not skipped
+    for (let i = 0; i < destIndex; i++) {
+      const prevDest = tripData.destinations[i];
+      if (!prevDest.isCheckedIn && !prevDest.isSkipped) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   const handleCheckIn = async (destinationId: string) => {
     if (!tripData) return;
     
     const destination = tripData.destinations.find(d => d.id === destinationId);
-    if (destination) {
+    if (!destination) return;
+
+    // Check if there are previous unchecked destinations
+    if (hasPreviousUnchecked(destination)) {
       setSelectedDestination(destination);
-      setShowCheckInModal(true);
+      setPendingAction('checkin');
+      setShowSkipConfirmModal(true);
+      return;
     }
+    
+    // No previous unchecked, proceed with check-in
+    setSelectedDestination(destination);
+    setShowCheckInModal(true);
+  };
+
+  const handleNavigate = (destination: Destination) => {
+    if (!tripData) return;
+
+    // Check if there are previous unchecked destinations
+    if (hasPreviousUnchecked(destination)) {
+      setSelectedDestination(destination);
+      setPendingAction('navigate');
+      setShowSkipConfirmModal(true);
+      return;
+    }
+
+    // No previous unchecked, proceed with navigation
+    router.push({
+      pathname: "/(modals)/navigation" as any,
+      params: {
+        destinationName: destination.name,
+        destinationImage: destination.thumbnail,
+        destinationLat: destination.lat?.toString() || '10.7630',
+        destinationLng: destination.lng?.toString() || '106.6830',
+      }
+    });
+  };
+
+  const handleSkipConfirm = async () => {
+    if (!tripData || !selectedDestination) return;
+
+    // Mark all previous unchecked destinations as skipped
+    const destIndex = tripData.destinations.findIndex(d => d.id === selectedDestination.id);
+    const updatedDestinations = tripData.destinations.map((d, index) => {
+      if (index < destIndex && !d.isCheckedIn && !d.isSkipped) {
+        return { ...d, isSkipped: true };
+      }
+      return d;
+    });
+
+    setTripData({
+      ...tripData,
+      destinations: updatedDestinations,
+    });
+
+    // Update AsyncStorage
+    try {
+      const tripsJson = await AsyncStorage.getItem('@trips');
+      if (tripsJson) {
+        const trips = JSON.parse(tripsJson);
+        const updatedTrips = trips.map((t: any) => 
+          t.id === tripData.id ? { ...t, destinations: updatedDestinations } : t
+        );
+        await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
+      }
+    } catch (error) {
+      console.error('Failed to skip previous destinations:', error);
+    }
+
+    setShowSkipConfirmModal(false);
+
+    // Execute pending action
+    if (pendingAction === 'checkin') {
+      setShowCheckInModal(true);
+    } else if (pendingAction === 'navigate') {
+      router.push({
+        pathname: "/(modals)/navigation" as any,
+        params: {
+          destinationName: selectedDestination.name,
+          destinationImage: selectedDestination.thumbnail,
+          destinationLat: selectedDestination.lat?.toString() || '10.7630',
+          destinationLng: selectedDestination.lng?.toString() || '106.6830',
+        }
+      });
+    }
+
+    setPendingAction(null);
   };
 
   const confirmCheckIn = async () => {
@@ -239,7 +338,8 @@ export function ActiveTripScreen() {
             const isLast = index === tripData.destinations.length - 1;
             const isCheckedIn = dest.isCheckedIn;
             const isSkipped = dest.isSkipped;
-            const isCurrent = !isCheckedIn && !isSkipped && tripData.destinations.slice(0, index).every(d => d.isCheckedIn || d.isSkipped);
+            // Allow any destination to be "current" if not checked in or skipped
+            const isCurrent = !isCheckedIn && !isSkipped;
 
             return (
               <View key={dest.id} style={styles.timelineItem}>
@@ -341,18 +441,7 @@ export function ActiveTripScreen() {
                         <View style={styles.actionButtons}>
                           <Pressable 
                             style={[styles.actionButton, { backgroundColor: colors.info }]}
-                            onPress={() => {
-                              // Navigate to NavigationScreen with destination info
-                              router.push({
-                                pathname: "/(modals)/navigation" as any,
-                                params: {
-                                  destinationName: dest.name,
-                                  destinationImage: dest.thumbnail,
-                                  destinationLat: dest.lat?.toString() || '10.7630',
-                                  destinationLng: dest.lng?.toString() || '106.6830',
-                                }
-                              });
-                            }}
+                            onPress={() => handleNavigate(dest)}
                           >
                             <Ionicons name="navigate" size={16} color="#FFFFFF" />
                             <Text style={styles.actionButtonText}>Chỉ đường</Text>
@@ -423,6 +512,66 @@ export function ActiveTripScreen() {
           <Text style={styles.endButtonText}>{allCompleted ? 'Hoàn thành & Đóng' : 'Kết thúc chuyến đi'}</Text>
         </Pressable>
       </View>
+
+      {/* Skip Confirmation Modal */}
+      <Modal
+        visible={showSkipConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSkipConfirmModal(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowSkipConfirmModal(false)}
+        >
+          <Pressable 
+            style={[styles.modalContent, { backgroundColor: colors.card }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Ionicons name="alert-circle-outline" size={48} color="#FF9800" />
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Bỏ qua địa điểm?</Text>
+              <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
+                Bạn chưa đi các địa điểm trên. Bạn muốn đi địa điểm này luôn không?
+              </Text>
+              {selectedDestination && (
+                <View style={[styles.destinationPreview, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <Image
+                    source={{ uri: selectedDestination.thumbnail }}
+                    style={styles.previewImage}
+                  />
+                  <View style={styles.previewInfo}>
+                    <Text style={[styles.previewName, { color: colors.text }]} numberOfLines={1}>
+                      {selectedDestination.name}
+                    </Text>
+                    <Text style={[styles.previewAddress, { color: colors.textSecondary }]} numberOfLines={1}>
+                      Địa điểm bạn chọn
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalButton, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}
+                onPress={() => {
+                  setShowSkipConfirmModal(false);
+                  setSelectedDestination(null);
+                  setPendingAction(null);
+                }}
+              >
+                <Text style={[styles.modalButtonText, { color: colors.text }]}>Hủy</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, { backgroundColor: '#FF9800' }]}
+                onPress={handleSkipConfirm}
+              >
+                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Bỏ qua & Tiếp tục</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Check-in Confirmation Modal */}
       {showCheckInModal && selectedDestination && (
@@ -928,6 +1077,71 @@ const styles = StyleSheet.create({
   },
   checkInCancelText: {
     fontSize: 15,
+    fontWeight: "600",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 24,
+    marginHorizontal: 20,
+    maxWidth: 400,
+    width: "100%",
+  },
+  modalHeader: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  modalMessage: {
+    fontSize: 15,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  destinationPreview: {
+    flexDirection: "row",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+    width: "100%",
+  },
+  previewImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+  },
+  previewInfo: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  previewName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  previewAddress: {
+    fontSize: 13,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalButtonText: {
+    fontSize: 16,
     fontWeight: "600",
   },
 });
