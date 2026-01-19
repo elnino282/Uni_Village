@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     },
     tabList: {
         flexDirection: 'row',
-        borderRadius: BorderRadius.lg,
+        borderRadius: 999,
         padding: 4,
         borderWidth: 1,
         marginBottom: Spacing.sm,
@@ -415,8 +415,8 @@ const styles = StyleSheet.create({
     tab: {
         flex: 1,
         paddingVertical: 10,
-        borderRadius: BorderRadius.md,
-        borderWidth: 1,
+        borderRadius: 999,
+        borderWidth: 0,
         alignItems: 'center',
         justifyContent: 'center',
     },

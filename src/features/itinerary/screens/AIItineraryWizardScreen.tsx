@@ -15,13 +15,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  Animated,
+  Dimensions,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -229,6 +229,10 @@ export function AIItineraryWizardScreen() {
     return TRANSPORTS.find(t => t.id === id)?.title || '';
   };
 
+  const getBudgetLabel = (id: BudgetType) => {
+    return BUDGETS.find(b => b.id === id)?.title || '';
+  };
+
   const renderProgressBar = () => {
     return (
       <View style={styles.progressContainer}>
@@ -379,9 +383,11 @@ export function AIItineraryWizardScreen() {
         <Text style={[styles.summaryText, { color: colors.text }]}>
           Di chuyển: {getTransportLabel(wizardData.transport!)}
         </Text>
-        <Text style={[styles.summaryText, { color: colors.text }]}>
-          Ngân sách:
-        </Text>
+        {wizardData.budget && (
+          <Text style={[styles.summaryText, { color: colors.text }]}>
+            Ngân sách: {getBudgetLabel(wizardData.budget)}
+          </Text>
+        )}
       </View>
     </Animated.View>
   );
