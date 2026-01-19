@@ -32,6 +32,7 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useUserLocation } from "@/features/map/hooks/useUserLocation";
 import { getDirections, type Location, type NavigationRoute } from "@/lib/maps";
 import { Colors, useColorScheme } from "@/shared";
 
@@ -43,10 +44,26 @@ export function NavigationScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
 
+  // Use real user location
+  const { location: userLocation, requestPermission } = useUserLocation({ enableWatch: true });
+
   const [currentLocation, setCurrentLocation] = useState<Location>({
     latitude: 10.762622,
     longitude: 106.660172,
   });
+
+  // Update current location when user location changes
+  useEffect(() => {
+    if (userLocation) {
+      setCurrentLocation({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+      });
+    } else {
+      // Request permission on mount
+      requestPermission();
+    }
+  }, [userLocation]);
 
   const [destinationLocation] = useState<Location>({
     latitude: parseFloat(params.destinationLat as string) || 10.773996,
@@ -62,10 +79,12 @@ export function NavigationScreen() {
   const destinationName = params.destinationName as string || "Điểm đến";
   const destinationImage = params.destinationImage as string || "";
 
-  // Load route when component mounts
+  // Load route when component mounts or location changes
   useEffect(() => {
-    loadRoute();
-  }, []);
+    if (currentLocation) {
+      loadRoute();
+    }
+  }, [currentLocation]);
 
   const loadRoute = async () => {
     try {

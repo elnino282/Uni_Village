@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useUserLocation } from "@/features/map/hooks/useUserLocation";
 import { Colors, useColorScheme } from "@/shared";
 
 type Category =
@@ -68,6 +69,10 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const secondaryTextColor = colors.textSecondary || (colors as any).icon;
+
+  // Location hook
+  const { location, isLoading: locationLoading, error: locationError, requestPermission } = useUserLocation();
+  const [locationAddress, setLocationAddress] = useState<string>("Chưa xác định");
 
   const [tripName, setTripName] = useState("");
   const initialDateRef = useRef(new Date());
@@ -121,6 +126,13 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
       setViewMonth(d);
     }
   }, [showDateModal, selectedDate]);
+
+  // Update location address when location changes
+  useEffect(() => {
+    if (location) {
+      setLocationAddress(`${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`);
+    }
+  }, [location]);
 
   const days = useMemo(
     () => getDaysInMonth(viewMonth.getFullYear(), viewMonth.getMonth()),
@@ -226,6 +238,13 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
   }, [isDirty, onBack, showDateModal, showTimePicker]);
 
   const handleBack = () => requestClose();
+
+  const handleRequestLocation = async () => {
+    const granted = await requestPermission();
+    if (!granted) {
+      setLocationAddress("Không có quyền truy cập");
+    }
+  };
 
   // ---------- Smooth bottom sheet animation ----------
   const translateY = useRef(new Animated.Value(600)).current;
@@ -394,14 +413,19 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
                 backgroundColor: `${colors.info}14`,
               },
             ]}
+            onPress={handleRequestLocation}
           >
-            <Ionicons name="location" size={18} color={colors.info} />
+            <Ionicons 
+              name={locationLoading ? "hourglass-outline" : location ? "location" : "location-outline"} 
+              size={18} 
+              color={colors.info} 
+            />
             <View style={{ flex: 1 }}>
               <Text style={[styles.rowTitle, { color: colors.text }]}>
-                Vị trí hiện tại
+                {location ? "Vị trí hiện tại" : "Cho phép truy cập vị trí"}
               </Text>
-              <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
-                Cho phép truy cập vị trí
+              <Text style={[styles.rowValue, { color: secondaryTextColor }]} numberOfLines={1}>
+                {locationLoading ? "Đang lấy vị trí..." : locationError ? "Không thể lấy vị trí" : locationAddress}
               </Text>
             </View>
 
