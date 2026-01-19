@@ -44,20 +44,20 @@ const ACTIVITIES = [
   {
     id: 'deadline' as ActivityType,
     icon: '🍱',
-    title: 'Chay Deadline',
-    subtitle: 'Chạy đến hẹn, xả hơi, vui lắm lun',
+    title: 'Chạy Deadline',
+    subtitle: 'Cafe yên tĩnh, wifi mạnh, có ổ cắm',
   },
   {
     id: 'food-tour' as ActivityType,
     icon: '😋',
     title: 'Food Tour',
-    subtitle: 'Chạy ăn, ngon và vui, lạ chưởng',
+    subtitle: 'Chọ đêm, quán ăn vặt, lẩu nướng',
   },
   {
     id: 'date-chill' as ActivityType,
     icon: '💖',
     title: 'Hẹn hò / Chill',
-    subtitle: 'Hẹn hò, cafe vừa, riêng tư',
+    subtitle: 'Hồ Đá, cafe view đẹp, riêng tư',
   },
   {
     id: 'hangout' as ActivityType,
@@ -72,7 +72,7 @@ const TRANSPORTS = [
     id: 'walking-bus' as TransportType,
     icon: '🚶',
     title: 'Đi bộ / Xe buýt',
-    subtitle: 'Gợi ý xa điểm gần nhau',
+    subtitle: 'Gợi ý địa điểm gần nhau',
   },
   {
     id: 'motorbike' as TransportType,
@@ -86,14 +86,14 @@ const BUDGETS = [
   {
     id: 'low' as BudgetType,
     icon: '💰',
-    title: 'thích bao nhiêu chơi bấy nhiêu',
-    subtitle: 'Casadao, cạn tiền, rẻ vô đối',
+    title: 'Cuối tháng rồi...',
+    subtitle: 'Camteen, cơm 25k, trà đá',
   },
   {
     id: 'high' as BudgetType,
     icon: '💎',
-    title: 'thích sang chảnh một chút',
-    subtitle: 'Quán mấy bự, thượng hạo',
+    title: 'Đầu tháng / Có lương',
+    subtitle: 'Quán mấy lành, thượng hảo',
   },
 ];
 
@@ -230,29 +230,15 @@ export function AIItineraryWizardScreen() {
   };
 
   const renderProgressBar = () => {
-    const progress = (currentStep - 1) / 2; // 0, 0.5, 1 for steps 1, 2, 3
     return (
       <View style={styles.progressContainer}>
-        <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-          <Animated.View 
-            style={[
-              styles.progressFill,
-              { 
-                backgroundColor: colors.info,
-                width: `${progress * 100}%`,
-              }
-            ]} 
-          />
-        </View>
         {[1, 2, 3].map((step) => (
           <View 
             key={step}
             style={[
               styles.progressDot,
               { 
-                backgroundColor: currentStep >= step ? colors.info : colors.border,
-                left: step === 1 ? '0%' : step === 2 ? '50%' : '100%',
-                marginLeft: step === 2 ? -6 : step === 3 ? -12 : 0,
+                backgroundColor: currentStep >= step ? '#3b82f6' : '#E5E7EB',
               }
             ]}
           />
@@ -267,7 +253,7 @@ export function AIItineraryWizardScreen() {
         Bạn đang muốn làm gì?
       </Text>
       <Text style={[styles.stepSubtitle, { color: colors.textSecondary }]}>
-        Chọn loại hoạt động cho lịch trình nay
+        Chọn tâm trạng của bạn hôm nay
       </Text>
 
       <View style={styles.optionsContainer}>
@@ -308,7 +294,7 @@ export function AIItineraryWizardScreen() {
         Phương tiện di chuyển?
       </Text>
       <Text style={[styles.stepSubtitle, { color: colors.textSecondary }]}>
-        Hiện tại gợi ý thường sẽ phù hợp
+        Giúp AI gợi ý khoảng cách phù hợp
       </Text>
 
       <View style={styles.optionsContainer}>
@@ -349,7 +335,7 @@ export function AIItineraryWizardScreen() {
         Tình trạng ví tiền?
       </Text>
       <Text style={[styles.stepSubtitle, { color: colors.textSecondary }]}>
-        Mức độ gợi ý phù hợp với túi tiền bạn nha
+        Để AI gợi ý phù hợp túi tiền
       </Text>
 
       <View style={styles.optionsContainer}>
@@ -383,15 +369,18 @@ export function AIItineraryWizardScreen() {
       </View>
 
       {/* Summary */}
-      <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.summaryTitle, { color: colors.textSecondary }]}>
-          📋 Xem lại
+      <View style={[styles.summaryCard, { backgroundColor: '#F3E8FF', borderColor: '#E9D5FF' }]}>
+        <Text style={[styles.summaryTitle, { color: '#7C3AED' }]}>
+          📋 Tóm tắt:
         </Text>
         <Text style={[styles.summaryText, { color: colors.text }]}>
           Mục đích: {getActivityLabel(wizardData.activity!)}
         </Text>
         <Text style={[styles.summaryText, { color: colors.text }]}>
           Di chuyển: {getTransportLabel(wizardData.transport!)}
+        </Text>
+        <Text style={[styles.summaryText, { color: colors.text }]}>
+          Ngân sách:
         </Text>
       </View>
     </Animated.View>
@@ -640,26 +629,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   progressContainer: {
-    position: 'relative',
-    marginHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginVertical: 20,
-    height: 4,
-  },
-  progressBar: {
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
+    gap: 8,
   },
   progressDot: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    top: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   content: {
     flex: 1,
@@ -668,13 +647,15 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   stepTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     marginBottom: 8,
+    textAlign: 'center',
   },
   stepSubtitle: {
-    fontSize: 15,
-    marginBottom: 24,
+    fontSize: 14,
+    marginBottom: 32,
+    textAlign: 'center',
   },
   optionsContainer: {
     gap: 12,
@@ -684,10 +665,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderRadius: 12,
-    gap: 12,
+    gap: 16,
+    backgroundColor: '#FFFFFF',
   },
   optionIcon: {
-    fontSize: 32,
+    fontSize: 48,
   },
   optionContent: {
     flex: 1,
@@ -699,21 +681,23 @@ const styles = StyleSheet.create({
   },
   optionSubtitle: {
     fontSize: 13,
+    lineHeight: 18,
   },
   summaryCard: {
-    marginTop: 24,
+    marginTop: 32,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
   },
   summaryTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     marginBottom: 12,
   },
   summaryText: {
     fontSize: 14,
-    marginBottom: 6,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   bottomBar: {
     flexDirection: 'row',

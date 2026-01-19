@@ -241,16 +241,19 @@ export function ItineraryScreen() {
         if (activeTab === 'upcoming') {
             return (
                 <View style={styles.emptyContainer}>
-                    <View style={[styles.emptyIconCircle, { backgroundColor: colors.muted }]}>
-                        <Ionicons name="calendar-clear-outline" size={42} color={colors.info} />
+                    <View style={[styles.emptyIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                        <Ionicons name="calendar-outline" size={48} color="#3b82f6" />
                     </View>
-                    <Text style={[styles.cardTitle, { color: colors.text, marginTop: 12 }]}>
+                    <Text style={[styles.emptyTitle, { color: colors.text }]}>
                         Bạn đã lên kế hoạch gì cho sắp tới chưa?
                     </Text>
-                    <Text style={[styles.cardSubtitle, { color: colors.textSecondary ?? colors.icon, marginTop: 8 }]}>
-                        Lên lịch trước để app nhắc giờ đi, check-in và gợi ý địa điểm phù hợp.
+                    <Text style={[styles.emptySubtitle, { color: colors.textSecondary ?? colors.icon }]}>
+                        Lên lịch trước để app nhắc giờ đi, check-in và gợi ý địa{'\n'}điểm phù hợp.
                     </Text>
-                    <Pressable style={[styles.primaryButton, { backgroundColor: colors.info, marginTop: 16 }]}>
+                    <Pressable 
+                        style={[styles.primaryButton, { backgroundColor: colors.info }]}
+                        onPress={() => router.push('/(modals)/create-itinerary')}
+                    >
                         <Text style={styles.primaryButtonText}>Lên kế hoạch chuyến đi</Text>
                     </Pressable>
                 </View>
@@ -260,14 +263,14 @@ export function ItineraryScreen() {
         if (activeTab === 'past') {
             return (
                 <View style={styles.emptyContainer}>
-                    <View style={[styles.emptyIconCircle, { backgroundColor: colors.muted }]}>
-                        <Ionicons name="refresh-circle-outline" size={44} color={colors.info} />
+                    <View style={[styles.emptyIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                        <Ionicons name="time-outline" size={48} color="#3b82f6" />
                     </View>
-                    <Text style={[styles.cardTitle, { color: colors.text, marginTop: 12 }]}>
+                    <Text style={[styles.emptyTitle, { color: colors.text }]}>
                         Nhật ký hành trình của bạn vẫn còn trống
                     </Text>
-                    <Text style={[styles.cardSubtitle, { color: colors.textSecondary ?? colors.icon, marginTop: 8 }]}>
-                        Các chuyến đi đã hoàn thành sẽ xuất hiện tại đây để bạn xem lại và tạo lại lịch trình tương tự.
+                    <Text style={[styles.emptySubtitle, { color: colors.textSecondary ?? colors.icon }]}>
+                        Các chuyến đi đã hoàn thành sẽ xuất hiện tại đây để bạn{'\n'}xem lại và tạo lại lịch trình tương tự.
                     </Text>
                 </View>
             );
@@ -294,14 +297,14 @@ export function ItineraryScreen() {
                         <Text style={styles.primaryButtonText}>Tạo chuyến đi mới</Text>
                     </Pressable>
                     <Pressable 
-                        style={[styles.secondaryButton, { borderColor: colors.border, backgroundColor: colors.background }]}
+                        style={[styles.secondaryButton, { borderColor: colors.info, backgroundColor: colors.background }]}
                         onPress={() => router.push("/(modals)/ai-itinerary" as any)}
                     >
-                        <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Gợi ý lịch trình bằng AI</Text>
+                        <Text style={[styles.secondaryButtonText, { color: colors.info }]}>Gợi ý lịch trình bằng AI</Text>
                     </Pressable>
                     <View style={styles.suggestionRow}>
                         {SUGGESTIONS.map(tag => (
-                            <View
+                            <Pressable
                                 key={tag}
                                 style={[
                                     styles.chip,
@@ -315,7 +318,7 @@ export function ItineraryScreen() {
                                 <Text style={[styles.chipText, { color: colors.textSecondary ?? colors.icon }]}>
                                     {tag}
                                 </Text>
-                            </View>
+                            </Pressable>
                         ))}
                     </View>
                 </View>
@@ -461,6 +464,7 @@ const styles = StyleSheet.create({
         borderRadius: BorderRadius.md,
         alignItems: 'center',
         borderWidth: 1.5,
+        backgroundColor: '#FFFFFF',
     },
     secondaryButtonText: {
         fontSize: 15,
@@ -484,16 +488,28 @@ const styles = StyleSheet.create({
     },
     emptyContainer: {
         alignItems: 'center',
-        paddingVertical: Spacing.xl + 16,
-        paddingHorizontal: Spacing.screenPadding,
-        gap: Spacing.sm,
+        paddingVertical: Spacing.xl + 32,
+        paddingHorizontal: Spacing.screenPadding + 8,
     },
     emptyIconCircle: {
-        width: 80,
-        height: 80,
+        width: 96,
+        height: 96,
         borderRadius: BorderRadius.full,
         alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: Spacing.md + 4,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginBottom: Spacing.sm,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: Spacing.lg + 4,
     },
     bannerCard: {
         flexDirection: 'row',
