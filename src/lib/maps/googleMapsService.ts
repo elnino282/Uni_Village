@@ -1,8 +1,8 @@
 /**
  * Google Maps Service
  * 
+ * CURRENT STATUS: Using REAL GOOGLE MAPS API ✅
  * Provides navigation and routing functionality.
- * Uses Google Directions API for real routes.
  * Falls back to mock data if API key is not configured.
  * 
  * Required APIs: Directions API
@@ -54,11 +54,13 @@ export async function getDirections(
 
   // If no API key, use mock data
   if (!apiKey) {
-    console.warn('Google Maps API key not configured, using mock data');
+    console.warn('⚠️ Google Maps API key not configured, using mock data');
     return getMockDirections(origin, destination);
   }
 
   try {
+    console.log('🗺️ Calling Google Maps Directions API...');
+
     const params = new URLSearchParams({
       origin: `${origin.latitude},${origin.longitude}`,
       destination: `${destination.latitude},${destination.longitude}`,
@@ -87,9 +89,12 @@ export async function getDirections(
       throw new Error(`Directions API error: ${data.status}`);
     }
 
+    console.log('✅ Google Maps response received');
+
     return parseDirectionsResponse(data);
   } catch (error) {
-    console.error('Error fetching directions:', error);
+    console.error('❌ Error fetching directions:', error);
+    console.warn('⚠️ Using mock data as fallback');
     // Fallback to mock data on error
     return getMockDirections(origin, destination);
   }

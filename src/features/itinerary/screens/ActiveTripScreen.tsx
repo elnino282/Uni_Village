@@ -3,13 +3,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-    Image,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -233,6 +234,7 @@ export function ActiveTripScreen() {
     if (uncheckedCount > 0) {
       setShowEndTripModal(true);
     } else {
+      // All destinations completed, end trip directly
       confirmEndTrip();
     }
   };
@@ -249,9 +251,19 @@ export function ActiveTripScreen() {
         );
         await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
       }
-      router.replace("/(tabs)/itinerary");
+      
+      // Navigate back to itinerary tab
+      // Use router.back() to go back to previous screen instead of pushing/replacing
+      // This ensures proper navigation in the tab stack
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        // Fallback to replace if can't go back
+        router.replace("/(tabs)/itinerary");
+      }
     } catch (error) {
       console.error('Failed to end trip:', error);
+      Alert.alert('Lỗi', 'Không thể kết thúc chuyến đi. Vui lòng thử lại.');
     }
   };
 
@@ -508,7 +520,7 @@ export function ActiveTripScreen() {
               <Ionicons name="information-circle-outline" size={48} color="#2196F3" />
               <Text style={[styles.modalTitle, { color: colors.text }]}>Thông báo</Text>
               <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
-                Bạn chưa check-in các địa điểm trước. Bạn vẫn có thể quay lại các địa điểm đó sau nha!
+                Bạn chưa check-in các địa điểm trước. Bạn có muốn check in địa điểm này không ?!
               </Text>
               {selectedDestination && (
                 <View style={[styles.destinationPreview, { backgroundColor: colors.background, borderColor: colors.border }]}>
@@ -1055,31 +1067,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 24,
-    marginHorizontal: 20,
-    maxWidth: 400,
-    width: "100%",
-  },
-  modalHeader: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  modalMessage: {
-    fontSize: 15,
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 20,
-  },
   destinationPreview: {
     flexDirection: "row",
     padding: 12,
@@ -1104,20 +1091,5 @@ const styles = StyleSheet.create({
   },
   previewAddress: {
     fontSize: 13,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

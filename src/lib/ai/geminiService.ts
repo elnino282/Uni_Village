@@ -1,18 +1,15 @@
 /**
  * Gemini AI Service
  * 
- * CURRENT STATUS: Using MOCK RESPONSES
+ * CURRENT STATUS: Using REAL GEMINI AI ✅
  * This service provides AI-generated itinerary suggestions
+ * using Google's Gemini API
  * 
- * TO ENABLE REAL GEMINI AI:
- * 1. Get your API key from: https://ai.google.dev/
- * 2. Add to .env file: EXPO_PUBLIC_GEMINI_API_KEY=your_key_here
- * 3. Uncomment the "REAL API CALL" section below
- * 4. Comment out or remove the "MOCK RESPONSE" section
- * 5. Restart your Expo app: npm start -- --clear
- * 
- * See full setup guide: docs/GEMINI_SETUP.md
+ * API Key configured in .env file
+ * Falls back to mock data if API fails or key is missing
  */
+
+import { env } from '@/config/env';
 
 
 export interface ItineraryRequest {
@@ -47,83 +44,21 @@ export interface ItineraryResponse {
 
 /**
  * Generate an itinerary based on user preferences
+ * Uses real Gemini AI API with fallback to mock data
  */
 export async function generateItinerary(request: ItineraryRequest): Promise<ItineraryResponse> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-  // ============================================================
-  // MOCK RESPONSE (Currently Active)
-  // This returns fake data so you can test the UI immediately
-  // ============================================================
-
-  const mockDestinations: Destination[] = [
-    {
-      id: '1',
-      name: 'Thư Viện Tổng Hợp',
-      description: 'Vừa học bài vừa có điểm tốt lành Bạt Học',
-      time: '14:00',
-      duration: 'Hoàn tất',
-      category: 'Học tập',
-      budget: request.budget === 'low' ? '~50k' : '~100k',
-      place: {
-        name: 'Thư Viện Tổng Hợp',
-        address: 'Khu A, Đại học Quốc Gia',
-        rating: 4.5,
-        lat: 10.7630,
-        lng: 106.6830,
-      },
-      isCheckedIn: false,
-      isSkipped: false,
-    },
-    {
-      id: '2',
-      name: 'Canteen Khu A',
-      description: 'Căn tin ăn vừa, cơm tấm 25k ngon',
-      time: '18:30',
-      duration: '250m tới Thư ngm',
-      category: 'Ăn uống',
-      budget: request.budget === 'low' ? '~30k' : '~80k',
-      place: {
-        name: 'Canteen Khu A',
-        address: 'Khu A, Đại học Quốc Gia',
-        rating: 4.0,
-        lat: 10.7640,
-        lng: 106.6840,
-      },
-      isCheckedIn: false,
-      isSkipped: false,
-    },
-  ];
-
-  // Customize based on activity type
-  const activityTitles: Record<string, string> = {
-    'deadline': 'Chạy deadline cực căng 🔥',
-    'food-tour': 'Tour ăn ngon Sài Gòn 😋',
-    'date-chill': 'Hẹn hò lãng mạn 💖',
-    'hangout': 'Tụ tập bạn bè vui vẻ 🎮',
-  };
-
-  return {
-    title: activityTitles[request.activity] || 'Lịch trình gợi ý',
-    destinations: mockDestinations,
-  };
-
-  // ============================================================
-  // REAL API CALL (Currently Commented Out)
-  // Uncomment this section when you have your Gemini API key
-  // ============================================================
-
-  /*
   try {
     const apiKey = env.GEMINI_API_KEY;
     
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY not found. Please add it to your .env file.');
+      console.warn('GEMINI_API_KEY not found. Using mock data.');
+      return generateMockItinerary(request);
     }
 
     // Build the prompt based on user preferences
     const prompt = buildPrompt(request);
+
+    console.log('🤖 Calling Gemini AI...');
 
     // Call Gemini API
     const response = await fetch(
@@ -150,7 +85,8 @@ export async function generateItinerary(request: ItineraryRequest): Promise<Itin
     );
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Gemini API error: ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -162,19 +98,20 @@ export async function generateItinerary(request: ItineraryRequest): Promise<Itin
       throw new Error('No response from Gemini AI');
     }
 
+    console.log('✅ Gemini AI response received');
+
     // Parse the JSON response from AI
     const itinerary = parseAIResponse(aiText, request);
     
     return itinerary;
     
   } catch (error) {
-    console.error('Gemini API Error:', error);
+    console.error('❌ Gemini API Error:', error);
     
     // Fallback to mock data if API fails
-    console.warn('Using mock data as fallback');
+    console.warn('⚠️ Using mock data as fallback');
     return generateMockItinerary(request);
   }
-  */
 }
 
 /**
