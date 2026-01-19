@@ -17,6 +17,7 @@ export { ProfileHeaderIcons } from './components/ProfileHeaderIcons';
 export { ProfileInfo } from './components/ProfileInfo';
 export { ProfilePostCard } from './components/ProfilePostCard';
 export { ProfileScreen } from './components/ProfileScreen';
+export { ProfileShareSheet } from './components/ProfileShareSheet';
 export { ProfileTabs } from './components/ProfileTabs';
 export type { ProfileTabKey } from './components/ProfileTabs';
 export { PublicProfileHeader } from './components/PublicProfileHeader';
@@ -27,6 +28,7 @@ export { PublicProfileTabs } from './components/PublicProfileTabs';
 export { useFollow } from './hooks/useFollow';
 export { profileKeys, useMyProfile, useProfile } from './hooks/useProfile';
 export { profilePostsKeys, useProfilePosts } from './hooks/useProfilePosts';
+export { useProfileShareSheet } from './hooks/useProfileShareSheet';
 export { publicProfileKeys, usePublicProfile } from './hooks/usePublicProfile';
 export { useUpdateProfile } from './hooks/useUpdateProfile';
 
