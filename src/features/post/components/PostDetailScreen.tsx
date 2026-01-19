@@ -69,16 +69,19 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const [selectedPostVisibility, setSelectedPostVisibility] = useState<PostVisibility>('public');
   const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(null);
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
 
-  // Queries & mutations
-  const { data: post, isLoading: isPostLoading, refetch: refetchPost } = usePostDetail(postId);
+  // Queries & mutations - disable all fetching when post is deleted
+  const { data: post, isLoading: isPostLoading, refetch: refetchPost } = usePostDetail(
+    isDeleted ? undefined : postId
+  );
   const {
     data: commentsData,
     isLoading: isCommentsLoading,
     fetchNextPage,
     hasNextPage,
     refetch: refetchComments
-  } = usePostComments(postId);
+  } = usePostComments(isDeleted ? undefined : postId);
 
   const togglePostLikeMutation = useLikePost();
   const createCommentMutation = useCreateComment();
@@ -208,15 +211,23 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
 
   const handleMoveToTrash = useCallback(() => {
     if (!post?.id || isDeletingPost) return;
-    Alert.alert('Delete post', 'This will permanently delete your post.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert('Xóa bài viết', 'Bạn có chắc muốn xóa bài viết này vĩnh viễn?', [
+      { text: 'Hủy', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Xóa',
         style: 'destructive',
-        onPress: () => deletePost(post.id),
+        onPress: () => {
+          deletePost(post.id, {
+            onSuccess: () => {
+              // Set isDeleted immediately to disable all queries and prevent 404 errors
+              setIsDeleted(true);
+              router.back();
+            },
+          });
+        },
       },
     ]);
-  }, [post?.id, deletePost, isDeletingPost]);
+  }, [post?.id, deletePost, isDeletingPost, router]);
 
   const handleUpdateVisibility = useCallback(
     (visibility: PostVisibility) => {
@@ -260,6 +271,11 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
     setReplyingToId(null);
   }, []);
 
+  // Return null immediately if post was deleted to prevent rendering with stale data
+  if (isDeleted) {
+    return null;
+  }
+
   // Render loading state
   if (isPostLoading || !post) {
     return <LoadingScreen message="Đang tải bài viết..." />;
@@ -287,6 +303,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
           authorAvatarUrl={post.authorAvatarUrl}
           createdAt={post.createdAt}
           visibility={post.visibility === Visibility.PUBLIC ? 'public' : 'private'}
+          onMenuPress={handleMenuPress}
         />
 
         {/* Content */}
@@ -334,7 +351,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
       {/* Header */}
-      <PostDetailHeader onMenuPress={handleMenuPress} />
+      <PostDetailHeader />
 
       {/* Main content */}
       <FlatList

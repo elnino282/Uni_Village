@@ -1,9 +1,9 @@
 import { queryKeys } from '@/config/queryKeys';
+import { useAuthStore } from '@/features/auth';
 import { getNextPageParam, type Slice } from '@/shared/types/pagination.types';
 import { InfiniteData, QueryKey, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { commentsApi, postsApi } from '../api';
 import type { CreatePostFormData, PostResponse, PostSearchParams, SharePostRequest, UpdatePostFormData } from '../types';
-import { useAuthStore } from '@/features/auth';
 
 const STALE_TIME = {
     POSTS: 2 * 60 * 1000,
@@ -406,13 +406,28 @@ export function useUpdatePost() {
 export function useDeletePost() {
     const queryClient = useQueryClient();
 
+    // Helper to check if a query key is for comments of a specific post
+    const isCommentsQueryForPost = (queryKey: QueryKey, postId: number) => {
+        if (!Array.isArray(queryKey) || queryKey.length < 3) return false;
+        // Match pattern: ['posts', 'comments', postId, ...] or ['comments', postId, ...]
+        return (
+            (queryKey[0] === 'posts' && queryKey[1] === 'comments' && queryKey[2] === postId) ||
+            (queryKey[0] === 'comments' && queryKey[1] === postId)
+        );
+    };
+
     return useMutation({
         mutationFn: (postId: number) => postsApi.deletePost(postId),
         onMutate: async (postId) => {
+            // Cancel all related queries immediately
             await queryClient.cancelQueries({
                 predicate: (query) => isPostCollectionKey(query.queryKey),
             });
             await queryClient.cancelQueries({ queryKey: queryKeys.posts.detail(postId) });
+            // Cancel comments queries for this specific post
+            await queryClient.cancelQueries({
+                predicate: (query) => isCommentsQueryForPost(query.queryKey, postId),
+            });
 
             const previousCollections = queryClient.getQueriesData<PostInfiniteData>({
                 predicate: (query) => isPostCollectionKey(query.queryKey),
@@ -423,6 +438,10 @@ export function useDeletePost() {
 
             removePostFromCollections(queryClient, postId);
             queryClient.removeQueries({ queryKey: queryKeys.posts.detail(postId) });
+            // Remove comments queries for this post to prevent refetch
+            queryClient.removeQueries({
+                predicate: (query) => isCommentsQueryForPost(query.queryKey, postId),
+            });
 
             return { previousCollections, previousDetail };
         },
@@ -439,7 +458,15 @@ export function useDeletePost() {
                 );
             }
         },
-        onSuccess: () => {
+        onSuccess: (_data, postId) => {
+            // Cancel any remaining in-flight comments queries
+            queryClient.cancelQueries({
+                predicate: (query) => isCommentsQueryForPost(query.queryKey, postId),
+            });
+            // Remove comments queries to prevent any refetch
+            queryClient.removeQueries({
+                predicate: (query) => isCommentsQueryForPost(query.queryKey, postId),
+            });
             queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
         },
     });
