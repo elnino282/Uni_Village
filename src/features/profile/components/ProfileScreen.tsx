@@ -2,15 +2,16 @@ import { Colors } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import { Href, router } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { s, vs } from 'react-native-size-matters';
-import { useMyProfile } from '../hooks';
+import { useMyProfile, useProfileShareSheet } from '../hooks';
 import { ProfileActionButtons } from './ProfileActionButtons';
 import { ProfileEmptyPostCard } from './ProfileEmptyPostCard';
 import { ProfileFAB } from './ProfileFAB';
 import { ProfileHeaderIcons } from './ProfileHeaderIcons';
 import { ProfileInfo } from './ProfileInfo';
+import { ProfileShareSheet } from './ProfileShareSheet';
 import { ProfileTabKey, ProfileTabs } from './ProfileTabs';
 
 export function ProfileScreen() {
@@ -21,6 +22,12 @@ export function ProfileScreen() {
 
     // Fetch current user's profile
     const { profile, isLoading, error } = useMyProfile();
+
+    // Profile share sheet
+    const shareSheet = useProfileShareSheet({
+        userId: profile?.id,
+        displayName: profile?.displayName,
+    });
 
     // Handlers (TODO: Implement actual navigation/actions)
     const handleAnalyticsPress = () => {
@@ -41,15 +48,9 @@ export function ProfileScreen() {
         router.push('/profile/edit');
     };
 
-    const handleShareProfilePress = async () => {
+    const handleShareProfilePress = () => {
         if (!profile) return;
-        try {
-            await Share.share({
-                message: `Check out ${profile.displayName}'s profile on UniVillage!`,
-            });
-        } catch (error) {
-            console.error('Error sharing profile:', error);
-        }
+        shareSheet.open();
     };
 
     const handleFABPress = () => {
@@ -117,6 +118,20 @@ export function ProfileScreen() {
                         <ProfileEmptyPostCard onCreatePost={handleCreatePost} />
                     )}
                 </ScrollView>
+
+                {/* Profile Share Bottom Sheet */}
+                {profile && (
+                    <ProfileShareSheet
+                        ref={shareSheet.bottomSheetRef}
+                        userId={profile.id}
+                        displayName={profile.displayName}
+                        qrViewRef={shareSheet.qrViewRef}
+                        onCopyLink={shareSheet.handleCopyLink}
+                        onShare={shareSheet.handleShare}
+                        onDownload={shareSheet.handleDownload}
+                        onScan={shareSheet.handleScan}
+                    />
+                )}
             </View>
         </SafeAreaView>
     );
