@@ -1,4 +1,6 @@
 import { authApi } from '../api';
+import { useAuthStore } from '../store/authStore';
+import { isAuthResponse, mapAuthResponse } from '../types';
 import type { ForgetPasswordRequest, LoginRequest, RegisterRequest, VerifyRequest } from '../types';
 
 interface AuthResponse {
@@ -13,6 +15,10 @@ export const authService = {
             const response = await authApi.login(data);
 
             if (response.result) {
+                if (isAuthResponse(response.result)) {
+                    const tokens = mapAuthResponse(response.result);
+                    useAuthStore.getState().setTokens(tokens);
+                }
                 return { success: true, message: response.message };
             }
             return { success: false, message: 'Login failed' };
@@ -49,6 +55,10 @@ export const authService = {
                 : await authApi.verifyForgotPasswordOtp(data);
 
             if (response.result) {
+                if (isAuthResponse(response.result)) {
+                    const tokens = mapAuthResponse(response.result);
+                    useAuthStore.getState().setTokens(tokens);
+                }
                 return { success: true, message: 'Verification successful' };
             }
             return { success: false, message: 'Verification failed' };

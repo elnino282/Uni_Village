@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFeed as useRealFeed, useLikePost as useRealLikePost, useSavePost as useRealSavePost } from '@/features/post/hooks';
 import type { CommunityPostsResponse } from '../types';
 import { mapSliceToCommunityPostsResponse } from '../adapters/postAdapter';
@@ -8,26 +9,31 @@ const COMMUNITY_POSTS_KEY = ['community', 'posts'];
 export function useCommunityPosts(page = 1, limit = 20) {
   const feedQuery = useRealFeed({ page: page - 1, size: limit });
 
-  return useQuery<CommunityPostsResponse>({
-    queryKey: [...COMMUNITY_POSTS_KEY, { page, limit }],
-    queryFn: async () => {
-      const firstPage = feedQuery.data?.pages[0];
-      if (firstPage) {
-        return mapSliceToCommunityPostsResponse(firstPage, page, limit);
-      }
-      return {
-        data: [],
-        pagination: {
-          page,
-          limit,
-          total: 0,
-          totalPages: 0,
-          hasMore: false,
-        },
-      };
-    },
-    enabled: !!feedQuery.data,
-  });
+  const data = useMemo<CommunityPostsResponse>(() => {
+    const firstPage = feedQuery.data?.pages[0];
+    if (firstPage) {
+      return mapSliceToCommunityPostsResponse(firstPage, page, limit);
+    }
+    return {
+      data: [],
+      pagination: {
+        page,
+        limit,
+        total: 0,
+        totalPages: 0,
+        hasMore: false,
+      },
+    };
+  }, [feedQuery.data, page, limit]);
+
+  return {
+    data,
+    isLoading: feedQuery.isLoading,
+    isRefetching: feedQuery.isRefetching,
+    isError: feedQuery.isError,
+    error: feedQuery.error,
+    refetch: feedQuery.refetch,
+  };
 }
 
 export function useCreateCommunityPost() {

@@ -4,7 +4,7 @@ import type { CommunityPost, CommunityPostsResponse, PostAuthor } from '../types
 export function mapPostResponseToCommunityPost(post: PostResponse): CommunityPost {
     const author: PostAuthor = {
         id: String(post.authorId),
-        displayName: post.authorName,
+        displayName: post.authorName || 'Unknown',
         avatarUrl: post.authorAvatarUrl || undefined,
     };
 
@@ -29,12 +29,12 @@ export function mapSliceToCommunityPostsResponse(
     page: number,
     size: number
 ): CommunityPostsResponse {
-    const posts = slice.content.map(mapPostResponseToCommunityPost);
+    const posts = (slice.content ?? []).map(mapPostResponseToCommunityPost);
 
     return {
         data: posts,
         pagination: {
-            page: slice.number + 1,
+            page: typeof slice.number === 'number' ? slice.number + 1 : page,
             limit: size,
             total: 0,
             totalPages: 1,
