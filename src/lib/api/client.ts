@@ -3,10 +3,10 @@
  * Centralized HTTP client with interceptors for authentication and error handling
  */
 
+import { env } from '@/config/env';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import type { AuthTokens } from '@/features/auth/types';
 import { isAuthResponse, mapAuthResponse } from '@/features/auth/types';
-import { env } from '@/config/env';
 import { ApiError } from '@/lib/errors/ApiError';
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { API_ENDPOINTS } from './endpoints';
@@ -39,8 +39,18 @@ const logResponse = (response: AxiosResponse) => {
 
 const logError = (error: AxiosError) => {
     if (__DEV__) {
-        console.error(`[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
-        console.error('[API Error Details]', error.response?.data || error.message);
+        const method = error.config?.method?.toUpperCase();
+        const url = error.config?.url;
+        const status = error.response?.status;
+        
+        console.error(`[API Error] ${method} ${url}${status ? ` - ${status}` : ''}`);
+        
+        // Only log response data for non-auth errors to avoid logging sensitive data
+        if (error.response?.data && !url?.includes('/auth/')) {
+            console.error('[API Error Details]', error.response.data);
+        } else if (!error.response) {
+            console.error('[API Error Details]', error.message);
+        }
     }
 };
 
@@ -199,3 +209,4 @@ export const apiClient = {
 };
 
 export { axiosInstance };
+
