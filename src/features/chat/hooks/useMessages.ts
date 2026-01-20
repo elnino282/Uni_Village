@@ -8,6 +8,7 @@ import {
     type MessageSearchParams,
     type SendMessageFormData,
 } from '../api';
+import { isVirtualThreadId } from '../services';
 
 const STALE_TIME = 10 * 1000;
 
@@ -20,9 +21,24 @@ export const messageKeys = {
 };
 
 export function useMessages(conversationId: string | undefined, params: Omit<GetMessagesParams, 'conversationId'> = {}) {
+    const isVirtual = conversationId ? isVirtualThreadId(conversationId) : false;
+
     return useInfiniteQuery({
         queryKey: queryKeys.messages.list(conversationId!, params),
         queryFn: async ({ pageParam = 0 }) => {
+            if (isVirtual) {
+                return {
+                    content: [],
+                    totalElements: 0,
+                    totalPages: 0,
+                    size: 0,
+                    number: 0,
+                    first: true,
+                    last: true,
+                    empty: true,
+                };
+            }
+
             const response = await messagesApi.getMessages({
                 conversationId: conversationId!,
                 ...params,
@@ -32,7 +48,7 @@ export function useMessages(conversationId: string | undefined, params: Omit<Get
         },
         initialPageParam: 0,
         getNextPageParam: (lastPage) => getNextPageParam(lastPage),
-        enabled: !!conversationId,
+        enabled: !!conversationId && !isVirtual,
         staleTime: STALE_TIME,
     });
 }

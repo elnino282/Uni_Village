@@ -4,7 +4,14 @@
  */
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchGroupThread, fetchThread, isGroupThreadId } from '../services';
+import { 
+  fetchGroupThread, 
+  fetchThread, 
+  fetchVirtualThread,
+  isGroupThreadId,
+  isVirtualThreadId,
+  extractUserIdFromVirtualThread
+} from '../services';
 import type { Thread } from '../types';
 
 /**
@@ -17,12 +24,22 @@ export const threadKeys = {
 
 /**
  * Fetch and cache thread info (DM or Group)
- * @param threadId - Thread identifier
+ * @param threadId - Thread identifier (can be conversationId, user-{userId}, or group/channel id)
  */
 export function useThread(threadId: string) {
   return useQuery<Thread, Error>({
     queryKey: threadKeys.detail(threadId),
     queryFn: async () => {
+      // Check if it's a virtual thread (user-{userId})
+      if (isVirtualThreadId(threadId)) {
+        const userId = extractUserIdFromVirtualThread(threadId);
+        if (!userId) {
+          throw new Error('Invalid virtual thread ID');
+        }
+        const response = await fetchVirtualThread(userId);
+        return response.thread;
+      }
+
       // Check if it's a group thread
       if (isGroupThreadId(threadId)) {
         const response = await fetchGroupThread(threadId);
@@ -32,7 +49,7 @@ export function useThread(threadId: string) {
         throw new Error('Group thread not found');
       }
       
-      // DM thread
+      // DM thread with real conversation ID
       const response = await fetchThread(threadId);
       return response.thread;
     },

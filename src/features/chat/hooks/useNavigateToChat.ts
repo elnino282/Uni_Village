@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
@@ -9,13 +9,6 @@ export function useNavigateToChat() {
     const router = useRouter();
     const [isNavigating, setIsNavigating] = useState(false);
 
-    const { mutateAsync: getOrCreateConversation } = useMutation({
-        mutationFn: async (targetUserId: number) => {
-            const response = await conversationsApi.getOrCreateDirect(targetUserId);
-            return response.result.conversationId;
-        },
-    });
-
     const handleNavigateToUser = async (
         userId: number,
         relationshipStatus?: RelationshipStatus
@@ -25,11 +18,9 @@ export function useNavigateToChat() {
         try {
             setIsNavigating(true);
 
-            const conversationId = await getOrCreateConversation(userId);
-
-            router.push(`/chat/${conversationId}` as any);
+            router.push(`/chat/user-${userId}` as any);
         } catch (error) {
-            console.error('[useNavigateToChat] Error creating conversation:', error);
+            console.error('[useNavigateToChat] Error navigating to chat:', error);
         } finally {
             setIsNavigating(false);
         }
