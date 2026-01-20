@@ -20,25 +20,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LocationPicker } from "@/features/map/components/LocationPicker";
 import { useUserLocation } from "@/features/map/hooks/useUserLocation";
 import { Colors, useColorScheme } from "@/shared";
+import { apiClient } from "@/lib/api/client";
+import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { ActivityIndicator } from "react-native";
 
-type Category =
-  | "coffee"
-  | "food"
-  | "shopping"
-  | "sightseeing"
-  | "relax"
-  | "park"
-  | "other";
+interface CategoryResponse {
+  id: string;
+  name: string;
+  description: string;
+  iconType: string;
+}
 
-const CATEGORY_LABELS: Record<Category, string> = {
-  coffee: "Ca phe",
-  food: "An uong",
-  shopping: "Mua sam",
-  sightseeing: "Tham quan",
-  relax: "Thu gian",
-  park: "Cong vien",
-  other: "Khac",
-};
+type Category = string;
 
 type CreateItineraryScreenProps = {
   onBack?: () => void;
@@ -86,7 +79,7 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
     return base;
   };
   const initialTimeRef = useRef<Date>(getInitialTime());
-  const initialCategoriesRef = useRef<Category[]>(["coffee", "food"]);
+  const initialCategoriesRef = useRef<Category[]>([]);
 
   // selected values
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -113,12 +106,41 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
     categories?: string;
   }>({});
 
-  const [selectedCategories, setSelectedCategories] = useState<Category[]>([
-    "coffee",
-    "food",
-  ]);
+  const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const confirmOpacity = useRef(new Animated.Value(0)).current;
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const response = await apiClient.get<CategoryResponse[]>(API_ENDPOINTS.ADMIN.CATEGORIES);
+        setCategories(response);
+        setCategoriesError(null);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+        setCategoriesError('Không thể tải danh mục');
+        // Fallback to default categories if API fails
+        setCategories([
+          { id: 'coffee', name: 'Cà phê', description: '', iconType: '' },
+          { id: 'food', name: 'Ăn uống', description: '', iconType: '' },
+          { id: 'shopping', name: 'Mua sắm', description: '', iconType: '' },
+          { id: 'sightseeing', name: 'Tham quan', description: '', iconType: '' },
+          { id: 'relax', name: 'Thư giãn', description: '', iconType: '' },
+          { id: 'park', name: 'Công viên', description: '', iconType: '' },
+          { id: 'other', name: 'Khác', description: '', iconType: '' },
+        ]);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     // whenever opening modal, sync month view to selected date
@@ -457,33 +479,48 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
             Bạn muốn chuyến đi kiểu gì ?
           </Text>
 
-          <View style={styles.chipRow}>
-            {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => {
-              const active = selectedCategories.includes(cat);
-              return (
-                <Pressable
-                  key={cat}
-                  onPress={() => toggleCategory(cat)}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: active ? `${colors.info}14` : colors.muted,
-                      borderColor: active ? colors.info : colors.border,
-                    },
-                  ]}
-                >
-                  <Text
+          {categoriesLoading ? (
+            <View style={[styles.chipRow, { justifyContent: 'center', paddingVertical: 20 }]}>
+              <ActivityIndicator size="small" color={colors.info} />
+              <Text style={[styles.chipText, { color: secondaryTextColor, marginLeft: 8 }]}>
+                Đang tải danh mục...
+              </Text>
+            </View>
+          ) : categoriesError ? (
+            <View style={[styles.chipRow, { justifyContent: 'center', paddingVertical: 20 }]}>
+              <Text style={[styles.chipText, { color: '#FF3B30' }]}>
+                {categoriesError}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.chipRow}>
+              {categories.map((cat) => {
+                const active = selectedCategories.includes(cat.id);
+                return (
+                  <Pressable
+                    key={cat.id}
+                    onPress={() => toggleCategory(cat.id)}
                     style={[
-                      styles.chipText,
-                      { color: active ? colors.info : colors.text },
+                      styles.chip,
+                      {
+                        backgroundColor: active ? `${colors.info}14` : colors.muted,
+                        borderColor: active ? colors.info : colors.border,
+                      },
                     ]}
                   >
-                    {CATEGORY_LABELS[cat]}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: active ? colors.info : colors.text },
+                      ]}
+                    >
+                      {cat.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
           {errors.categories && (
             <Text style={[styles.errorText, { color: "#FF3B30", marginTop: 8 }]}>{errors.categories}</Text>
           )}
@@ -526,11 +563,11 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
             <Text style={styles.primaryButtonText}>Tiếp tục chọn điểm đến</Text>
           </Pressable>
 
-          <Pressable style={styles.secondaryLink}>
+          {/* <Pressable style={styles.secondaryLink}>
             <Text style={[styles.linkText, { color: colors.info }]}>
               Hoặc để AI gợi ý lịch trình từ thông tin này
             </Text>
-          </Pressable>
+          </Pressable> */}
         </View>
       </ScrollView>
 
@@ -1096,19 +1133,22 @@ const styles = StyleSheet.create({
   pickerDoneBtn: {
     marginHorizontal: 16,
     marginVertical: 12,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
   },
   pickerDoneText: { 
     color: "#fff", 
-    fontWeight: "700",
-    fontSize: 16,
+    fontWeight: "800",
+    fontSize: 17,
+    letterSpacing: 0.3,
   },
 });
 

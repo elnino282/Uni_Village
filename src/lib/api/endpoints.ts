@@ -275,5 +275,12 @@ export const API_ENDPOINTS = {
         MARK_READ: '/api/v1/messages/mark-read',
         SEARCH: '/api/v1/messages/search',
     },
+
+    // ============================================
+    // Admin
+    // ============================================
+    ADMIN: {
+        CATEGORIES: '/api/v1/admin/categories',
+    },
 } as const;
 
