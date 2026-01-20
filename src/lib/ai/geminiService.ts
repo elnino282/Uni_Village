@@ -68,9 +68,9 @@ export async function generateItinerary(request: ItineraryRequest): Promise<Itin
       try {
         console.log(`📡 Attempt ${attempt}/${maxRetries}...`);
 
-        // Call Gemini API with the newer model
+        // Call Gemini API with the v1 API (v1beta doesn't support gemini-1.5-flash)
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+          `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
           {
             method: 'POST',
             headers: {
@@ -130,7 +130,8 @@ export async function generateItinerary(request: ItineraryRequest): Promise<Itin
         lastError = error as Error;
         
         // If not a retryable error, throw immediately
-        if (!error.message.includes('503') && !error.message.includes('429')) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!errorMessage.includes('503') && !errorMessage.includes('429')) {
           throw error;
         }
         
