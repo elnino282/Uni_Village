@@ -349,10 +349,7 @@ export const PlacesAutocomplete = memo(function PlacesAutocomplete({
 
 const styles = StyleSheet.create({
     container: {
-        position: 'absolute',
-        top: 56, // Fixed position below search bar (48px height + 8px margin)
-        left: 0,
-        right: 0,
+        marginTop: Spacing.xs,
         borderRadius: BorderRadius.lg,
         maxHeight: 320,
         ...Shadows.card,
