@@ -225,11 +225,6 @@ export function ItineraryScreen() {
                                         Vị trí hiện tại
                                     </Text>
                                 </View>
-
-                                <Pressable style={[styles.viewButton, { backgroundColor: colors.info }]}>
-                                    <Ionicons name="eye-outline" size={16} color="#FFFFFF" />
-                                    <Text style={styles.viewButtonText}>Xem lại lịch trình</Text>
-                                </Pressable>
                             </Pressable>
                         );
                     })}

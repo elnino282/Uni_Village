@@ -85,7 +85,7 @@ const TRANSPORTS = [
 const BUDGETS = [
   {
     id: 'low' as BudgetType,
-    icon: '💰',
+    icon: '💸',
     title: 'Cuối tháng rồi...',
     subtitle: 'Camteen, cơm 25k, trà đá',
   },

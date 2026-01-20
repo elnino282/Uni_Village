@@ -319,9 +319,7 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
           Tạo chuyến đi
         </Text>
 
-        <Pressable onPress={handleBack} hitSlop={10}>
-          <Text style={[styles.skipText, { color: colors.info }]}>Bỏ qua</Text>
-        </Pressable>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -595,16 +593,21 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
               {days.map((day) => {
                 const isActive = sameDay(day, selectedDate);
                 const isToday = sameDay(day, new Date());
+                const isPast = day < new Date(new Date().setHours(0, 0, 0, 0));
 
                 return (
                   <Pressable
                     key={day.toISOString()}
-                    onPress={() => setDay(day)}
+                    onPress={() => !isPast && setDay(day)}
+                    disabled={isPast}
                     style={[
                       styles.dayCell,
                       isActive && {
                         backgroundColor: `${colors.info}18`,
                         borderRadius: 9999,
+                      },
+                      isPast && {
+                        opacity: 0.3,
                       },
                     ]}
                   >
@@ -612,7 +615,7 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
                       style={[
                         styles.dayNumber,
                         {
-                          color: isActive ? colors.info : colors.text,
+                          color: isPast ? colors.textSecondary : isActive ? colors.info : colors.text,
                           fontWeight: isActive ? "800" : "600",
                         },
                       ]}
