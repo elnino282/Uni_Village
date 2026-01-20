@@ -7,6 +7,7 @@ import {
     Modal,
     Pressable,
     ScrollView,
+    Share,
     StyleSheet,
     Text,
     View
@@ -26,6 +27,8 @@ interface Destination {
   isCheckedIn?: boolean;
   isSkipped?: boolean;
   checkedInAt?: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface TripData {
@@ -367,7 +370,26 @@ export function CompletedTripScreen() {
         
         <Pressable 
           style={[styles.actionButton, styles.shareButton, { backgroundColor: colors.background, borderColor: colors.info, borderWidth: 1 }]}
-          onPress={() => {}}
+          onPress={async () => {
+            try {
+              if (!tripData) return;
+              
+              const completedCount = tripData.destinations.filter(d => d.isCheckedIn).length;
+              const totalCount = tripData.destinations.length;
+              const completionRate = ((completedCount / totalCount) * 100).toFixed(0);
+              
+              const destinationsList = tripData.destinations
+                .map((d, index) => `${index + 1}. ${d.name} ${d.isCheckedIn ? '✅' : d.isSkipped ? '⏭️' : '❌'}`)
+                .join('\n');
+              
+              await Share.share({
+                message: `🎉 Đã hoàn thành chuyến đi: ${tripData.tripName}\n\n📅 Ngày: ${new Date(tripData.startDate).toLocaleDateString('vi-VN')}\n✅ Hoàn thành: ${completedCount}/${totalCount} điểm (${completionRate}%)\n\n📍 Các điểm đã đi:\n${destinationsList}\n\n🚀 Tạo lịch trình của bạn với Uni Village!`,
+                title: `Chuyến đi: ${tripData.tripName}`,
+              });
+            } catch (error) {
+              console.error('Share error:', error);
+            }
+          }}
         >
           <Ionicons name="share-social-outline" size={20} color={colors.info} />
           <Text style={[styles.actionButtonText, { color: colors.info }]}>Chia sẻ</Text>

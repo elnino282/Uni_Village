@@ -21,10 +21,13 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+    Alert,
     Animated,
     Dimensions,
     Image,
+    Linking,
     Pressable,
+    Share,
     StyleSheet,
     Text,
     View
@@ -305,14 +308,40 @@ export function NavigationScreen() {
 
             <Pressable 
               style={[styles.quickActionButton, { backgroundColor: colors.card }]}
-              onPress={() => {/* Call */}}
+              onPress={async () => {
+                try {
+                  const phoneNumber = 'tel:1900XXXX'; // Replace with actual phone number
+                  const canCall = await Linking.canOpenURL(phoneNumber);
+                  if (canCall) {
+                    await Linking.openURL(phoneNumber);
+                  } else {
+                    Alert.alert('Lỗi', 'Không thể thực hiện cuộc gọi');
+                  }
+                } catch (error) {
+                  console.error('Call error:', error);
+                  Alert.alert('Lỗi', 'Không thể thực hiện cuộc gọi');
+                }
+              }}
             >
               <Ionicons name="call" size={20} color={colors.text} />
             </Pressable>
 
             <Pressable 
               style={[styles.quickActionButton, { backgroundColor: colors.card }]}
-              onPress={() => {/* Share */}}
+              onPress={async () => {
+                try {
+                  const destinationName = params.destinationName || 'Điểm đến';
+                  const distance = route?.distance || '';
+                  const duration = route?.duration || '';
+                  
+                  await Share.share({
+                    message: `🗺️ Đang đi đến: ${destinationName}\n📍 Khoảng cách: ${distance}\n⏱️ Thời gian: ${duration}\n\nVị trí: https://maps.google.com/?q=${destinationLocation.latitude},${destinationLocation.longitude}`,
+                    title: `Điều hướng đến ${destinationName}`,
+                  });
+                } catch (error) {
+                  console.error('Share error:', error);
+                }
+              }}
             >
               <Ionicons name="share-social" size={20} color={colors.text} />
             </Pressable>
