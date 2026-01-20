@@ -145,7 +145,9 @@ Yêu cầu của người dùng:
 
 Hãy đề xuất một lịch trình từ 2-4 địa điểm phù hợp ở khu vực Đại học Quốc Gia TP.HCM hoặc các khu vực gần đó.
 
-Trả về kết quả dưới dạng JSON với format sau:
+CHỈ TRẢ VỀ JSON OBJECT, KHÔNG CÓ TEXT GIẢI THÍCH HOẶC MARKDOWN.
+
+Format JSON bắt buộc:
 {
   "title": "Tên lịch trình ngắn gọn",
   "destinations": [
@@ -170,7 +172,9 @@ Trả về kết quả dưới dạng JSON với format sau:
   ]
 }
 
-Lưu ý:
+QUY TẮC:
+- CHỈ trả về JSON object thuần, bắt đầu bằng { và kết thúc bằng }
+- KHÔNG thêm text giải thích, markdown, hoặc code block
 - Thời gian bắt đầu từ 14:00
 - Khoảng cách giữa các điểm phù hợp với phương tiện di chuyển
 - Mô tả ngắn gọn, có emoji phù hợp
@@ -183,20 +187,51 @@ Lưu ý:
  */
 function parseAIResponse(aiText: string, request: ItineraryRequest): ItineraryResponse {
   try {
-    // Try to extract JSON from markdown code blocks if present
+    console.log('🔍 Raw AI response:', aiText.substring(0, 200) + '...');
+    
+    // Try multiple extraction methods
+    let jsonText = aiText;
+    
+    // Method 1: Extract from ```json code block
     const jsonMatch = aiText.match(/```json\n?([\s\S]*?)\n?```/);
-    const jsonText = jsonMatch ? jsonMatch[1] : aiText;
+    if (jsonMatch) {
+      jsonText = jsonMatch[1];
+      console.log('📝 Extracted from ```json block');
+    }
+    
+    // Method 2: Extract from ``` code block (no language specified)
+    if (!jsonMatch) {
+      const codeMatch = aiText.match(/```\n?([\s\S]*?)\n?```/);
+      if (codeMatch) {
+        jsonText = codeMatch[1];
+        console.log('📝 Extracted from ``` block');
+      }
+    }
+    
+    // Method 3: Find JSON object directly (look for { ... })
+    if (!jsonMatch) {
+      const objectMatch = aiText.match(/\{[\s\S]*\}/);
+      if (objectMatch) {
+        jsonText = objectMatch[0];
+        console.log('📝 Extracted JSON object directly');
+      }
+    }
+    
+    // Clean up the text
+    jsonText = jsonText.trim();
     
     const parsed = JSON.parse(jsonText);
     
     // Validate the response structure
     if (!parsed.title || !Array.isArray(parsed.destinations)) {
-      throw new Error('Invalid response structure');
+      throw new Error('Invalid response structure - missing title or destinations');
     }
     
+    console.log('✅ Successfully parsed AI response:', parsed.title);
     return parsed as ItineraryResponse;
   } catch (error) {
-    console.error('Failed to parse AI response:', error);
+    console.error('❌ Failed to parse AI response:', error);
+    console.error('Raw text that failed:', aiText);
     // Return fallback mock data
     return generateMockItinerary(request);
   }
