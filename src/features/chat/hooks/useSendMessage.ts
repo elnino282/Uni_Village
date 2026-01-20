@@ -5,6 +5,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 
+import { useAuthStore } from '@/features/auth/store/authStore';
+import type { MessageResponse } from '@/shared/types/backend.types';
+import type { Slice } from '@/shared/types/pagination.types';
 import { conversationsApi, messagesApi } from '../api';
 import { 
   isVirtualThreadId, 
@@ -25,8 +28,9 @@ interface SendMessageResult {
 export function useSendMessage() {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { user } = useAuthStore();
 
-  return useMutation<SendMessageResult, Error, SendMessageInput>({
+  return useMutation<SendMessageResult, Error, SendMessageInput, { previousMessages: unknown }>({
     mutationFn: async ({ threadId, text }) => {
       let conversationId = threadId;
       const wasVirtual = isVirtualThreadId(threadId);
@@ -52,10 +56,71 @@ export function useSendMessage() {
         wasVirtual,
       };
     },
+    onMutate: async ({ threadId, text }) => {
+      // Don't optimize for virtual threads as they don't have a message list yet
+      if (isVirtualThreadId(threadId)) {
+        return { previousMessages: null };
+      }
+
+      const queryKey = queryKeys.messages.list(threadId, {});
+
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData(queryKey);
+
+      // Optimistically update to the new value
+      if (user) {
+        const optimisticMessage: MessageResponse = {
+          id: Date.now(), // Temporary ID
+          content: text,
+          senderId: Number(user.id),
+          senderName: user.displayName,
+          senderAvatarUrl: user.avatarUrl,
+          timestamp: new Date().toISOString(),
+        };
+
+        queryClient.setQueryData<{ pages: Slice<MessageResponse>[]; pageParams: any[] }>(
+          queryKey,
+          (old) => {
+            if (!old || !old.pages || old.pages.length === 0) {
+              return old;
+            }
+
+            const newPages = [...old.pages];
+            newPages[0] = {
+              ...newPages[0],
+              content: [optimisticMessage, ...newPages[0].content],
+              numberOfElements: (newPages[0].numberOfElements || 0) + 1,
+            };
+
+            return {
+              ...old,
+              pages: newPages,
+            };
+          }
+        );
+      }
+
+      return { previousMessages };
+    },
+    onError: (err, newTodo, context) => {
+      if (!isVirtualThreadId(newTodo.threadId) && context?.previousMessages) {
+        queryClient.setQueryData(
+          queryKeys.messages.list(newTodo.threadId, {}),
+          context.previousMessages
+        );
+      }
+    },
     onSuccess: (result, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.messages.list(result.conversationId, {}),
-      });
+      // For normal threads, we want to invalidate to get the real message ID and status
+      if (!result.wasVirtual) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.messages.list(result.conversationId, {}),
+        });
+      }
+
       queryClient.invalidateQueries({ 
         queryKey: queryKeys.conversations.all 
       });

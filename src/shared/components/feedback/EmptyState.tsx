@@ -28,7 +28,7 @@ export function EmptyState({
         <View style={[styles.container, style]}>
             <Text style={styles.icon}>{icon}</Text>
             <Text style={styles.title}>{title}</Text>
-            {message && <Text style={styles.message}>{message}</Text>}
+            {!!message && <Text style={styles.message}>{message}</Text>}
             {actionLabel && onAction && (
                 <Button
                     title={actionLabel}

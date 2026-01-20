@@ -34,8 +34,8 @@ export const messagesApi = {
     sendMessage: (data: MessageRequest): Promise<ApiResponse<MessageResponse>> =>
         apiClient.post<ApiResponse<MessageResponse>>(API_ENDPOINTS.MESSAGES.SEND, {
             content: data.content,
+            replyToId: data.replyToId,
             ConversationId: data.ConversationId,
-            ...(data.replyToId !== undefined && { replyToId: data.replyToId }),
         }),
 
     sendMessageWithFiles: (
