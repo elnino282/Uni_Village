@@ -30,7 +30,7 @@ interface MessageBubbleProps {
 /**
  * Chat message bubble with timestamp and optional sender label
  */
-export const MessageBubble = React.memo(function MessageBubble({
+export function MessageBubble({
   text,
   sender,
   timeLabel,
@@ -82,7 +82,7 @@ export const MessageBubble = React.memo(function MessageBubble({
       </View>
     </View>
   );
-});
+}
 
 const styles = StyleSheet.create({
   container: {

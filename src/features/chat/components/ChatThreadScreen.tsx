@@ -23,7 +23,6 @@ import type { MessageResponse } from "@/shared/types/backend.types";
 import type { ParticipantStatus } from "../api/conversations.api";
 import type { RelationshipStatus } from "../api/friends.api";
 import {
-  useChatSubscription,
   useMessages,
   useSendMessage,
   useSendSharedCard,
@@ -89,9 +88,6 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const messagesQuery = useMessages(threadId);
   const { mutateAsync: sendMessage, isPending: isSending } = useSendMessage();
   const { mutate: sendSharedCard } = useSendSharedCard();
-
-  // Subscribe to realtime messages
-  useChatSubscription(threadId);
 
   // Flatten and map messages from paginated response
   const rawMessages = messagesQuery.data?.pages?.flatMap(page => page?.content || []) || [];
@@ -182,7 +178,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   if (isLoadingThread || !thread) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <EmptyState icon="💬" title={t("common.loading")} />
+        <EmptyState icon="💬" title={t("common.loading")} message="" />
       </View>
     );
   }

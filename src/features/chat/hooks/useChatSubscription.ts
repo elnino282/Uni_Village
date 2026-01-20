@@ -5,7 +5,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef } from 'react';
 
-import { useAuthStore } from '@/features/auth/store/authStore';
 import { queryKeys } from '@/config/queryKeys';
 import type { MessageEvent, WebSocketMessage } from '@/lib/websocket';
 import { websocketService } from '@/lib/websocket';
@@ -28,7 +27,6 @@ interface InfiniteMessagesData {
 export function useChatSubscription(conversationId: string | undefined) {
     const queryClient = useQueryClient();
     const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
-    const { user } = useAuthStore();
 
     const handleMessageEvent = useCallback(
         (wsMessage: WebSocketMessage<MessageEvent>) => {
@@ -41,11 +39,6 @@ export function useChatSubscription(conversationId: string | undefined) {
                     // Prepend new message to the first page
                     const newMessage = wsMessage.data.message;
                     if (!newMessage) return;
-
-                    // Ignore my own messages (handled by optimistic updates)
-                    if (user && newMessage.senderId === Number(user.id)) {
-                        return;
-                    }
 
                     queryClient.setQueryData<InfiniteMessagesData>(
                         queryKey,
