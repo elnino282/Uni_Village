@@ -1,7 +1,7 @@
 import { authApi } from '../api';
 import { useAuthStore } from '../store/authStore';
-import { isAuthResponse, mapAuthResponse } from '../types';
 import type { ForgetPasswordRequest, LoginRequest, RegisterRequest, VerifyRequest } from '../types';
+import { isAuthResponse, mapAuthResponse } from '../types';
 
 interface AuthResponse {
     success: boolean;
@@ -28,14 +28,12 @@ export const authService = {
     },
 
     register: async (
-        fullname: string,
         email: string,
         username: string,
         password: string
     ): Promise<AuthResponse> => {
         try {
             const data: RegisterRequest = {
-                fullname,
                 email,
                 username,
                 password,

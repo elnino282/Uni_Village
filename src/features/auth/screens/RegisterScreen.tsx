@@ -47,8 +47,8 @@ export function RegisterScreen() {
         resolver: zodResolver(registerSchema),
         mode: 'onChange',
         defaultValues: {
-            name: '',
-            identifier: '',
+            username: '',
+            email: '',
             password: '',
             confirmPassword: '',
             termsAccepted: false,
@@ -61,9 +61,8 @@ export function RegisterScreen() {
         setIsSubmitting(true);
         try {
             const result = await authService.register(
-                data.name.trim(),
-                data.identifier,
-                data.identifier.split('@')[0],
+                data.email,
+                data.username.trim(),
                 data.password
             );
 
@@ -78,7 +77,7 @@ export function RegisterScreen() {
                                 router.push({
                                     pathname: '/(auth)/verify-otp',
                                     params: {
-                                        email: data.identifier,
+                                        email: data.email,
                                         flowType: 'register',
                                     },
                                 });
@@ -156,37 +155,37 @@ export function RegisterScreen() {
 
                     {/* Form */}
                     <View style={styles.form}>
-                        {/* Name Input */}
+                        {/* Username Input */}
                         <Controller
                             control={control}
-                            name="name"
+                            name="username"
                             render={({ field: { onChange, onBlur, value } }) => (
                                 <AuthInput
-                                    placeholder="Username"
+                                    placeholder="Tên đăng nhập"
                                     leftIconName="person-outline"
                                     value={value}
                                     onChangeText={onChange}
                                     onBlur={onBlur}
-                                    autoCapitalize="words"
-                                    error={dirtyFields.name ? errors.name?.message : undefined}
+                                    autoCapitalize="none"
+                                    error={dirtyFields.username ? errors.username?.message : undefined}
                                 />
                             )}
                         />
 
-                        {/* Email/Phone Input */}
+                        {/* Email Input */}
                         <Controller
                             control={control}
-                            name="identifier"
+                            name="email"
                             render={({ field: { onChange, onBlur, value } }) => (
                                 <AuthInput
-                                    placeholder="Email / Số điện thoại"
+                                    placeholder="Email"
                                     leftIconName="mail-outline"
                                     value={value}
                                     onChangeText={onChange}
                                     onBlur={onBlur}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
-                                    error={dirtyFields.identifier ? errors.identifier?.message : undefined}
+                                    error={dirtyFields.email ? errors.email?.message : undefined}
                                 />
                             )}
                         />

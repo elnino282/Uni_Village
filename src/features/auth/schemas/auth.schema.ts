@@ -16,12 +16,12 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
-    name: z
+    username: z
         .string()
-        .min(2, 'Họ và tên phải có ít nhất 2 ký tự')
-        .max(100, 'Họ và tên không được quá 100 ký tự')
-        .regex(/^[\p{L}\s]+$/u, 'Họ và tên chỉ được chứa chữ cái và khoảng trắng'),
-    identifier: z
+        .min(3, 'Tên đăng nhập phải có ít nhất 3 ký tự')
+        .max(50, 'Tên đăng nhập không được quá 50 ký tự')
+        .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Tên đăng nhập phải bắt đầu bằng chữ cái và chỉ chứa chữ cái, số, dấu gạch dưới'),
+    email: z
         .string()
         .min(1, 'Vui lòng nhập email')
         .email('Email không hợp lệ'),
