@@ -25,7 +25,7 @@ interface MessageListProps {
 /**
  * Renders individual message item
  */
-function MessageItem({ message, isGroupChat }: { message: Message; isGroupChat: boolean }) {
+const MessageItem = React.memo(function MessageItem({ message, isGroupChat }: { message: Message; isGroupChat: boolean }) {
   if (message.type === 'sharedCard') {
     return (
       <SharedCardMessage
@@ -47,7 +47,7 @@ function MessageItem({ message, isGroupChat }: { message: Message; isGroupChat: 
       isGroupChat={isGroupChat}
     />
   );
-}
+});
 
 /**
  * Chat message list with auto-scroll

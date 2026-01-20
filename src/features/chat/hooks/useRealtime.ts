@@ -46,42 +46,6 @@ export function useWebSocketConnection() {
     };
 }
 
-export function useConversationMessages(conversationId: string | undefined) {
-    const queryClient = useQueryClient();
-    const [realtimeMessages, setRealtimeMessages] = useState<MessageResponse[]>([]);
-
-    useEffect(() => {
-        if (!conversationId || !websocketService.isConnected()) {
-            return;
-        }
-
-        const subscription = websocketService.subscribeToConversation(
-            conversationId,
-            (message: WebSocketMessage<MessageEvent>) => {
-                if (message.eventType === 'SEND' && message.data.message) {
-                    setRealtimeMessages((prev) => [...prev, message.data.message]);
-                    
-                    queryClient.invalidateQueries({
-                        queryKey: queryKeys.messages.list(conversationId, {}),
-                    });
-                } else if (message.eventType === 'EDIT' || message.eventType === 'UNSEND') {
-                    queryClient.invalidateQueries({
-                        queryKey: queryKeys.messages.list(conversationId, {}),
-                    });
-                }
-            }
-        );
-
-        return () => {
-            if (subscription) {
-                subscription.unsubscribe();
-            }
-        };
-    }, [conversationId, queryClient]);
-
-    return { realtimeMessages };
-}
-
 export function useTypingIndicator(conversationId: string | undefined) {
     const [typingUsers, setTypingUsers] = useState<Map<number, TypingEvent>>(new Map());
     const typingTimeouts = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
