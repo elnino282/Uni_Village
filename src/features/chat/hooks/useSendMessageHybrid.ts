@@ -18,6 +18,7 @@ interface SendMessageInput {
     threadId: string;
     text: string;
     replyToId?: number;
+    recipientId?: number;
     senderInfo: {
         id: number;
         displayName: string;
@@ -36,7 +37,7 @@ const ACK_TIMEOUT = 5000;
 
 export function useSendMessageHybrid() {
     const queryClient = useQueryClient();
-    const { handleAck } = useChatStore();
+    const { handleAck, addPendingMessage } = useChatStore();
     const pendingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
     useEffect(() => {
@@ -198,17 +199,30 @@ export function useSendMessageHybrid() {
                 return { ...oldData, pages: newPages };
             });
 
+            // Add to store to track ACK
+            addPendingMessage({
+                clientMessageId,
+                recipientId: input.recipientId || 0,
+                content: input.text,
+                replyToId: input.replyToId,
+            });
+
             const isWSConnected = websocketService.isConnected();
 
-            if (!isWSConnected) {
-                console.log('[Hybrid Send] WebSocket not connected, using HTTP directly');
+            // Only use WebSocket if connected AND we have a valid recipientId (mostly for DMs)
+            if (!isWSConnected || !input.recipientId) {
+                console.log(
+                    !isWSConnected
+                        ? '[Hybrid Send] WebSocket not connected, using HTTP directly'
+                        : '[Hybrid Send] No recipientId provided (Group Chat?), using HTTP directly'
+                );
                 return sendViaHTTP(input, clientMessageId);
             }
 
             console.log('[Hybrid Send] Attempting WebSocket send:', clientMessageId);
 
             websocketService.sendChatMessage({
-                recipientId: Number(input.threadId.split('-')[1] || '0'),
+                recipientId: input.recipientId,
                 content: input.text,
                 clientMessageId,
                 replyToId: input.replyToId,

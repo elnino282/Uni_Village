@@ -144,6 +144,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
         await sendMessageHybrid({
           threadId,
           text,
+          recipientId: otherUserId ?? undefined,
           senderInfo: {
             id: user.id,
             displayName: user.displayName,
@@ -214,14 +215,40 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
       threadId,
       (message) => {
         console.log('[ChatThread] WS event:', message.eventType);
-        
-        if (message.eventType === 'EDIT') {
+        const eventData = message.data as any;
+
+        if (message.eventType === 'SEND') {
+            // New message received
+            const newMessage = eventData.message as MessageResponse;
+            if (!newMessage) return;
+
+            const queryKey = queryKeys.messages.list(threadId, {});
+            queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
+                if (!oldData?.pages?.length) return oldData;
+
+                // Avoid duplicates (if we already have it from global subscription or optimistic)
+                const exists = oldData.pages[0]?.content.some(msg => msg.id === newMessage.id);
+                if (exists) return oldData;
+
+                const newPages = [...oldData.pages];
+                newPages[0] = {
+                    ...newPages[0],
+                    content: [newMessage, ...newPages[0].content],
+                    numberOfElements: newPages[0].numberOfElements + 1,
+                };
+
+                return { ...oldData, pages: newPages };
+            });
+
+        } else if (message.eventType === 'EDIT') {
           // Update edited message in cache
           const queryKey = queryKeys.messages.list(threadId, {});
           queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
             if (!oldData?.pages?.length) return oldData;
 
-            const editedMessage = message.data as MessageResponse;
+            const editedMessage = eventData.message as MessageResponse;
+            if (!editedMessage) return oldData;
+
             const newPages = oldData.pages.map((page) => ({
               ...page,
               content: page.content.map((msg) =>
@@ -237,8 +264,12 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
           queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
             if (!oldData?.pages?.length) return oldData;
 
-            const eventData = message.data as any;
-            const messageId = eventData.messageId as number;
+            // UNSEND event might have message object or just messageId
+            // Check structure based on types.ts, but fallback to any
+            const messageId = eventData.message?.id || eventData.messageId;
+
+            if (!messageId) return oldData;
+
             const newPages = oldData.pages.map((page) => ({
               ...page,
               content: page.content.map((msg) =>
