@@ -8,11 +8,14 @@ import { useColorScheme } from '@/shared/hooks';
 import type { RelationshipStatus } from '../api/friends.api';
 import { useAcceptFriendRequest, useSendFriendRequest } from '../hooks';
 
+// Conversation API might return 'ACCEPTED', while Friends API returns 'FRIEND'
+type BannerRelationshipStatus = RelationshipStatus | 'ACCEPTED';
+
 interface AddFriendBannerProps {
     otherUserId: number;
     otherUserName: string;
-    relationshipStatus: RelationshipStatus;
-    onStatusChange?: (newStatus: RelationshipStatus) => void;
+    relationshipStatus: BannerRelationshipStatus;
+    onStatusChange?: (newStatus: BannerRelationshipStatus) => void;
 }
 
 export function AddFriendBanner({ 
@@ -43,14 +46,14 @@ export function AddFriendBanner({
     const handleAcceptRequest = async () => {
         try {
             await acceptRequest(otherUserId);
-            setCurrentStatus('ACCEPTED');
-            onStatusChange?.('ACCEPTED');
+            setCurrentStatus('FRIEND');
+            onStatusChange?.('FRIEND');
         } catch (error) {
             Alert.alert('Lỗi', 'Không thể chấp nhận lời mời. Vui lòng thử lại.');
         }
     };
 
-    if (currentStatus === 'ACCEPTED' || currentStatus === 'BLOCKED' || currentStatus === 'BLOCKED_BY') {
+    if (currentStatus === 'ACCEPTED' || currentStatus === 'FRIEND' || currentStatus === 'BLOCKED' || currentStatus === 'BLOCKED_BY') {
         return null;
     }
 
