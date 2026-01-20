@@ -6,6 +6,7 @@ export * from './useFriends';
 export * from './useGroupMembers';
 export * from './useMessageReactions';
 export { useDeleteMessage, useMarkAsRead, useMessages, useSearchMessages, useSendMessageWithFiles, useUpdateMessage } from './useMessages';
+export * from './useNavigateToChat';
 export * from './useOnlineStatus';
 export * from './usePinnedMessages';
 export * from './useRealtime';
