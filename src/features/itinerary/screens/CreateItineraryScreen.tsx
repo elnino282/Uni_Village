@@ -773,7 +773,13 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
           onRequestClose={() => setShowLocationPicker(false)}
         >
           <LocationPicker
-            initialLocation={location ? { latitude: location.latitude, longitude: location.longitude } : undefined}
+            initialLocation={
+              selectedLocation 
+                ? { latitude: selectedLocation.latitude, longitude: selectedLocation.longitude }
+                : location 
+                ? { latitude: location.latitude, longitude: location.longitude } 
+                : undefined
+            }
             onLocationSelect={(loc) => {
               setSelectedLocation(loc);
               setShowLocationPicker(false);

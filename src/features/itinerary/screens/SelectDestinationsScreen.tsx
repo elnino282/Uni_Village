@@ -122,13 +122,13 @@ export function SelectDestinationsScreen({
     );
   }, [nearbyPlaces, searchQuery]);
 
-  // Map region
+  // Map region - use user location when available
   const initialRegion: MapRegion = useMemo(() => ({
-    latitude: 10.7626,
-    longitude: 106.6824,
+    latitude: userLocation?.latitude || 10.7626,
+    longitude: userLocation?.longitude || 106.6824,
     latitudeDelta: 0.015,
     longitudeDelta: 0.015,
-  }), []);
+  }), [userLocation]);
 
   // Convert places to markers
   const markers: MapMarker[] = useMemo(() => {
@@ -235,6 +235,16 @@ export function SelectDestinationsScreen({
   const handleBack = useCallback(() => {
     requestClose();
   }, [requestClose]);
+
+  // Animate to user location when it becomes available
+  useEffect(() => {
+    if (userLocation && mapRef.current) {
+      mapRef.current.animateToCoordinate({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+      });
+    }
+  }, [userLocation]);
 
   // Confirm modal fade animation
   useEffect(() => {

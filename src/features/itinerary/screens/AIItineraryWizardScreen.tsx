@@ -25,6 +25,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { MapAdapter } from "@/features/map/components/MapAdapter";
 import { generateItinerary } from "@/lib/ai/geminiService";
 import { Colors, useColorScheme } from "@/shared";
 
@@ -159,6 +160,7 @@ export function AIItineraryWizardScreen() {
 
   const handleGenerate = async () => {
     setIsGenerating(true);
+    const startTime = Date.now();
 
     try {
       // This will use mock data now, but will use real Gemini AI when you add API key
@@ -167,6 +169,13 @@ export function AIItineraryWizardScreen() {
         transport: wizardData.transport!,
         budget: wizardData.budget!,
       });
+
+      // Ensure loading screen shows for at least 3 seconds
+      const elapsed = Date.now() - startTime;
+      const minLoadingTime = 3000;
+      if (elapsed < minLoadingTime) {
+        await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed));
+      }
 
       setGeneratedItinerary(itinerary);
     } catch (error) {
@@ -460,12 +469,32 @@ export function AIItineraryWizardScreen() {
           {generatedItinerary.title}
         </Text>
 
-        {/* Map Preview Placeholder */}
-        <View style={[styles.mapPreview, { backgroundColor: colors.border }]}>
-          <Ionicons name="map" size={48} color={colors.icon} />
-          <Text style={[styles.mapPreviewText, { color: colors.textSecondary }]}>
-            Bản đồ lộ trình
-          </Text>
+        {/* Map Preview with Route */}
+        <View style={styles.mapPreview}>
+          <MapAdapter
+            initialRegion={{
+              latitude: generatedItinerary.destinations[0]?.latitude || 10.7626,
+              longitude: generatedItinerary.destinations[0]?.longitude || 106.6824,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+            markers={generatedItinerary.destinations.map((dest: any) => ({
+              id: dest.id,
+              coordinate: {
+                latitude: dest.latitude,
+                longitude: dest.longitude,
+              },
+              title: dest.name,
+              description: dest.description,
+              category: dest.category as any,
+            }))}
+            routePolyline={generatedItinerary.destinations.map((dest: any) => ({
+              latitude: dest.latitude,
+              longitude: dest.longitude,
+            }))}
+            showPolylineStroke
+            colorScheme={colorScheme}
+          />
         </View>
 
         {/* Timeline */}
@@ -778,13 +807,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 8,
     marginBottom: 4,
   },
   resultSubtitle: {
     fontSize: 15,
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   mapPreview: {
     marginHorizontal: 20,
