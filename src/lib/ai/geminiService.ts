@@ -44,7 +44,7 @@ export interface ItineraryResponse {
 
 /**
  * Generate an itinerary based on user preferences
- * Uses real Gemini AI API with fallback to mock data
+ * Uses real Gemini AI API with retry logic and fallback to mock data
  */
 export async function generateItinerary(request: ItineraryRequest): Promise<ItineraryResponse> {
   try {
@@ -60,50 +60,88 @@ export async function generateItinerary(request: ItineraryRequest): Promise<Itin
 
     console.log('🤖 Calling Gemini AI...');
 
-    // Call Gemini API with the newer model
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
+    // Try with retry logic (max 3 attempts with exponential backoff)
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`📡 Attempt ${attempt}/${maxRetries}...`);
+
+        // Call Gemini API with the newer model
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: prompt
+                }]
+              }],
+              generationConfig: {
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 1024,
+              }
+            })
           }
-        })
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          const error = new Error(`Gemini API error: ${response.statusText} - ${errorText}`);
+          
+          // If 503 (overloaded) or 429 (rate limit), retry with backoff
+          if (response.status === 503 || response.status === 429) {
+            lastError = error;
+            if (attempt < maxRetries) {
+              const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+              console.warn(`⏳ Model overloaded, retrying in ${waitTime / 1000}s...`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              continue;
+            }
+          }
+          
+          throw error;
+        }
+
+        const data = await response.json();
+        
+        // Parse the AI response
+        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!aiText) {
+          throw new Error('No response from Gemini AI');
+        }
+
+        console.log('✅ Gemini AI response received');
+
+        // Parse the JSON response from AI
+        const itinerary = parseAIResponse(aiText, request);
+        
+        return itinerary;
+
+      } catch (error) {
+        lastError = error as Error;
+        
+        // If not a retryable error, throw immediately
+        if (!error.message.includes('503') && !error.message.includes('429')) {
+          throw error;
+        }
+        
+        // Last attempt failed, throw
+        if (attempt === maxRetries) {
+          throw error;
+        }
       }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API error: ${response.statusText} - ${errorText}`);
     }
 
-    const data = await response.json();
-    
-    // Parse the AI response
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    if (!aiText) {
-      throw new Error('No response from Gemini AI');
-    }
-
-    console.log('✅ Gemini AI response received');
-
-    // Parse the JSON response from AI
-    const itinerary = parseAIResponse(aiText, request);
-    
-    return itinerary;
+    throw lastError || new Error('Failed after retries');
     
   } catch (error) {
     console.error('❌ Gemini API Error:', error);
