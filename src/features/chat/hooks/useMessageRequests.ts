@@ -4,12 +4,10 @@
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { env } from '@/config/env';
 import { queryKeys } from '@/config/queryKeys';
 import { apiClient } from '@/lib/api/client';
+import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import { useChatStore } from '../store';
-
-const BASE_URL = `${env.API_URL}/conversations`;
 
 /**
  * Accept a message request - upgrades conversation from REQUEST to INBOX
@@ -44,7 +42,7 @@ export function useDeleteMessageRequest() {
 
     return useMutation({
         mutationFn: async (conversationId: string) => {
-            await apiClient.delete(`${BASE_URL}/${conversationId}/request`);
+            await apiClient.delete(API_ENDPOINTS.CONVERSATIONS.DELETE_REQUEST(conversationId));
             return conversationId;
         },
         onSuccess: (conversationId) => {

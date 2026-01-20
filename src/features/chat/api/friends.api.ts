@@ -2,10 +2,8 @@
  * Friend API Service
  * REST API calls for friend request and relationship management
  */
-import { env } from '@/config/env';
 import { apiClient } from '@/lib/api/client';
-
-const BASE_URL = `${env.API_URL}/friends`;
+import { API_ENDPOINTS } from '@/lib/api/endpoints';
 
 /**
  * Relationship status between users
@@ -67,7 +65,7 @@ export const friendsApi = {
      */
     getRelationshipStatus: async (targetUserId: number): Promise<RelationshipStatusResponse> => {
         const response = await apiClient.get<{ result: RelationshipStatusResponse }>(
-            `${BASE_URL}/status/${targetUserId}`
+            API_ENDPOINTS.FRIENDS.STATUS(targetUserId)
         );
         return response.result;
     },
@@ -76,49 +74,49 @@ export const friendsApi = {
      * Send a friend request to a user
      */
     sendFriendRequest: async (targetUserId: number): Promise<void> => {
-        await apiClient.post(`${BASE_URL}/request/${targetUserId}`);
+        await apiClient.post(API_ENDPOINTS.FRIENDS.SEND_REQUEST(targetUserId));
     },
 
     /**
      * Accept an incoming friend request
      */
     acceptFriendRequest: async (requesterId: number): Promise<void> => {
-        await apiClient.post(`${BASE_URL}/accept/${requesterId}`);
+        await apiClient.post(API_ENDPOINTS.FRIENDS.ACCEPT_REQUEST(requesterId));
     },
 
     /**
      * Decline an incoming friend request
      */
     declineFriendRequest: async (requesterId: number): Promise<void> => {
-        await apiClient.post(`${BASE_URL}/decline/${requesterId}`);
+        await apiClient.post(API_ENDPOINTS.FRIENDS.DECLINE_REQUEST(requesterId));
     },
 
     /**
      * Cancel an outgoing friend request
      */
     cancelFriendRequest: async (targetUserId: number): Promise<void> => {
-        await apiClient.delete(`${BASE_URL}/cancel/${targetUserId}`);
+        await apiClient.delete(API_ENDPOINTS.FRIENDS.CANCEL_REQUEST(targetUserId));
     },
 
     /**
      * Remove a friend
      */
     removeFriend: async (friendId: number): Promise<void> => {
-        await apiClient.delete(`${BASE_URL}/${friendId}`);
+        await apiClient.delete(API_ENDPOINTS.FRIENDS.REMOVE_FRIEND(friendId));
     },
 
     /**
      * Block a user
      */
     blockUser: async (userId: number): Promise<void> => {
-        await apiClient.post(`${BASE_URL}/block/${userId}`);
+        await apiClient.post(API_ENDPOINTS.FRIENDS.BLOCK(userId));
     },
 
     /**
      * Unblock a user
      */
     unblockUser: async (userId: number): Promise<void> => {
-        await apiClient.delete(`${BASE_URL}/block/${userId}`);
+        await apiClient.delete(API_ENDPOINTS.FRIENDS.UNBLOCK(userId));
     },
 
     /**
@@ -126,7 +124,7 @@ export const friendsApi = {
      */
     getIncomingRequests: async (page = 0, size = 20): Promise<FriendRequestsPage> => {
         const response = await apiClient.get<{ result: FriendRequestsPage }>(
-            `${BASE_URL}/requests/incoming?page=${page}&size=${size}`
+            `${API_ENDPOINTS.FRIENDS.INCOMING_REQUESTS}?page=${page}&size=${size}`
         );
         return response.result;
     },
@@ -136,7 +134,7 @@ export const friendsApi = {
      */
     getOutgoingRequests: async (page = 0, size = 20): Promise<FriendRequestsPage> => {
         const response = await apiClient.get<{ result: FriendRequestsPage }>(
-            `${BASE_URL}/requests/outgoing?page=${page}&size=${size}`
+            `${API_ENDPOINTS.FRIENDS.OUTGOING_REQUESTS}?page=${page}&size=${size}`
         );
         return response.result;
     },
@@ -153,7 +151,7 @@ export const friendsApi = {
             params.append('search', search);
         }
         const response = await apiClient.get<{ result: FriendRequestsPage }>(
-            `${BASE_URL}?${params}`
+            `${API_ENDPOINTS.FRIENDS.LIST}?${params}`
         );
         return response.result;
     },
@@ -163,7 +161,7 @@ export const friendsApi = {
      */
     getMutualFriends: async (userId: number, page = 0, size = 20): Promise<FriendRequestsPage> => {
         const response = await apiClient.get<{ result: FriendRequestsPage }>(
-            `${BASE_URL}/mutual/${userId}?page=${page}&size=${size}`
+            `${API_ENDPOINTS.FRIENDS.MUTUAL(userId)}?page=${page}&size=${size}`
         );
         return response.result;
     },

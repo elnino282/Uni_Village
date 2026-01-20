@@ -181,6 +181,8 @@ export const API_ENDPOINTS = {
         JOIN: (conversationId: string) => `/api/v1/conversations/join/${conversationId}`,
         ACCEPT_JOIN: (joinRequestId: number) => `/api/v1/conversations/join/accept/${joinRequestId}`,
         REJECT_JOIN: (joinRequestId: number) => `/api/v1/conversations/join/reject/${joinRequestId}`,
+        ACCEPT_REQUEST: (conversationId: string) => `/api/v1/conversations/${conversationId}/accept`,
+        DELETE_REQUEST: (conversationId: string) => `/api/v1/conversations/${conversationId}/request`,
     },
 
     // ============================================
@@ -198,6 +200,7 @@ export const API_ENDPOINTS = {
         LIST: '/api/v1/friends',
         INCOMING_REQUESTS: '/api/v1/friends/requests/incoming',
         OUTGOING_REQUESTS: '/api/v1/friends/requests/outgoing',
+        MUTUAL: (userId: number) => `/api/v1/friends/mutual/${userId}`,
     },
 
     // ============================================
