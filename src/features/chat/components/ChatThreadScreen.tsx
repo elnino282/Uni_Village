@@ -4,6 +4,7 @@
  * Matches Figma node 317:2269 (DM) and 317:2919 (Group)
  */
 import BottomSheet from "@gorhom/bottom-sheet";
+import * as ImagePicker from "expo-image-picker";
 import { router, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,6 +21,7 @@ import "@/lib/i18n";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import type { MessageResponse } from "@/shared/types/backend.types";
+import { MessageType } from "@/shared/types/backend.types";
 import { websocketService } from "@/lib/websocket";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/config/queryKeys";
@@ -31,7 +33,7 @@ import {
   useThread,
 } from "../hooks";
 import { isVirtualThreadId } from "../services";
-import type { ChatThread, GroupThread, Message, TextMessage, UserPreview } from "../types";
+import type { ChatThread, GroupThread, ImageMessage, Message, TextMessage, UserPreview } from "../types";
 import { isGroupThread } from "../types";
 import { AcceptMessageRequestBanner } from "./AcceptMessageRequestBanner";
 import { AddFriendBanner } from "./AddFriendBanner";
@@ -53,6 +55,24 @@ function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Messa
 
   const optimisticMsg = msg as any;
   const status = optimisticMsg._status || 'sent';
+
+  if (msg.messageType === MessageType.IMAGE) {
+    const fileUrls = (msg as any).fileUrls as string[] | undefined;
+    const imageUrl = fileUrls && fileUrls.length > 0 ? fileUrls[0] : '';
+
+    return {
+      id: String(msg.id ?? Date.now()),
+      type: 'image' as const,
+      imageUrl,
+      caption: msg.content,
+      sender: isSentByMe ? 'me' : 'other',
+      createdAt: msg.timestamp ?? new Date().toISOString(),
+      timeLabel,
+      status,
+      senderName: msg.senderName,
+      senderAvatar: msg.senderAvatarUrl,
+    } satisfies ImageMessage;
+  }
 
   return {
     id: String(msg.id ?? Date.now()),
@@ -91,7 +111,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   // Data fetching
   const { data: thread, isLoading: isLoadingThread } = useThread(threadId);
   const messagesQuery = useMessages(threadId);
-  const { sendMessage: sendMessageHybrid, canSend } = useSendMessageHybrid();
+  const { sendMessage: sendMessageHybrid, sendImage, canSend } = useSendMessageHybrid();
   const { mutate: sendSharedCard } = useSendSharedCard();
 
   // Flatten and map messages from paginated response
@@ -158,10 +178,42 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
     [sendMessageHybrid, threadId]
   );
 
-  const handleImagePress = useCallback(() => {
-    // TODO: Implement image picker
-    console.log("Image attachment pressed");
-  }, []);
+  const handleImagePress = useCallback(async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const user = useAuthStore.getState().user;
+
+        if (!user || !user.id) return;
+
+        // Extract name and type if missing
+        const fileName = asset.fileName || `image_${Date.now()}.jpg`;
+        const fileType = asset.mimeType || 'image/jpeg';
+
+        await sendImage(
+          threadId,
+          {
+            uri: asset.uri,
+            name: fileName,
+            type: fileType,
+          },
+          {
+            id: user.id,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Failed to pick image:", error);
+      Alert.alert("Error", "Failed to select image");
+    }
+  }, [sendImage, threadId]);
 
   const handleCalendarPress = useCallback(() => {
     // Open itinerary share sheet

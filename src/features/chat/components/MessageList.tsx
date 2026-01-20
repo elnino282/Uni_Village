@@ -12,6 +12,7 @@ import { Colors, Spacing } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 
 import type { Message } from '../types';
+import { ImageMessageBubble } from './ImageMessageBubble';
 import { MessageBubble } from './MessageBubble';
 import { SharedCardMessage } from './SharedCardMessage';
 
@@ -32,6 +33,21 @@ function MessageItem({ message, isGroupChat }: { message: Message; isGroupChat: 
         card={message.card}
         timeLabel={message.timeLabel}
         status={message.status}
+      />
+    );
+  }
+
+  if (message.type === 'image') {
+    return (
+      <ImageMessageBubble
+        imageUrl={message.imageUrl}
+        caption={message.caption}
+        sender={message.sender}
+        timeLabel={message.timeLabel}
+        status={message.status}
+        senderName={message.senderName}
+        senderAvatar={message.senderAvatar}
+        isGroupChat={isGroupChat}
       />
     );
   }

@@ -300,6 +300,79 @@ export function useSendMessageHybrid() {
         ]
     );
 
+    const sendImage = useCallback(
+        async (
+            threadId: string,
+            file: { uri: string; name: string; type: string },
+            senderInfo: { id: number; displayName: string; avatarUrl?: string },
+            caption?: string
+        ) => {
+            const clientMessageId = WebSocketService.generateClientMessageId();
+
+            // Optimistic message
+            const optimisticMessage: OptimisticMessage = {
+                id: -Date.now(),
+                _clientMessageId: clientMessageId,
+                _isOptimistic: true,
+                _status: 'sending',
+                senderId: senderInfo.id,
+                senderName: senderInfo.displayName,
+                senderAvatarUrl: senderInfo.avatarUrl,
+                content: caption || '',
+                messageType: MessageType.IMAGE,
+                conversationId: threadId,
+                timestamp: new Date().toISOString(),
+                isActive: true,
+                readBy: [],
+                fileUrls: [file.uri], // Use local URI for display
+            } as unknown as OptimisticMessage;
+
+            // Update cache
+            const queryKey = queryKeys.messages.list(threadId, {});
+            queryClient.setQueryData<InfiniteMessagesData>(queryKey, (oldData) => {
+                if (!oldData?.pages?.length) return oldData;
+                const newPages = [...oldData.pages];
+                newPages[0] = {
+                    ...newPages[0],
+                    content: [optimisticMessage as unknown as MessageResponse, ...newPages[0].content],
+                    numberOfElements: newPages[0].numberOfElements + 1,
+                };
+                return { ...oldData, pages: newPages };
+            });
+
+            try {
+                // Upload and send
+                const response = await messagesApi.sendMessageWithFiles({
+                    conversationId: threadId,
+                    content: caption,
+                    files: [file],
+                });
+
+                const realMessage = response.result;
+
+                // Replace optimistic with real
+                replaceOptimisticWithReal(threadId, clientMessageId, realMessage as MessageResponse);
+
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.conversations.all,
+                });
+
+                return realMessage;
+
+            } catch (error) {
+                console.error('[Hybrid Send] Image upload failed:', error);
+                updateOptimisticStatus(
+                    threadId,
+                    clientMessageId,
+                    'error',
+                    'Failed to send image'
+                );
+                throw error;
+            }
+        },
+        [queryClient, replaceOptimisticWithReal, updateOptimisticStatus]
+    );
+
     const retry = useCallback(
         async (conversationId: string, clientMessageId: string, input: SendMessageInput) => {
             console.log('[Hybrid Send] Retrying message:', clientMessageId);
@@ -323,6 +396,7 @@ export function useSendMessageHybrid() {
 
     return {
         sendMessage,
+        sendImage,
         retry,
         canSend: websocketService.isConnected(),
     };
