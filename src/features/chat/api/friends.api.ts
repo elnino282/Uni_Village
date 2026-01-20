@@ -27,7 +27,18 @@ export interface UserSummary {
 }
 
 /**
- * Relationship status response
+ * Relationship status response from backend
+ */
+export interface RelationshipStatusBackendResponse {
+    status: RelationshipStatus | null;
+    areFriends: boolean;
+    targetUserId: number;
+    createdAt?: string;
+    mutualFriendsCount?: number;
+}
+
+/**
+ * Relationship status response (normalized)
  */
 export interface RelationshipStatusResponse {
     status: RelationshipStatus;
@@ -64,10 +75,14 @@ export const friendsApi = {
      * Get relationship status with another user
      */
     getRelationshipStatus: async (targetUserId: number): Promise<RelationshipStatusResponse> => {
-        const response = await apiClient.get<{ result: RelationshipStatusResponse }>(
+        const response = await apiClient.get<RelationshipStatusBackendResponse>(
             API_ENDPOINTS.FRIENDS.STATUS(targetUserId)
         );
-        return response.result;
+        return {
+            status: response.status || 'NONE',
+            createdAt: response.createdAt,
+            mutualFriendsCount: response.mutualFriendsCount,
+        };
     },
 
     /**
