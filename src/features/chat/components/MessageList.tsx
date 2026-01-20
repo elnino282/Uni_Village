@@ -63,13 +63,6 @@ export function MessageList({ messages, isLoading, isGroupChat = false }: Messag
 
   const keyExtractor = useCallback((item: Message) => item.id, []);
 
-  // Scroll to bottom when new messages arrive
-  const handleContentSizeChange = useCallback(() => {
-    if (messages.length > 0) {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }
-  }, [messages.length]);
-
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -86,7 +79,7 @@ export function MessageList({ messages, isLoading, isGroupChat = false }: Messag
       keyExtractor={keyExtractor}
       style={[styles.list, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.contentContainer}
-      onContentSizeChange={handleContentSizeChange}
+      inverted={true}
       showsVerticalScrollIndicator={false}
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
