@@ -563,7 +563,7 @@ export function AIItineraryWizardScreen() {
   if (generatedItinerary) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={[]}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 12), borderBottomColor: colors.border }]}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 12), paddingBottom: 8, borderBottomWidth: 0 }]}>
           <Pressable onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.icon} />
           </Pressable>
@@ -807,13 +807,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     marginHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 4,
+    marginTop: 4,
+    marginBottom: 2,
   },
   resultSubtitle: {
     fontSize: 15,
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   mapPreview: {
     marginHorizontal: 20,

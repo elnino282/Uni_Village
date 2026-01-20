@@ -6,17 +6,17 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  BackHandler,
-  Easing,
-  Image,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    Animated,
+    BackHandler,
+    Easing,
+    Image,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -350,6 +350,11 @@ export function SelectDestinationsScreen({
                   placeholder="Tìm địa điểm, quán ăn"
                   placeholderTextColor={secondaryTextColor}
                   style={[styles.searchInput, { color: colors.text }]}
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                  onSubmitEditing={() => {
+                    // Keyboard will dismiss automatically with blurOnSubmit
+                  }}
                 />
                 {searchQuery.length > 0 && (
                   <Pressable onPress={() => setSearchQuery("")}>

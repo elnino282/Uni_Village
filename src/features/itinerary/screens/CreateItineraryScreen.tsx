@@ -3,17 +3,17 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  BackHandler,
-  Easing,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Animated,
+    BackHandler,
+    Easing,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -414,10 +414,18 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
                 backgroundColor: `${colors.info}14`,
               },
             ]}
-            onPress={handleRequestLocation}
+            onPress={() => {
+              // If no location yet, request permission first
+              if (!location && !selectedLocation) {
+                handleRequestLocation();
+              } else {
+                // If we have location, open picker to let user choose
+                setShowLocationPicker(true);
+              }
+            }}
           >
             <Ionicons 
-              name={locationLoading ? "hourglass-outline" : location ? "location" : "location-outline"} 
+              name={locationLoading ? "hourglass-outline" : location || selectedLocation ? "location" : "location-outline"} 
               size={18} 
               color={colors.info} 
             />
@@ -433,12 +441,14 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
             <Ionicons name="chevron-forward" size={18} color={colors.icon} />
           </Pressable>
 
-          <Pressable style={styles.linkRow} onPress={() => setShowLocationPicker(true)}>
-            <Ionicons name="map-outline" size={16} color={colors.info} />
-            <Text style={[styles.linkText, { color: colors.info }]}>
-              Chọn điểm xuất phát khác
-            </Text>
-          </Pressable>
+          {(location || selectedLocation) && (
+            <Pressable style={styles.linkRow} onPress={() => setShowLocationPicker(true)}>
+              <Ionicons name="map-outline" size={16} color={colors.info} />
+              <Text style={[styles.linkText, { color: colors.info }]}>
+                Chọn điểm xuất phát khác
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Categories */}
