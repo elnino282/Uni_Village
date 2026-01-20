@@ -5,7 +5,7 @@ import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import { Button } from '../ui';
 
-interface ErrorMessageProps {
+export interface ErrorMessageProps {
     title?: string;
     message?: string;
     onRetry?: () => void;
