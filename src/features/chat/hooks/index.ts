@@ -2,6 +2,7 @@ export * from './useAddMembers';
 export { useAddChannelMembers, useChannel, useChannelByConversation, useChannelJoinRequests, useChannelMembers, useRemoveChannelMember, useUpdateChannel } from './useChannels';
 export * from './useConversations';
 export * from './useCreateChannel';
+export * from './useFriendRequests';
 export * from './useFriends';
 export * from './useGroupMembers';
 export * from './useMessageReactions';

@@ -97,6 +97,9 @@ export function useSendFriendRequest() {
             queryClient.invalidateQueries({
                 queryKey: friendRequestKeys.outgoing(),
             });
+            // Refresh chat threads and conversations as they might display relationship status
+            queryClient.invalidateQueries({ queryKey: ['threads'] });
+            queryClient.invalidateQueries({ queryKey: ['conversations'] });
         },
     });
 }
@@ -128,6 +131,9 @@ export function useAcceptFriendRequest() {
             queryClient.invalidateQueries({
                 queryKey: friendRequestKeys.friends(),
             });
+            // Refresh chat threads and conversations
+            queryClient.invalidateQueries({ queryKey: ['threads'] });
+            queryClient.invalidateQueries({ queryKey: ['conversations'] });
         },
     });
 }

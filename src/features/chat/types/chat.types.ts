@@ -96,7 +96,7 @@ export interface ChatThread {
   /** Localized online status text: "Đang hoạt động", "Offline", etc. */
   onlineStatusText: string;
   /** Relationship status with the other user (for DM chats) */
-  relationshipStatus?: 'NONE' | 'PENDING_OUTGOING' | 'PENDING_INCOMING' | 'ACCEPTED' | 'BLOCKED' | 'BLOCKED_BY';
+  relationshipStatus?: 'NONE' | 'PENDING_OUTGOING' | 'PENDING_INCOMING' | 'ACCEPTED' | 'BLOCKED' | 'BLOCKED_BY' | 'FRIEND';
   /** Participant status (INBOX/REQUEST) */
   participantStatus?: 'INBOX' | 'REQUEST' | 'ARCHIVED' | 'DELETED';
 }

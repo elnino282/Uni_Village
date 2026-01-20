@@ -113,7 +113,8 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
     dmThread &&
     participantStatus === 'INBOX' &&
     relationshipStatus &&
-    relationshipStatus !== 'ACCEPTED';
+    relationshipStatus !== 'ACCEPTED' &&
+    relationshipStatus !== 'FRIEND'; // Check both status types
 
   // Handlers
   const handleSend = useCallback(
@@ -207,7 +208,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
         <AddFriendBanner
           otherUserId={otherUserId}
           otherUserName={dmThread!.peer.displayName}
-          relationshipStatus={relationshipStatus as RelationshipStatus}
+          relationshipStatus={relationshipStatus}
           onStatusChange={(newStatus) => {
             // Update local state optimistically
             // The thread will refresh on next navigation or refetch
