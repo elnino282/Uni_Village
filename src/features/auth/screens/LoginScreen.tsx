@@ -11,15 +11,13 @@ import React, { useCallback, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
     Alert,
-    Keyboard,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
-    TouchableWithoutFeedback,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -40,10 +38,10 @@ export function LoginScreen() {
     const {
         control,
         handleSubmit,
-        formState: { errors, isValid },
+        formState: { errors, isValid, dirtyFields },
     } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
-        mode: 'onBlur',
+        mode: 'onChange',
         defaultValues: {
             identifier: '',
             password: '',
@@ -53,10 +51,10 @@ export function LoginScreen() {
     const onSubmit = useCallback(async (data: LoginFormData) => {
         setIsSubmitting(true);
         try {
-            const result = await authService.login({
-                identifier: data.identifier,
-                password: data.password,
-            });
+            const result = await authService.login(
+                data.identifier,
+                data.password
+            );
 
             if (result.success) {
                 // Navigate to main app
@@ -73,8 +71,7 @@ export function LoginScreen() {
     }, []);
 
     const handleForgotPassword = useCallback(() => {
-        // TODO: Navigate to forgot password screen
-        Alert.alert('Thông báo', 'Chức năng đang được phát triển');
+        router.push('/(auth)/forgot-password');
     }, []);
 
     const handleRegister = useCallback(() => {
@@ -98,94 +95,93 @@ export function LoginScreen() {
                 style={styles.flex}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <ScrollView
-                        style={styles.flex}
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        {/* Header */}
-                        <AuthHeader title="Đăng nhập" />
+                <ScrollView
+                    style={styles.flex}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
+                >
+                    {/* Header */}
+                    <AuthHeader title="Đăng nhập" />
 
-                        {/* Form */}
-                        <View style={styles.form}>
-                            {/* Email/Phone Input */}
-                            <Controller
-                                control={control}
-                                name="identifier"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <AuthInput
-                                        placeholder="Email / Số điện thoại"
-                                        leftIconName="mail-outline"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        keyboardType="email-address"
-                                        autoCapitalize="none"
-                                        error={errors.identifier?.message}
-                                    />
-                                )}
-                            />
-
-                            {/* Password Input */}
-                            <Controller
-                                control={control}
-                                name="password"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <AuthInput
-                                        placeholder="Mật khẩu"
-                                        leftIconName="lock-closed-outline"
-                                        isPassword
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        error={errors.password?.message}
-                                    />
-                                )}
-                            />
-
-                            {/* Forgot Password Link */}
-                            <Pressable
-                                style={styles.forgotPasswordContainer}
-                                onPress={handleForgotPassword}
-                            >
-                                <Text style={[styles.forgotPasswordText, { color: colors.authLinkText }]}>
-                                    Quên mật khẩu?
-                                </Text>
-                            </Pressable>
-
-                            {/* Login Button */}
-                            <PrimaryButton
-                                title="Đăng nhập"
-                                onPress={handleSubmit(onSubmit)}
-                                disabled={!isValid}
-                                loading={isSubmitting}
-                            />
-                        </View>
-
-                        {/* Divider */}
-                        <AuthDivider label="Hoặc đăng nhập bằng" />
-
-                        {/* Social Buttons */}
-                        <SocialAuthButtons
-                            onGooglePress={handleGoogleLogin}
-                            onFacebookPress={handleFacebookLogin}
+                    {/* Form */}
+                    <View style={styles.form}>
+                        {/* Email/Phone Input */}
+                        <Controller
+                            control={control}
+                            name="identifier"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <AuthInput
+                                    placeholder="Email / Số điện thoại"
+                                    leftIconName="mail-outline"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    error={dirtyFields.identifier ? errors.identifier?.message : undefined}
+                                />
+                            )}
                         />
 
-                        {/* Footer */}
-                        <View style={styles.footer}>
-                            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-                                Chưa có tài khoản?{' '}
+                        {/* Password Input */}
+                        <Controller
+                            control={control}
+                            name="password"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <AuthInput
+                                    placeholder="Mật khẩu"
+                                    leftIconName="lock-closed-outline"
+                                    isPassword
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    error={dirtyFields.password ? errors.password?.message : undefined}
+                                />
+                            )}
+                        />
+
+                        {/* Forgot Password Link */}
+                        <Pressable
+                            style={styles.forgotPasswordContainer}
+                            onPress={handleForgotPassword}
+                        >
+                            <Text style={[styles.forgotPasswordText, { color: colors.authLinkText }]}>
+                                Quên mật khẩu?
                             </Text>
-                            <Pressable onPress={handleRegister}>
-                                <Text style={[styles.footerLink, { color: colors.authLinkText }]}>
-                                    Đăng ký
-                                </Text>
-                            </Pressable>
-                        </View>
-                    </ScrollView>
-                </TouchableWithoutFeedback>
+                        </Pressable>
+
+                        {/* Login Button */}
+                        <PrimaryButton
+                            title="Đăng nhập"
+                            onPress={handleSubmit(onSubmit)}
+                            disabled={!isValid}
+                            loading={isSubmitting}
+                        />
+                    </View>
+
+                    {/* Divider */}
+                    <AuthDivider label="Hoặc đăng nhập bằng" />
+
+                    {/* Social Buttons */}
+                    <SocialAuthButtons
+                        onGooglePress={handleGoogleLogin}
+                        onFacebookPress={handleFacebookLogin}
+                    />
+
+                    {/* Footer */}
+                    <View style={styles.footer}>
+                        <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+                            Chưa có tài khoản?{' '}
+                        </Text>
+                        <Pressable onPress={handleRegister}>
+                            <Text style={[styles.footerLink, { color: colors.authLinkText }]}>
+                                Đăng ký
+                            </Text>
+                        </Pressable>
+                    </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );

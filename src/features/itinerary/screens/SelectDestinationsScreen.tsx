@@ -40,7 +40,7 @@ interface SelectDestinationsScreenProps {
     categories: string[];
   };
   tripId?: string;
-  existingDestinations?: Array<{
+  existingDestinations?: {
     id: string;
     name: string;
     thumbnail: string;
@@ -49,7 +49,7 @@ interface SelectDestinationsScreenProps {
     isCheckedIn?: boolean;
     isSkipped?: boolean;
     checkedInAt?: string;
-  }>;
+  }[];
   isAddingToExisting?: boolean;
   onBack?: () => void;
 }

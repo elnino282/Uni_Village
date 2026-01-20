@@ -6,6 +6,7 @@ import {
     CreateChannelModal,
     type CreateChannelModalRef,
 } from '@/features/chat/components/CreateChannelModal';
+import { useNavigateToChat } from '@/features/chat/hooks';
 import { Colors } from '@/shared/constants';
 import { useColorScheme, useDebounce } from '@/shared/hooks';
 import type { MessagesSubTab } from '../types/message.types';
@@ -14,6 +15,7 @@ import { InboxList } from './InboxList';
 import { MessagesSearchRow } from './MessagesSearchRow';
 import { MessagesSubTabs } from './MessagesSubTabs';
 import { PlusActionMenu } from './PlusActionMenu';
+import { UserSearchResults } from './UserSearchResults';
 
 /**
  * Messages tab content with search, sub-tabs, and lists
@@ -37,6 +39,12 @@ export function MessagesTab() {
   
   // Debounce search for performance
   const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // User navigation hook
+  const { handleNavigateToUser } = useNavigateToChat();
+
+  // Check if we should show user search results
+  const showUserSearch = searchQuery.trim().length >= 2;
 
   const handleCreatePress = useCallback((x: number, y: number) => {
     setMenuAnchor({ x, y });
@@ -65,18 +73,25 @@ export function MessagesTab() {
           onPressCreate={handleCreatePress}
         />
         
-        {/* Sub-tabs: Hộp thư / Channel */}
-        <MessagesSubTabs
-          activeTab={activeSubTab}
-          onTabChange={setActiveSubTab}
-        />
+        {/* Sub-tabs: Hộp thư / Channel - Hide when searching users */}
+        {!showUserSearch && (
+          <MessagesSubTabs
+            activeTab={activeSubTab}
+            onTabChange={setActiveSubTab}
+          />
+        )}
       </View>
 
       {/* List content */}
-      {activeSubTab === 'inbox' ? (
-        <InboxList searchQuery={debouncedSearch} />
+      {showUserSearch ? (
+        <UserSearchResults 
+          query={searchQuery} 
+          onUserSelect={handleNavigateToUser} 
+        />
+      ) : activeSubTab === 'inbox' ? (
+        <InboxList searchQuery="" />
       ) : (
-        <ChannelList searchQuery={debouncedSearch} />
+        <ChannelList searchQuery="" />
       )}
 
       {/* Plus Action Menu */}

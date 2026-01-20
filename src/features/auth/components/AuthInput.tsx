@@ -6,7 +6,7 @@
 import { Colors, Shadows } from '@/shared/constants/theme';
 import { useColorScheme } from '@/shared/hooks';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     KeyboardTypeOptions,
     Pressable,
@@ -43,6 +43,7 @@ export function AuthInput({
     const colors = Colors[colorScheme];
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const inputRef = useRef<TextInput>(null);
 
     const handleFocus = () => setIsFocused(true);
     const handleBlur = () => {
@@ -50,9 +51,15 @@ export function AuthInput({
         onBlur?.();
     };
 
+    // Focus input khi tap vào container
+    const handleContainerPress = () => {
+        inputRef.current?.focus();
+    };
+
     return (
         <View style={styles.wrapper}>
-            <View
+            <Pressable
+                onPress={handleContainerPress}
                 style={[
                     styles.container,
                     {
@@ -69,6 +76,7 @@ export function AuthInput({
                     style={styles.leftIcon}
                 />
                 <TextInput
+                    ref={inputRef}
                     style={[
                         styles.input,
                         { color: colors.textPrimary },
@@ -83,6 +91,7 @@ export function AuthInput({
                     keyboardType={keyboardType}
                     autoCapitalize={autoCapitalize}
                     autoCorrect={false}
+                    editable={true}
                 />
                 {isPassword && (
                     <Pressable
@@ -97,7 +106,7 @@ export function AuthInput({
                         />
                     </Pressable>
                 )}
-            </View>
+            </Pressable>
             {error && (
                 <Text style={[styles.errorText, { color: Colors.light.error }]}>
                     {error}

@@ -3,6 +3,16 @@
  */
 
 import type { BaseEntity } from '@/shared/types';
+import type {
+    AuthenticationRequest as BackendAuthRequest,
+    AuthenticationResponse as BackendAuthResponse,
+    RegisterRequest as BackendRegisterRequest,
+    ForgetPasswordRequest as BackendForgetPasswordRequest,
+    VerifyRequest as BackendVerifyRequest,
+    ChangePasswordRequest as BackendChangePasswordRequest,
+} from '@/shared/types/backend.types';
+
+export type { BackendAuthRequest, BackendAuthResponse, BackendRegisterRequest, BackendForgetPasswordRequest, BackendVerifyRequest, BackendChangePasswordRequest };
 
 export interface User extends BaseEntity {
     id: string;
@@ -16,26 +26,13 @@ export interface User extends BaseEntity {
 export interface AuthTokens {
     accessToken: string;
     refreshToken: string;
-    expiresAt: number;
 }
 
-export interface TokenPair {
-    access_token: string;
-    refresh_token: string;
-    expires_in: number;
-}
-
-export interface LoginRequest {
-    email: string;
-    password: string;
-}
-
-export interface RegisterRequest {
-    email: string;
-    password: string;
-    username: string;
-    displayName: string;
-}
+export type LoginRequest = BackendAuthRequest;
+export type RegisterRequest = BackendRegisterRequest;
+export type VerifyRequest = BackendVerifyRequest;
+export type ForgetPasswordRequest = BackendForgetPasswordRequest;
+export type ChangePasswordRequest = BackendChangePasswordRequest;
 
 export interface AuthState {
     user: User | null;
@@ -46,25 +43,23 @@ export interface AuthState {
 }
 
 /**
- * Type guard to check if response is a valid TokenPair
+ * Type guard to check if response is a valid AuthenticationResponse
  */
-export function isTokenPair(data: unknown): data is TokenPair {
+export function isAuthResponse(data: unknown): data is BackendAuthResponse {
     if (typeof data !== 'object' || data === null) return false;
     const obj = data as Record<string, unknown>;
     return (
         typeof obj.access_token === 'string' &&
-        typeof obj.refresh_token === 'string' &&
-        typeof obj.expires_in === 'number'
+        typeof obj.refresh_token === 'string'
     );
 }
 
 /**
- * Map API TokenPair to internal AuthTokens
+ * Map API AuthenticationResponse to internal AuthTokens
  */
-export function mapTokenPair(tokenPair: TokenPair): AuthTokens {
+export function mapAuthResponse(response: BackendAuthResponse): AuthTokens {
     return {
-        accessToken: tokenPair.access_token,
-        refreshToken: tokenPair.refresh_token,
-        expiresAt: Date.now() + tokenPair.expires_in * 1000,
+        accessToken: response.access_token || '',
+        refreshToken: response.refresh_token || '',
     };
 }

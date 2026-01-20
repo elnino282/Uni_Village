@@ -1,69 +1,99 @@
-import { useAuthStore } from '@/features/auth';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useAuthStore } from "@/features/auth";
+import { useMyProfile } from "@/features/profile";
+import { useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
+} from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { ItineraryDetailsSheet } from '@/features/itinerary/components/ItineraryDetailsSheet';
-import type { ItineraryShareData } from '@/features/itinerary/types/itinerary.types';
-import type { CreatePostTab } from '@/features/post/types/createPost.types';
-import { LoadingScreen } from '@/shared/components/feedback';
-import { Colors, Spacing } from '@/shared/constants';
-import { useColorScheme } from '@/shared/hooks';
+import { ItineraryDetailsSheet } from "@/features/itinerary/components/ItineraryDetailsSheet";
+import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.types";
+import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
+import type { CreatePostTab } from "@/features/post/types/createPost.types";
+import {
+  EmptyState,
+  ErrorMessage,
+  LoadingScreen,
+} from "@/shared/components/feedback";
+import { PostLocationDetailSheet } from "@/shared/components/post";
+import { Colors, Spacing } from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
+import { PostType, Visibility } from "@/shared/types/backend.types";
 import {
   useBlockPost,
   useCommunityPosts,
   useLikePost,
   useReportPost,
   useSavePost,
-} from '../hooks';
-import type { CommunityPost, CommunityTab, ContentFilterTab, PostLocation, PostVisibility } from '../types';
+} from "../hooks";
+import type {
+  CommunityPost,
+  CommunityTab,
+  ContentFilterTab,
+  PostLocation,
+  PostVisibility,
+} from "../types";
 
-import { CommunityFAB } from './CommunityFAB';
-import { CommunityHeader } from './CommunityHeader';
-import { CommunitySearchBar } from './CommunitySearchBar';
-import { CommunitySegmentedTabs } from './CommunitySegmentedTabs';
-import { ContentTabChips } from './ContentTabChips';
-import { EditPrivacySheet } from './EditPrivacySheet';
-import { MessagesTab } from './MessagesTab';
-import { PostCard } from './PostCard';
-import { PostOverflowMenu } from './PostOverflowMenu';
-import { PostOwnerMenu } from './PostOwnerMenu';
+import { CommunityFAB } from "./CommunityFAB";
+import { CommunityHeader } from "./CommunityHeader";
+import { CommunitySearchBar } from "./CommunitySearchBar";
+import { CommunitySegmentedTabs } from "./CommunitySegmentedTabs";
+import { ContentTabChips } from "./ContentTabChips";
+import { EditPrivacySheet } from "./EditPrivacySheet";
+import { MessagesTab } from "./MessagesTab";
+import { PostCard } from "./PostCard";
+import { PostOverflowMenu } from "./PostOverflowMenu";
+import { PostOwnerMenu } from "./PostOwnerMenu";
 
 export function CommunityScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const router = useRouter();
   const currentUser = useAuthStore((state) => state.user);
+  const { profile: myProfile } = useMyProfile();
+  const currentUserId = currentUser?.id ?? myProfile?.userId;
 
-  const [activeTab, setActiveTab] = useState<CommunityTab>('posts');
-  const [contentFilterTab, setContentFilterTab] = useState<ContentFilterTab>('posts');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<CommunityTab>("posts");
+  const [contentFilterTab, setContentFilterTab] =
+    useState<ContentFilterTab>("posts");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
   const [isEditPrivacyOpen, setIsEditPrivacyOpen] = useState(false);
-  const [selectedPostVisibility, setSelectedPostVisibility] = useState<PostVisibility>('public');
+  const [selectedPostVisibility, setSelectedPostVisibility] =
+    useState<PostVisibility>("public");
   const [isSheetVisible, setIsSheetVisible] = useState(false);
-  const [selectedItinerary, setSelectedItinerary] = useState<ItineraryShareData | null>(null);
+  const [selectedItinerary, setSelectedItinerary] =
+    useState<ItineraryShareData | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(null);
+  const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
 
   // Dynamic search placeholder based on content filter tab
   const getSearchPlaceholder = () => {
     switch (contentFilterTab) {
-      case 'itineraries':
-        return 'Tìm kiếm lịch trình...';
-      case 'channels':
-        return 'Tìm kiếm Channel...';
+      case "itineraries":
+        return "Tìm kiếm lịch trình...";
+      case "channels":
+        return "Tìm kiếm Channel...";
       default:
-        return 'Tìm kiếm bài viết...';
+        return "Tìm kiếm bài viết...";
     }
   };
 
-  const { data, isLoading, refetch, isRefetching } = useCommunityPosts();
-  const likePostMutation = useLikePost();
-  const savePostMutation = useSavePost();
-  const reportPostMutation = useReportPost();
-  const blockPostMutation = useBlockPost();
+  const { data, isLoading, refetch, isRefetching, isError, error } =
+    useCommunityPosts();
+  const { mutate: likePost, isPending: isLikingPost } = useLikePost();
+  const { mutate: savePost, isPending: isSavingPost } = useSavePost();
+  const { mutate: reportPost, isPending: isReportingPost } = useReportPost();
+  const { mutate: blockPost, isPending: isBlockingPost } = useBlockPost();
+  const { mutate: updatePost, isPending: isUpdatingPost } = useUpdatePost();
+  const { mutate: deletePost, isPending: isDeletingPost } = useDeletePost();
 
   // Check if the selected post belongs to current user
   const selectedPost = useMemo(() => {
@@ -75,17 +105,20 @@ export function CommunityScreen() {
   // Handles both production (auth store) and development (mock data with 'current-user' ID)
   const isPostOwner = useCallback(
     (post: CommunityPost) => {
+      if (!post?.author?.id) {
+        return false;
+      }
       // Check for mock data 'current-user' ID
-      if (post.author.id === 'current-user') {
+      if (post.author.id === "current-user") {
         return true;
       }
       // Check for actual authenticated user
-      if (currentUser && post.author.id === currentUser.id) {
+      if (currentUserId && String(post.author.id) === String(currentUserId)) {
         return true;
       }
       return false;
     },
-    [currentUser]
+    [currentUserId],
   );
 
   const isSelectedPostOwner = useMemo(() => {
@@ -102,13 +135,13 @@ export function CommunityScreen() {
 
       setSelectedPostId(postId);
       if (isOwner) {
-        setSelectedPostVisibility(post.visibility || 'public');
+        setSelectedPostVisibility(post.visibility || "public");
         setIsOwnerMenuOpen(true);
       } else {
         setIsMenuOpen(true);
       }
     },
-    [data?.data, isPostOwner]
+    [data?.data, isPostOwner],
   );
 
   const handleMenuClose = useCallback(() => {
@@ -119,80 +152,106 @@ export function CommunityScreen() {
 
   const handleLikePress = useCallback(
     (postId: string) => {
-      likePostMutation.mutate(postId);
+      if (!isLikingPost) {
+        likePost(postId);
+      }
     },
-    [likePostMutation]
+    [likePost, isLikingPost],
   );
 
   const handleCommentPress = useCallback(
     (postId: string) => {
       router.push(`/post/${postId}` as any);
     },
-    [router]
+    [router],
   );
 
-  const handleLocationPress = useCallback(
-    (location: PostLocation) => {
-      console.log('Location pressed:', location.name);
-    },
-    []
-  );
+  const handleLocationPress = useCallback((location: PostLocation) => {
+    setSelectedLocation(location);
+    setIsLocationSheetOpen(true);
+  }, []);
+
+  const handleCloseLocationSheet = useCallback(() => {
+    setIsLocationSheetOpen(false);
+    setSelectedLocation(null);
+  }, []);
 
   const handleSavePost = useCallback(
     (postId: string) => {
-      savePostMutation.mutate(postId);
+      if (!isSavingPost) {
+        savePost(postId);
+      }
     },
-    [savePostMutation]
+    [savePost, isSavingPost],
   );
 
   const handleReportPost = useCallback(
     (postId: string) => {
-      reportPostMutation.mutate({ postId, reason: 'Inappropriate content' });
+      if (!isReportingPost) {
+        reportPost({ postId, reason: "Inappropriate content" });
+      }
     },
-    [reportPostMutation]
+    [reportPost, isReportingPost],
   );
 
   const handleBlockPost = useCallback(
     (postId: string) => {
-      blockPostMutation.mutate(postId);
+      if (!isBlockingPost) {
+        blockPost(postId);
+      }
     },
-    [blockPostMutation]
+    [blockPost, isBlockingPost],
   );
 
   // Owner menu handlers
-  const handleEditPrivacy = useCallback((postId: string) => {
-    const post = data?.data.find((p) => p.id === postId);
-    if (post) {
-      setSelectedPostVisibility(post.visibility || 'public');
-      setIsEditPrivacyOpen(true);
-    }
-  }, [data?.data]);
+  const handleEditPrivacy = useCallback(
+    (postId: string) => {
+      const post = data?.data.find((p) => p.id === postId);
+      if (post) {
+        setSelectedPostVisibility(post.visibility || "public");
+        setIsEditPrivacyOpen(true);
+      }
+    },
+    [data?.data],
+  );
 
   const handleEditPost = useCallback(
     (postId: string) => {
-      // TODO: Navigate to edit post screen
-      console.log('Edit post:', postId);
-      handleMenuClose();
+      router.push({ pathname: "/post/edit", params: { postId } } as any);
     },
-    [handleMenuClose]
+    [router],
   );
 
   const handleMoveToTrash = useCallback(
     (postId: string) => {
-      // TODO: Implement delete post API
-      console.log('Move to trash:', postId);
-      handleMenuClose();
+      if (isDeletingPost) return;
+      Alert.alert("Delete post", "This will permanently delete your post.", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deletePost(Number(postId)),
+        },
+      ]);
     },
-    [handleMenuClose]
+    [deletePost, isDeletingPost],
   );
 
   const handleUpdateVisibility = useCallback(
     (postId: string, visibility: PostVisibility) => {
-      // TODO: Implement update visibility API
-      console.log('Update visibility:', postId, visibility);
-      setIsEditPrivacyOpen(false);
+      const post = data?.data.find((item) => item.id === postId);
+      if (!post || isUpdatingPost) return;
+
+      updatePost({
+        postId: Number(postId),
+        data: {
+          postType: post.postType ?? PostType.EXPERIENCE,
+          visibility:
+            visibility === "public" ? Visibility.PUBLIC : Visibility.PRIVATE,
+        },
+      });
     },
-    []
+    [data?.data, updatePost, isUpdatingPost],
   );
 
   const handleCloseEditPrivacy = useCallback(() => {
@@ -202,21 +261,24 @@ export function CommunityScreen() {
   const handleCreatePost = useCallback(() => {
     // Map content filter tab to create post tab
     const tabMap: Record<ContentFilterTab, CreatePostTab> = {
-      posts: 'post',
-      itineraries: 'itinerary',
-      channels: 'channel',
+      posts: "post",
+      itineraries: "itinerary",
+      channels: "channel",
     };
 
     router.push({
-      pathname: '/post/create',
+      pathname: "/post/create",
       params: { initialTab: tabMap[contentFilterTab] },
     } as any);
   }, [router, contentFilterTab]);
 
-  const handleViewItineraryDetails = useCallback((itinerary: ItineraryShareData) => {
-    setSelectedItinerary(itinerary);
-    setIsSheetVisible(true);
-  }, []);
+  const handleViewItineraryDetails = useCallback(
+    (itinerary: ItineraryShareData) => {
+      setSelectedItinerary(itinerary);
+      setIsSheetVisible(true);
+    },
+    [],
+  );
 
   const handleOpenItinerary = useCallback((itinerary: ItineraryShareData) => {
     setSelectedItinerary(itinerary);
@@ -229,12 +291,12 @@ export function CommunityScreen() {
   }, []);
 
   const handleOpenMap = useCallback(() => {
-    console.log('Open map for itinerary');
+    console.log("Open map for itinerary");
     handleCloseSheet();
   }, [handleCloseSheet]);
 
   const handleSaveItinerary = useCallback(() => {
-    console.log('Save itinerary');
+    console.log("Save itinerary");
   }, []);
 
   const renderPostItem = useCallback(
@@ -257,25 +319,35 @@ export function CommunityScreen() {
         }
       />
     ),
-    [handleMenuPress, handleLikePress, handleCommentPress, handleLocationPress, handleViewItineraryDetails, handleOpenItinerary]
+    [
+      handleMenuPress,
+      handleLikePress,
+      handleCommentPress,
+      handleLocationPress,
+      handleViewItineraryDetails,
+      handleOpenItinerary,
+    ],
   );
 
   const keyExtractor = useCallback((item: CommunityPost) => item.id, []);
 
   // Filter posts by search query first
-  const searchFilteredPosts = data?.data.filter((post) =>
-    searchQuery
-      ? post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.author.displayName.toLowerCase().includes(searchQuery.toLowerCase())
-      : true
-  ) || [];
+  const searchFilteredPosts =
+    data?.data.filter((post) =>
+      searchQuery
+        ? post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.author.displayName
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())
+        : true,
+    ) || [];
 
   // Then filter by content type based on active chip
   const filteredPosts = searchFilteredPosts.filter((post) => {
     switch (contentFilterTab) {
-      case 'itineraries':
+      case "itineraries":
         return !!post.itineraryShare;
-      case 'channels':
+      case "channels":
         return !!post.channelInvite;
       default:
         // 'posts' = only pure posts (no itinerary, no channel)
@@ -287,9 +359,26 @@ export function CommunityScreen() {
     return <LoadingScreen message="Đang tải bài viết..." />;
   }
 
+  if (isError) {
+    return (
+      <ErrorMessage
+        title="Không thể tải bài viết"
+        message={(error as any)?.message || "Vui lòng kiểm tra kết nối mạng"}
+        onRetry={() => refetch()}
+        retryLabel="Thử lại"
+      />
+    );
+  }
+
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
-      <View testID="community-screen" style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
+      <View
+        testID="community-screen"
+        style={[
+          styles.container,
+          { backgroundColor: colors.backgroundSecondary },
+        ]}
+      >
         <CommunityHeader />
 
         <CommunitySegmentedTabs
@@ -297,7 +386,7 @@ export function CommunityScreen() {
           onTabChange={setActiveTab}
         />
 
-        {activeTab === 'posts' ? (
+        {activeTab === "posts" ? (
           <>
             <CommunitySearchBar
               value={searchQuery}
@@ -324,15 +413,22 @@ export function CommunityScreen() {
                 />
               }
               ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                    {contentFilterTab === 'itineraries'
-                      ? 'Không có bài đăng chia sẻ lịch trình'
-                      : contentFilterTab === 'channels'
-                        ? 'Không có bài đăng mời tham gia Channel'
-                        : 'Không có bài viết'}
-                  </Text>
-                </View>
+                <EmptyState
+                  title={
+                    contentFilterTab === "itineraries"
+                      ? "Chưa có lịch trình"
+                      : contentFilterTab === "channels"
+                        ? "Chưa có Channel"
+                        : "Chưa có bài viết"
+                  }
+                  message={
+                    contentFilterTab === "itineraries"
+                      ? "Tạo lịch trình đầu tiên của bạn"
+                      : contentFilterTab === "channels"
+                        ? "Tạo hoặc tham gia Channel"
+                        : "Hãy chia sẻ trải nghiệm của bạn"
+                  }
+                />
               }
             />
 
@@ -341,7 +437,7 @@ export function CommunityScreen() {
             <PostOverflowMenu
               isOpen={isMenuOpen}
               onClose={handleMenuClose}
-              postId={selectedPostId || ''}
+              postId={selectedPostId || ""}
               onSave={handleSavePost}
               onReport={handleReportPost}
               onBlock={handleBlockPost}
@@ -350,7 +446,7 @@ export function CommunityScreen() {
             <PostOwnerMenu
               isOpen={isOwnerMenuOpen}
               onClose={handleMenuClose}
-              postId={selectedPostId || ''}
+              postId={selectedPostId || ""}
               onSave={handleSavePost}
               onEditPrivacy={handleEditPrivacy}
               onEditPost={handleEditPost}
@@ -360,7 +456,7 @@ export function CommunityScreen() {
             <EditPrivacySheet
               isOpen={isEditPrivacyOpen}
               onClose={handleCloseEditPrivacy}
-              postId={selectedPostId || ''}
+              postId={selectedPostId || ""}
               currentVisibility={selectedPostVisibility}
               onSave={handleUpdateVisibility}
             />
@@ -371,6 +467,11 @@ export function CommunityScreen() {
               onClose={handleCloseSheet}
               onOpenMap={handleOpenMap}
               onSave={handleSaveItinerary}
+            />
+            <PostLocationDetailSheet
+              isOpen={isLocationSheetOpen}
+              location={selectedLocation}
+              onClose={handleCloseLocationSheet}
             />
           </>
         ) : (
@@ -394,12 +495,12 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
   },
   emptyText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

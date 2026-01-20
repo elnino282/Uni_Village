@@ -87,7 +87,7 @@ export function CommentItem({
                 { color: comment.isLiked ? colors.heartLiked : colors.textSecondary },
               ]}
             >
-              {comment.likesCount}
+              {comment.likesCount ?? 0}
             </Text>
           </TouchableOpacity>
 

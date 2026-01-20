@@ -17,12 +17,12 @@ interface SavedTrip {
   tripName: string;
   startDate: string;
   startTime: string;
-  destinations: Array<{
+  destinations: {
     id: string;
     name: string;
     thumbnail: string;
     order: number;
-  }>;
+  }[];
   createdAt: string;
   status: ItineraryTab;
 }

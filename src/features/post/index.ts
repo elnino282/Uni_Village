@@ -17,16 +17,15 @@ export { SelectedChannelCard } from './components/SelectedChannelCard';
 export { SelectedItineraryCard } from './components/SelectedItineraryCard';
 
 // Hooks
-export { useCreatePost } from './hooks/useCreatePost';
 export {
     useCreateComment, usePostDetail, useToggleCommentLike, useTogglePostLike
 } from './hooks/usePostDetail';
+export { useCreatePost } from './hooks/usePosts';
 
 // Types
 export type {
     Comment,
-    CommentAuthor, CreatePostRequest,
-    Post,
+    CommentAuthor, CreatePostFormData, CreatePostRequest, Post,
     PostDetail,
     PostDetailAuthor,
     PostDetailLocation, PostDetailResponse, PostVisibility

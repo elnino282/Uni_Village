@@ -25,7 +25,7 @@ export class ValidationError extends Error {
     /**
      * Create from Zod validation errors
      */
-    static fromZodError(zodError: { issues: Array<{ path: (string | number)[]; message: string; code: string }> }): ValidationError {
+    static fromZodError(zodError: { issues: { path: (string | number)[]; message: string; code: string }[] }): ValidationError {
         const fields: ValidationErrorField[] = zodError.issues.map((issue) => ({
             field: issue.path.join('.'),
             message: issue.message,

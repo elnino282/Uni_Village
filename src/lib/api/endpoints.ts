@@ -21,6 +21,21 @@ export const API_ENDPOINTS = {
     // ============================================
     USERS: {
         CHANGE_PASSWORD: '/api/v1/users/changepassword',
+        SEARCH: '/api/v1/users/search',
+    },
+
+    // ============================================
+    // Profile
+    // ============================================
+    PROFILE: {
+        ME: '/api/v1/profile/me',
+        BY_ID: (userId: number) => `/api/v1/profile/${userId}`,
+        UPDATE: '/api/v1/profile',
+        UPLOAD_AVATAR: '/api/v1/profile/avatar',
+        UPLOAD_COVER: '/api/v1/profile/cover',
+        FOLLOW: (userId: number) => `/api/v1/profile/${userId}/follow`,
+        FOLLOWERS: (userId: number) => `/api/v1/profile/${userId}/followers`,
+        FOLLOWING: (userId: number) => `/api/v1/profile/${userId}/following`,
     },
 
     // ============================================
@@ -160,11 +175,29 @@ export const API_ENDPOINTS = {
         CREATE_PRIVATE: '/api/v1/conversations/create',
         PRIVATE_LIST: '/api/v1/conversations/private',
         CHANNELS_LIST: '/api/v1/conversations/channels',
+        DIRECT: (targetId: number) => `/api/v1/conversations/direct/${targetId}`,
         DELETE: (conversationId: string) => `/api/v1/conversations/delete-conversation/${conversationId}`,
         MEDIA: (conversationId: string) => `/api/v1/conversations/${conversationId}/media`,
         JOIN: (conversationId: string) => `/api/v1/conversations/join/${conversationId}`,
         ACCEPT_JOIN: (joinRequestId: number) => `/api/v1/conversations/join/accept/${joinRequestId}`,
         REJECT_JOIN: (joinRequestId: number) => `/api/v1/conversations/join/reject/${joinRequestId}`,
+    },
+
+    // ============================================
+    // Friends
+    // ============================================
+    FRIENDS: {
+        STATUS: (targetId: number) => `/api/v1/friends/status/${targetId}`,
+        SEND_REQUEST: (targetId: number) => `/api/v1/friends/request/${targetId}`,
+        ACCEPT_REQUEST: (requesterId: number) => `/api/v1/friends/accept/${requesterId}`,
+        CANCEL_REQUEST: (targetId: number) => `/api/v1/friends/cancel/${targetId}`,
+        DECLINE_REQUEST: (requesterId: number) => `/api/v1/friends/decline/${requesterId}`,
+        REMOVE_FRIEND: (friendId: number) => `/api/v1/friends/${friendId}`,
+        BLOCK: (userId: number) => `/api/v1/friends/block/${userId}`,
+        UNBLOCK: (userId: number) => `/api/v1/friends/block/${userId}`,
+        LIST: '/api/v1/friends',
+        INCOMING_REQUESTS: '/api/v1/friends/requests/incoming',
+        OUTGOING_REQUESTS: '/api/v1/friends/requests/outgoing',
     },
 
     // ============================================

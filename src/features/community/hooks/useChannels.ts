@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { channelService } from '../services/mockChannels';
+import { channelService } from '../services/channels.service';
 import type { ChannelsResponse } from '../types/message.types';
 
 const CHANNELS_KEY = ['community', 'channels'];

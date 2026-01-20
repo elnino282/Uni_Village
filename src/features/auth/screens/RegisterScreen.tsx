@@ -13,15 +13,13 @@ import React, { useCallback, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
     Alert,
-    Keyboard,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
-    TouchableWithoutFeedback,
-    View,
+    View
 } from 'react-native';
 import {
     AuthDivider,
@@ -42,12 +40,12 @@ export function RegisterScreen() {
     const {
         control,
         handleSubmit,
-        formState: { errors, isValid },
+        formState: { errors, isValid, dirtyFields },
         setValue,
         watch,
     } = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
-        mode: 'onBlur',
+        mode: 'onChange',
         defaultValues: {
             name: '',
             identifier: '',
@@ -62,15 +60,32 @@ export function RegisterScreen() {
     const onSubmit = useCallback(async (data: RegisterFormData) => {
         setIsSubmitting(true);
         try {
-            const result = await authService.register({
-                name: data.name,
-                identifier: data.identifier,
-                password: data.password,
-            });
+            const result = await authService.register(
+                data.name.trim(),
+                data.identifier,
+                data.identifier.split('@')[0],
+                data.password
+            );
 
             if (result.success) {
-                // Navigate to main app
-                router.replace({ pathname: '/(tabs)/map' });
+                Alert.alert(
+                    'Thành công',
+                    result.message || 'Mã OTP đã được gửi đến email của bạn',
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => {
+                                router.push({
+                                    pathname: '/(auth)/verify-otp',
+                                    params: {
+                                        email: data.identifier,
+                                        flowType: 'register',
+                                    },
+                                });
+                            },
+                        },
+                    ]
+                );
             } else {
                 Alert.alert('Lỗi', result.message || 'Đã có lỗi xảy ra');
             }
@@ -129,127 +144,126 @@ export function RegisterScreen() {
                 style={styles.flex}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <ScrollView
-                        style={styles.flex}
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        {/* Header */}
-                        <AuthHeader title="Đăng ký" />
+                <ScrollView
+                    style={styles.flex}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
+                >
+                    {/* Header */}
+                    <AuthHeader title="Đăng ký" />
 
-                        {/* Form */}
-                        <View style={styles.form}>
-                            {/* Name Input */}
-                            <Controller
-                                control={control}
-                                name="name"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <AuthInput
-                                        placeholder="Họ và tên"
-                                        leftIconName="person-outline"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        autoCapitalize="words"
-                                        error={errors.name?.message}
-                                    />
-                                )}
-                            />
-
-                            {/* Email/Phone Input */}
-                            <Controller
-                                control={control}
-                                name="identifier"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <AuthInput
-                                        placeholder="Email / Số điện thoại"
-                                        leftIconName="mail-outline"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        keyboardType="email-address"
-                                        autoCapitalize="none"
-                                        error={errors.identifier?.message}
-                                    />
-                                )}
-                            />
-
-                            {/* Password Input */}
-                            <Controller
-                                control={control}
-                                name="password"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <AuthInput
-                                        placeholder="Mật khẩu"
-                                        leftIconName="lock-closed-outline"
-                                        isPassword
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        error={errors.password?.message}
-                                    />
-                                )}
-                            />
-
-                            {/* Confirm Password Input */}
-                            <Controller
-                                control={control}
-                                name="confirmPassword"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <AuthInput
-                                        placeholder="Xác nhận mật khẩu"
-                                        leftIconName="lock-closed-outline"
-                                        isPassword
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        error={errors.confirmPassword?.message}
-                                    />
-                                )}
-                            />
-
-                            {/* Terms Checkbox */}
-                            <TermsRow
-                                checked={termsAccepted}
-                                onToggle={toggleTerms}
-                                onTermsPress={handleTermsPress}
-                                onPrivacyPress={handlePrivacyPress}
-                                error={errors.termsAccepted?.message}
-                            />
-
-                            {/* Register Button */}
-                            <PrimaryButton
-                                title="Đăng ký"
-                                onPress={handleSubmit(onSubmit)}
-                                disabled={!isValid}
-                                loading={isSubmitting}
-                            />
-                        </View>
-
-                        {/* Divider */}
-                        <AuthDivider label="Hoặc tiếp tục với" />
-
-                        {/* Social Buttons */}
-                        <SocialAuthButtons
-                            onGooglePress={handleGoogleLogin}
-                            onFacebookPress={handleFacebookLogin}
+                    {/* Form */}
+                    <View style={styles.form}>
+                        {/* Name Input */}
+                        <Controller
+                            control={control}
+                            name="name"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <AuthInput
+                                    placeholder="Username"
+                                    leftIconName="person-outline"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    autoCapitalize="words"
+                                    error={dirtyFields.name ? errors.name?.message : undefined}
+                                />
+                            )}
                         />
 
-                        {/* Footer */}
-                        <View style={styles.footer}>
-                            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-                                Đã có tài khoản?
+                        {/* Email/Phone Input */}
+                        <Controller
+                            control={control}
+                            name="identifier"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <AuthInput
+                                    placeholder="Email / Số điện thoại"
+                                    leftIconName="mail-outline"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    error={dirtyFields.identifier ? errors.identifier?.message : undefined}
+                                />
+                            )}
+                        />
+
+                        {/* Password Input */}
+                        <Controller
+                            control={control}
+                            name="password"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <AuthInput
+                                    placeholder="Mật khẩu"
+                                    leftIconName="lock-closed-outline"
+                                    isPassword
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    error={dirtyFields.password ? errors.password?.message : undefined}
+                                />
+                            )}
+                        />
+
+                        {/* Confirm Password Input */}
+                        <Controller
+                            control={control}
+                            name="confirmPassword"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <AuthInput
+                                    placeholder="Xác nhận mật khẩu"
+                                    leftIconName="lock-closed-outline"
+                                    isPassword
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    error={dirtyFields.confirmPassword ? errors.confirmPassword?.message : undefined}
+                                />
+                            )}
+                        />
+
+                        {/* Terms Checkbox */}
+                        <TermsRow
+                            checked={termsAccepted}
+                            onToggle={toggleTerms}
+                            onTermsPress={handleTermsPress}
+                            onPrivacyPress={handlePrivacyPress}
+                            error={errors.termsAccepted?.message}
+                        />
+
+                        {/* Register Button */}
+                        <PrimaryButton
+                            title="Đăng ký"
+                            onPress={handleSubmit(onSubmit)}
+                            disabled={!isValid}
+                            loading={isSubmitting}
+                        />
+                    </View>
+
+                    {/* Divider */}
+                    <AuthDivider label="Hoặc tiếp tục với" />
+
+                    {/* Social Buttons */}
+                    <SocialAuthButtons
+                        onGooglePress={handleGoogleLogin}
+                        onFacebookPress={handleFacebookLogin}
+                    />
+
+                    {/* Footer */}
+                    <View style={styles.footer}>
+                        <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+                            Đã có tài khoản?
+                        </Text>
+                        <Pressable onPress={handleLogin}>
+                            <Text style={[styles.footerLink, { color: colors.authLinkText }]}>
+                                Đăng nhập ngay
                             </Text>
-                            <Pressable onPress={handleLogin}>
-                                <Text style={[styles.footerLink, { color: colors.authLinkText }]}>
-                                    Đăng nhập ngay
-                                </Text>
-                            </Pressable>
-                        </View>
-                    </ScrollView>
-                </TouchableWithoutFeedback>
+                        </Pressable>
+                    </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </View>
     );

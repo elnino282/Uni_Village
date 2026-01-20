@@ -4,6 +4,7 @@
 export { ChatComposer } from './ChatComposer';
 export { ChatHeader } from './ChatHeader';
 export { ChatThreadScreen } from './ChatThreadScreen';
+export { ConnectionStatusBanner } from './ConnectionStatusBanner';
 export { ItineraryShareSheet } from './ItineraryShareSheet';
 export { MessageBubble } from './MessageBubble';
 export { MessageList } from './MessageList';
@@ -33,4 +34,13 @@ export { ThreadInfoActionsRow } from './ThreadInfoActionsRow';
 export { ThreadInfoHeader } from './ThreadInfoHeader';
 export { ThreadInfoOptionRow } from './ThreadInfoOptionRow';
 export { ThreadInfoScreen } from './ThreadInfoScreen';
+
+// Friend & Message Request components
+export { AcceptMessageRequestBanner } from './AcceptMessageRequestBanner';
+export { AddFriendBanner } from './AddFriendBanner';
+export { FriendRequestBadge } from './FriendRequestBadge';
+export { FriendRequestItem } from './FriendRequestItem';
+export { FriendRequestsList } from './FriendRequestsList';
+export { MessageRequestItem } from './MessageRequestItem';
+export { MessageRequestsEntryRow } from './MessageRequestsEntryRow';
 

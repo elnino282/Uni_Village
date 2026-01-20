@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { inboxService } from '../services/mockInbox';
+import { inboxService } from '../services/inbox.service';
 import type { ConversationsResponse } from '../types/message.types';
 
 const CONVERSATIONS_KEY = ['community', 'conversations'];
