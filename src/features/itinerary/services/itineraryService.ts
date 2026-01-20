@@ -1,5 +1,6 @@
-import type { Itinerary, TourResponse, TourStatus } from '../types/itinerary.types';
 import * as itineraryApi from '../api';
+import type { Itinerary, TourResponse } from '../types/itinerary.types';
+import { TourStatus } from '../types/itinerary.types';
 
 /**
  * Itinerary Service - Business logic layer
@@ -11,12 +12,12 @@ import * as itineraryApi from '../api';
  */
 function mapTourStatusToItineraryStatus(status: TourStatus): 'ongoing' | 'upcoming' | 'past' {
     switch (status) {
-        case 'IN_PROGRESS':
+        case TourStatus.IN_PROGRESS:
             return 'ongoing';
-        case 'SCHEDULED':
+        case TourStatus.SCHEDULED:
             return 'upcoming';
-        case 'COMPLETED':
-        case 'CANCELLED':
+        case TourStatus.COMPLETED:
+        case TourStatus.CANCELLED:
             return 'past';
         default:
             return 'upcoming';
@@ -31,7 +32,7 @@ function mapTourToItinerary(tour: TourResponse): Itinerary {
         id: tour.id.toString(),
         title: tour.tourName,
         startDate: tour.startDate,
-        endDate: tour.status === 'COMPLETED' ? tour.updatedAt : undefined,
+        endDate: tour.status === TourStatus.COMPLETED ? tour.updatedAt : undefined,
         status: mapTourStatusToItineraryStatus(tour.status),
         locations: tour.stops.map(stop => stop.placeName),
         coverImageUrl: tour.stops[0]?.placeImageUrl,
@@ -52,9 +53,9 @@ export async function fetchItineraries(status?: 'ongoing' | 'upcoming' | 'past')
     try {
         // Map frontend status to backend status
         let backendStatus: TourStatus | undefined;
-        if (status === 'ongoing') backendStatus = 'IN_PROGRESS';
-        else if (status === 'upcoming') backendStatus = 'SCHEDULED';
-        else if (status === 'past') backendStatus = 'COMPLETED';
+        if (status === 'ongoing') backendStatus = TourStatus.IN_PROGRESS;
+        else if (status === 'upcoming') backendStatus = TourStatus.SCHEDULED;
+        else if (status === 'past') backendStatus = TourStatus.COMPLETED;
 
         const result = await itineraryApi.getMyTours(backendStatus, 0, 50);
         return result.content.map(mapTourToItinerary);

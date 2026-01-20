@@ -6,15 +6,15 @@
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import type {
-    TourResponse,
-    TourRequest,
-    TourStopRequest,
-    TourStopResponse,
     CheckInRequest,
     CheckInResponse,
     ItinerarySuggestRequest,
     SuggestedItinerary,
+    TourRequest,
+    TourResponse,
     TourStatus,
+    TourStopRequest,
+    TourStopResponse,
 } from '../types/itinerary.types';
 
 // ============================================

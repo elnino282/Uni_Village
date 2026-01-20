@@ -27,10 +27,7 @@ export * from './services/itineraryService';
 export * from './types/itinerary.types';
 
 // Hooks
-export { useItineraries } from './hooks/useItineraries';
 export type { SelectDestinationsMapRef } from './components/SelectDestinationsMap';
-
-// Hooks
 export { useItineraries } from './hooks/useItineraries';
 
 // Services
@@ -38,7 +35,4 @@ export { fetchItineraries } from './services/itineraryService';
 
 // Mock Data
 export { MOCK_ITINERARY_SHARE } from './mock/itineraryShareMock';
-
-// Types
-export type { Itinerary, ItineraryShareData, ItineraryShareStop, ItineraryStatus } from './types/itinerary.types';
 
