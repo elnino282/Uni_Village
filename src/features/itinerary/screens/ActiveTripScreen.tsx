@@ -55,11 +55,8 @@ export function ActiveTripScreen() {
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
   const [pendingAction, setPendingAction] = useState<'checkin' | 'navigate' | null>(null);
 
-  useEffect(() => {
-    loadTripData();
-  }, [params.tripId]);
-
   // Reload data when screen is focused (e.g., returning from add destinations)
+  // REMOVED: useEffect to prevent double loading and infinite loop
   useFocusEffect(
     useCallback(() => {
       loadTripData();
@@ -254,15 +251,14 @@ export function ActiveTripScreen() {
         await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
       }
       
-      // Navigate back to itinerary tab
-      // Use router.back() to go back to previous screen instead of pushing/replacing
-      // This ensures proper navigation in the tab stack
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        // Fallback to replace if can't go back
-        router.replace("/(tabs)/itinerary");
-      }
+      // Navigate to completed trip screen with success
+      router.replace({
+        pathname: "/(modals)/completed-trip" as any,
+        params: { 
+          tripId: tripData.id,
+          showSuccess: 'true' // Flag to show success popup
+        }
+      });
     } catch (error) {
       console.error('Failed to end trip:', error);
       Alert.alert('Lỗi', 'Không thể kết thúc chuyến đi. Vui lòng thử lại.');

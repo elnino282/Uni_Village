@@ -7,6 +7,7 @@ import {
   Image,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -138,6 +139,26 @@ export function ItineraryDetailScreen() {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      const destinationsList = tripData.destinations
+        .map((d, i) => `${i + 1}. ${d.name}`)
+        .join('\n');
+      
+      const message = `🎉 Lịch trình: ${tripData.tripName}\n\n` +
+        `📅 Ngày: ${formatDate(tripData.startDate)}\n` +
+        `⏰ Giờ: ${formatTime(tripData.startTime)}\n\n` +
+        `📍 Điểm đến (${tripData.destinations.length}):\n${destinationsList}\n\n` +
+        `Tạo bằng Uni Village App 🚀`;
+      
+      await Share.share({
+        message,
+      });
+    } catch (error) {
+      console.error('Failed to share:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["bottom"]}>
       {/* Header with gradient background */}
@@ -159,7 +180,9 @@ export function ItineraryDetailScreen() {
             <Text style={styles.headerTitle}>{tripData.tripName}</Text>
           </View>
 
-          <View style={styles.backButton} />
+          <Pressable onPress={handleShare} style={styles.backButton}>
+            <Ionicons name="share-social-outline" size={24} color="#FFFFFF" />
+          </Pressable>
         </View>
 
         {/* Date and Time */}
@@ -278,7 +301,7 @@ export function ItineraryDetailScreen() {
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           
-          <Pressable style={styles.actionRow}>
+          <Pressable style={styles.actionRow} onPress={handleShare}>
             <Ionicons name="share-social-outline" size={20} color={colors.icon} />
             <Text style={[styles.actionText, { color: colors.text }]}>Chia sẻ lịch trình</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />

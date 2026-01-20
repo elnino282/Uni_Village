@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     Image,
+    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -44,10 +45,16 @@ export function CompletedTripScreen() {
   const insets = useSafeAreaInsets();
 
   const [tripData, setTripData] = useState<TripData | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     loadTripData();
-  }, [params.tripId]);
+    
+    // Show success modal if coming from end trip
+    if (params.showSuccess === 'true') {
+      setShowSuccessModal(true);
+    }
+  }, [params.tripId, params.showSuccess]);
 
   const loadTripData = async () => {
     try {
@@ -302,8 +309,10 @@ export function CompletedTripScreen() {
             if (!tripData) return;
             
             try {
-              // Reset trip to upcoming status and clear check-in data
+              // Create NEW trip from completed trip (don't modify the original)
               const now = new Date();
+              const newTripId = Date.now().toString();
+              
               const resetDestinations = tripData.destinations.map(d => ({
                 id: d.id,
                 name: d.name,
@@ -312,38 +321,38 @@ export function CompletedTripScreen() {
                 rating: d.rating,
                 reviewCount: d.reviewCount,
                 time: d.time,
+                lat: d.lat,
+                lng: d.lng,
                 // Reset check-in status
                 isCheckedIn: false,
                 isSkipped: false,
                 checkedInAt: undefined,
               }));
               
-              // Update existing trip in AsyncStorage
-              const tripsJson = await AsyncStorage.getItem('@trips');
-              if (tripsJson) {
-                const trips = JSON.parse(tripsJson);
-                const updatedTrips = trips.map((t: any) => 
-                  t.id === tripData.id 
-                    ? { 
-                        ...t, 
-                        status: 'upcoming',
-                        startDate: now.toISOString(),
-                        startTime: now.toISOString(),
-                        destinations: resetDestinations 
-                      } 
-                    : t
-                );
-                await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
-              }
+              const newTrip = {
+                id: newTripId,
+                tripName: tripData.tripName + ' (Lặp lại)',
+                status: 'upcoming',
+                startDate: now.toISOString(),
+                startTime: now.toISOString(),
+                destinations: resetDestinations,
+                createdAt: now.toISOString(),
+              };
               
-              // Navigate to trip detail
+              // Add new trip to AsyncStorage (keep original completed trip)
+              const tripsJson = await AsyncStorage.getItem('@trips');
+              const trips = tripsJson ? JSON.parse(tripsJson) : [];
+              trips.push(newTrip);
+              await AsyncStorage.setItem('@trips', JSON.stringify(trips));
+              
+              // Navigate to trip detail for editing
               router.push({
                 pathname: "/(modals)/itinerary-detail" as any,
                 params: {
-                  tripId: tripData.id,
-                  tripName: tripData.tripName,
-                  startDate: now.toISOString(),
-                  startTime: now.toISOString(),
+                  tripId: newTripId,
+                  tripName: newTrip.tripName,
+                  startDate: newTrip.startDate,
+                  startTime: newTrip.startTime,
                   destinations: JSON.stringify(resetDestinations),
                 }
               });
@@ -364,6 +373,39 @@ export function CompletedTripScreen() {
           <Text style={[styles.actionButtonText, { color: colors.info }]}>Chia sẻ</Text>
         </Pressable>
       </View>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <Modal
+          visible={showSuccessModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowSuccessModal(false)}
+        >
+          <Pressable 
+            style={styles.modalOverlay}
+            onPress={() => setShowSuccessModal(false)}
+          >
+            <View style={[styles.successModal, { backgroundColor: colors.card }]}>
+              <View style={styles.successIcon}>
+                <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
+              </View>
+              <Text style={[styles.successTitle, { color: colors.text }]}>
+                Hoàn thành chuyến đi! 🎉
+              </Text>
+              <Text style={[styles.successMessage, { color: colors.textSecondary }]}>
+                Bạn đã hoàn thành {completedDestinations}/{tripData?.destinations.length} điểm đến
+              </Text>
+              <Pressable 
+                style={[styles.successButton, { backgroundColor: colors.info }]}
+                onPress={() => setShowSuccessModal(false)}
+              >
+                <Text style={styles.successButtonText}>Xem chi tiết</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -573,5 +615,48 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  successModal: {
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  successIcon: {
+    marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  successButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+  },
+  successButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
