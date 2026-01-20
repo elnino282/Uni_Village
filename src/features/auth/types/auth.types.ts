@@ -15,7 +15,8 @@ import type {
 export type { BackendAuthRequest, BackendAuthResponse, BackendRegisterRequest, BackendForgetPasswordRequest, BackendVerifyRequest, BackendChangePasswordRequest };
 
 export interface User extends BaseEntity {
-    id: string;
+    id: number;
+    userId: number;
     username: string;
     displayName: string;
     email: string;

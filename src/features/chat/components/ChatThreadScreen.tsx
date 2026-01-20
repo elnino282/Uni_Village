@@ -5,9 +5,9 @@
  */
 import BottomSheet from "@gorhom/bottom-sheet";
 import { router, useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 
 import type { Itinerary } from "@/features/itinerary/types/itinerary.types";
 import { getItineraryCoverImage } from "@/features/itinerary/types/itinerary.types";
@@ -20,11 +20,13 @@ import "@/lib/i18n";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import type { MessageResponse } from "@/shared/types/backend.types";
-import type { ParticipantStatus } from "../api/conversations.api";
-import type { RelationshipStatus } from "../api/friends.api";
+import { websocketService } from "@/lib/websocket";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/config/queryKeys";
+import type { Slice } from "@/shared/types/pagination.types";
 import {
   useMessages,
-  useSendMessage,
+  useSendMessageHybrid,
   useSendSharedCard,
   useThread,
 } from "../hooks";
@@ -44,10 +46,13 @@ import { PinnedMessageBar } from "./PinnedMessageBar";
 /**
  * Map API MessageResponse to local Message type
  */
-function mapMessageResponse(msg: MessageResponse, currentUserId?: string): Message {
-  const isSentByMe = String(msg.senderId) === currentUserId;
+function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Message {
+  const isSentByMe = currentUserId ? msg.senderId === currentUserId : false;
   const time = msg.timestamp ? new Date(msg.timestamp) : new Date();
   const timeLabel = time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+  const optimisticMsg = msg as any;
+  const status = optimisticMsg._status || 'sent';
 
   return {
     id: String(msg.id ?? Date.now()),
@@ -56,7 +61,7 @@ function mapMessageResponse(msg: MessageResponse, currentUserId?: string): Messa
     sender: isSentByMe ? 'me' : 'other',
     createdAt: msg.timestamp ?? new Date().toISOString(),
     timeLabel,
-    status: 'sent',
+    status,
     senderName: msg.senderName,
     senderAvatar: msg.senderAvatarUrl,
   } satisfies TextMessage;
@@ -86,7 +91,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   // Data fetching
   const { data: thread, isLoading: isLoadingThread } = useThread(threadId);
   const messagesQuery = useMessages(threadId);
-  const { mutateAsync: sendMessage, isPending: isSending } = useSendMessage();
+  const { sendMessage: sendMessageHybrid, canSend } = useSendMessageHybrid();
   const { mutate: sendSharedCard } = useSendSharedCard();
 
   // Flatten and map messages from paginated response
@@ -100,7 +105,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const dmThread = !isGroup ? (thread as ChatThread | undefined) : null;
 
   // Conversation context for DM chats - get from thread metadata
-  const otherUserId = dmThread?.peer ? parseInt(dmThread.peer.id) : null;
+  const otherUserId = dmThread?.peer ? Number(dmThread.peer.id) : null;
   const relationshipStatus = dmThread?.relationshipStatus || 'NONE';
   const participantStatus = dmThread?.participantStatus || 'INBOX';
 
@@ -120,10 +125,36 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
 
   // Handlers
   const handleSend = useCallback(
-    (text: string) => {
-      sendMessage({ threadId, text });
+    async (text: string) => {
+      const user = useAuthStore.getState().user;
+      
+      if (!user || !user.id) {
+        console.error('[ChatThread] Cannot send message: User not initialized');
+        console.error('[ChatThread] Please log out and log in again');
+        
+        Alert.alert(
+          'Error',
+          'User session expired. Please log in again.',
+          [{ text: 'OK', onPress: () => router.replace('/login') }]
+        );
+        return;
+      }
+
+      try {
+        await sendMessageHybrid({
+          threadId,
+          text,
+          senderInfo: {
+            id: user.id,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+          },
+        });
+      } catch (error) {
+        console.error('[ChatThread] Failed to send message:', error);
+      }
     },
-    [sendMessage, threadId]
+    [sendMessageHybrid, threadId]
   );
 
   const handleImagePress = useCallback(() => {
@@ -173,6 +204,58 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const handlePinnedDismiss = useCallback(() => {
     console.log("Pinned message dismissed");
   }, []);
+
+  // Subscribe to conversation-specific WebSocket events
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!threadId || isVirtualThreadId(threadId)) return;
+
+    const subscription = websocketService.subscribeToMessages(
+      threadId,
+      (message) => {
+        console.log('[ChatThread] WS event:', message.eventType);
+        
+        if (message.eventType === 'EDIT') {
+          // Update edited message in cache
+          const queryKey = queryKeys.messages.list(threadId, {});
+          queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
+            if (!oldData?.pages?.length) return oldData;
+
+            const editedMessage = message.data as MessageResponse;
+            const newPages = oldData.pages.map((page) => ({
+              ...page,
+              content: page.content.map((msg) =>
+                msg.id === editedMessage.id ? editedMessage : msg
+              ),
+            }));
+
+            return { ...oldData, pages: newPages };
+          });
+        } else if (message.eventType === 'UNSEND') {
+          // Mark message as deleted in cache
+          const queryKey = queryKeys.messages.list(threadId, {});
+          queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
+            if (!oldData?.pages?.length) return oldData;
+
+            const eventData = message.data as any;
+            const messageId = eventData.messageId as number;
+            const newPages = oldData.pages.map((page) => ({
+              ...page,
+              content: page.content.map((msg) =>
+                msg.id === messageId ? { ...msg, isActive: false, content: 'This message is unsent' } : msg
+              ),
+            }));
+
+            return { ...oldData, pages: newPages };
+          });
+        }
+      }
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [threadId, queryClient]);
 
   // Loading state for thread
   if (isLoadingThread || !thread) {
@@ -244,7 +327,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
           onSend={handleSend}
           onImagePress={handleImagePress}
           onCalendarPress={handleCalendarPress}
-          isSending={isSending}
+          isSending={false}
         />
       </KeyboardAvoidingView>
 

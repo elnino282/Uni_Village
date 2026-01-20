@@ -11,7 +11,7 @@ export interface ProfileLink {
 }
 
 export interface Profile extends BaseEntity {
-    userId: string;
+    userId: number;
     username: string;
     displayName: string;
     bio?: string;

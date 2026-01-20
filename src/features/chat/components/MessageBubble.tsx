@@ -6,7 +6,7 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
@@ -25,6 +25,10 @@ interface MessageBubbleProps {
   senderAvatar?: string;
   /** Whether this is a group chat (affects layout) */
   isGroupChat?: boolean;
+  /** Error message if status is error */
+  errorMessage?: string;
+  /** Callback for retry when message failed */
+  onRetry?: () => void;
 }
 
 /**
@@ -38,6 +42,8 @@ export function MessageBubble({
   senderName,
   senderAvatar,
   isGroupChat = false,
+  errorMessage,
+  onRetry,
 }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
@@ -49,6 +55,27 @@ export function MessageBubble({
   const bubbleBackgroundColor = isMe ? colors.fabBlue : colors.chipBackground;
   const textColor = isMe ? '#FFFFFF' : colors.textPrimary;
   const timestampColor = colors.separatorDot;
+
+  const renderStatusIcon = () => {
+    if (!isMe || !status) return null;
+
+    if (status === 'sending') {
+      return (
+        <View style={styles.statusIcon}>
+          <ActivityIndicator size="small" color={timestampColor} />
+        </View>
+      );
+    }
+
+    const iconName = status === 'read' || status === 'delivered' ? 'checkmark-done' : 'checkmark';
+    const iconColor = status === 'read' || status === 'delivered' ? colors.fabBlue : timestampColor;
+
+    return (
+      <View style={styles.statusIcon}>
+        <Ionicons name={iconName} size={14} color={iconColor} />
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.container, isMe && styles.containerMe]}>
@@ -70,14 +97,14 @@ export function MessageBubble({
         <Text style={[styles.timestamp, { color: timestampColor }]}>
           {timeLabel}
         </Text>
-        {isMe && status && (
-          <View style={styles.statusIcon}>
-            <Ionicons
-              name={status === 'read' ? 'checkmark-done' : 'checkmark'}
-              size={14}
-              color={timestampColor}
-            />
-          </View>
+        {renderStatusIcon()}
+        {isMe && errorMessage && onRetry && (
+          <TouchableOpacity onPress={onRetry} style={styles.retryButton}>
+            <Ionicons name="alert-circle" size={16} color={colors.error || '#FF4444'} />
+            <Text style={[styles.retryText, { color: colors.error || '#FF4444' }]}>
+              Tap to retry
+            </Text>
+          </TouchableOpacity>
         )}
       </View>
     </View>
@@ -125,5 +152,17 @@ const styles = StyleSheet.create({
   },
   statusIcon: {
     marginLeft: 2,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  retryText: {
+    fontSize: 11,
+    fontWeight: Typography.weights.medium,
   },
 });

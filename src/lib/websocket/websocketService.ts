@@ -383,6 +383,55 @@ class WebSocketService {
     static generateClientMessageId(): string {
         return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     }
+
+    // ========== Presence Management ==========
+
+    /**
+     * Subscribe to presence updates
+     * Destination: /user/queue/presence
+     */
+    subscribeToPresence(
+        onPresence: (message: WebSocketMessage<unknown>) => void
+    ): StompSubscription | null {
+        const destination = '/user/queue/presence';
+        const existingKey = 'user-presence';
+
+        if (this.activeSubscriptions.has(existingKey)) {
+            return this.activeSubscriptions.get(existingKey) || null;
+        }
+
+        const subscription = stompClient.subscribe(destination, onPresence);
+
+        if (subscription) {
+            this.activeSubscriptions.set(existingKey, subscription);
+        }
+
+        return subscription;
+    }
+
+    /**
+     * Send heartbeat to maintain online status
+     * Destination: /app/presence.heartbeat
+     */
+    sendPresenceHeartbeat(): void {
+        if (!this.isConnected()) {
+            console.warn('[WebSocket] Cannot send heartbeat: not connected');
+            return;
+        }
+
+        stompClient.send('/app/presence.heartbeat', {});
+    }
+
+    /**
+     * Unsubscribe from presence updates
+     */
+    unsubscribeFromPresence(): void {
+        const subscription = this.activeSubscriptions.get('user-presence');
+        if (subscription) {
+            subscription.unsubscribe();
+            this.activeSubscriptions.delete('user-presence');
+        }
+    }
 }
 
 export const websocketService = new WebSocketService();

@@ -75,7 +75,7 @@ export type Message = TextMessage | SharedCardMessage;
  * Chat thread peer information
  */
 export interface ThreadPeer {
-  id: string;
+  id: number;
   displayName: string;
   avatarUrl?: string;
 }
@@ -138,7 +138,7 @@ export interface GroupMember {
  * User preview for search/suggestions
  */
 export interface UserPreview {
-  id: string;
+  id: number;
   displayName: string;
   avatarUrl?: string;
   phone?: string;

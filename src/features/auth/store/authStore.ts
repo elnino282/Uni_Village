@@ -76,7 +76,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                 accessToken,
                 refreshToken,
                 user,
-                isAuthenticated: !!accessToken || !!refreshToken,
+                isAuthenticated: !!accessToken && !!user,
                 isLoading: false,
             });
         } catch (error) {
