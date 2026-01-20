@@ -9,6 +9,13 @@ export * from './components';
 // Hooks
 export * from './hooks';
 
+// Store
+export {
+    useActiveConversationId, useChatStore, useIsAnyoneTyping, useSocketStatus,
+    useTypingUsersList, type SocketStatus,
+    type TypingUserInfo
+} from './store';
+
 // Types
 export type {
     ChatThread, Message, MessageSender, MessageStatus, MessageType, MessagesResponse, OnlineStatus, SendMessageInput, SharedCard, SharedCardMessage as SharedCardMessageType, TextMessage, ThreadPeer, ThreadResponse
@@ -16,3 +23,4 @@ export type {
 
 // Services (internal use only, but exported for testing)
 export * from './services';
+
