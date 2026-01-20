@@ -68,9 +68,9 @@ export async function generateItinerary(request: ItineraryRequest): Promise<Itin
       try {
         console.log(`📡 Attempt ${attempt}/${maxRetries}...`);
 
-        // Call Gemini API with the v1 API (v1beta doesn't support gemini-1.5-flash)
+        // Call Gemini API with stable gemini-pro model
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+          `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
           {
             method: 'POST',
             headers: {
