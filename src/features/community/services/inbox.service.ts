@@ -66,7 +66,13 @@ export const inboxService = {
       });
 
       const conversations = response.result?.content || [];
-      let mappedData = conversations.map(mapToConversation);
+      
+      // Filter out conversations with no messages (empty conversations)
+      const conversationsWithMessages = conversations.filter(
+        (conv) => conv.lastMessage && conv.lastMessage.trim() !== ''
+      );
+      
+      let mappedData = conversationsWithMessages.map(mapToConversation);
 
       // Client-side search filter (if API doesn't support search)
       if (params.search && params.search.trim()) {
