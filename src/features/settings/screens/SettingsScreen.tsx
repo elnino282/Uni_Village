@@ -4,6 +4,7 @@
  */
 
 import { useAuthStore } from '@/features/auth';
+import { queryClient } from '@/providers/QueryProvider';
 import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -72,8 +73,8 @@ export function SettingsScreen() {
 
     const handleLogout = async () => {
         try {
-            // TODO: Call Firebase signOut when auth is fully integrated
-            // await auth().signOut();
+            // Clear all cached data from React Query to prevent stale user data
+            queryClient.clear();
             await authClear();
             router.replace('/');
         } catch (error) {
