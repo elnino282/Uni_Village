@@ -3,8 +3,25 @@
  * Provides thread/conversation data using the real backend API
  */
 import type { ChannelResponse, ConversationResponse } from '@/shared/types/backend.types';
-import { channelsApi, conversationsApi } from '../api';
+import { profileApi } from '@/features/profile/api/profileApi';
+import { channelsApi, conversationsApi, friendsApi } from '../api';
 import type { ChatThread, GroupThread, ThreadResponse } from '../types';
+
+/**
+ * Check if a thread ID is a virtual thread (user-{userId})
+ */
+export function isVirtualThreadId(threadId: string): boolean {
+    return threadId.startsWith('user-');
+}
+
+/**
+ * Extract user ID from virtual thread ID
+ */
+export function extractUserIdFromVirtualThread(threadId: string): number | null {
+    if (!isVirtualThreadId(threadId)) return null;
+    const userId = threadId.replace('user-', '');
+    return parseInt(userId, 10);
+}
 
 /**
  * Check if a thread ID belongs to a group/channel
@@ -94,6 +111,52 @@ export async function fetchThread(conversationId: string): Promise<ThreadRespons
                 },
                 onlineStatus: 'offline',
                 onlineStatusText: 'Offline',
+            },
+        };
+    }
+}
+
+/**
+ * Fetch virtual thread metadata from user profile
+ * @param userId - User ID
+ */
+export async function fetchVirtualThread(userId: number): Promise<ThreadResponse> {
+    try {
+        const [profile, relationshipStatus] = await Promise.all([
+            profileApi.getProfile(userId),
+            friendsApi.getRelationshipStatus(userId).catch(() => ({ status: 'NONE' as const }))
+        ]);
+
+        return {
+            thread: {
+                id: `user-${userId}`,
+                type: 'dm',
+                peer: {
+                    id: String(userId),
+                    displayName: profile.displayName || profile.username || 'Người dùng',
+                    avatarUrl: profile.avatarUrl,
+                },
+                onlineStatus: 'offline',
+                onlineStatusText: 'Offline',
+                relationshipStatus: relationshipStatus.status,
+                participantStatus: 'INBOX',
+            },
+        };
+    } catch (error) {
+        console.error('[Thread Service] Error fetching virtual thread:', error);
+        return {
+            thread: {
+                id: `user-${userId}`,
+                type: 'dm',
+                peer: {
+                    id: String(userId),
+                    displayName: 'Người dùng',
+                    avatarUrl: undefined,
+                },
+                onlineStatus: 'offline',
+                onlineStatusText: 'Offline',
+                relationshipStatus: 'NONE',
+                participantStatus: 'INBOX',
             },
         };
     }
