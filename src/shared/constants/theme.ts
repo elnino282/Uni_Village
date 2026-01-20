@@ -26,6 +26,7 @@ export const Colors = {
         success: '#22c55e',
         warning: '#f59e0b',
         error: '#ef4444',
+        errorLight: '#FFEBEE',
         info: '#3b82f6',
         // Edit Profile specific colors
         actionBlue: '#155dfc',
@@ -85,6 +86,7 @@ export const Colors = {
         success: '#4ade80',
         warning: '#fbbf24',
         error: '#f87171',
+        errorLight: '#451a1a',
         info: '#60a5fa',
         // Edit Profile specific colors
         actionBlue: '#3b82f6',
