@@ -2,7 +2,8 @@
  * Profile Services Barrel Export
  */
 
-export { getMockProfile, mockProfile } from './mockProfile';
-export { fetchPublicProfile, getMockPublicProfile } from './mockPublicProfile';
-export { fetchProfilePosts, getMockProfilePosts } from './mockProfilePosts';
-export { fetchSavedPosts, getMockSavedPosts } from './mockSavedPosts';
+// Services are now handled directly by API client in ../api/profileApi.ts
+// This file is kept for backwards compatibility and may be removed in future
+
+export { profileApi, type FollowersResponse } from '../api/profileApi';
+

@@ -4,7 +4,10 @@
 
 export type {
     AuthState, AuthTokens, LoginRequest,
-    RegisterRequest, TokenPair, User
+    RegisterRequest, VerifyRequest, ForgetPasswordRequest,
+    ChangePasswordRequest, User,
+    BackendAuthRequest, BackendAuthResponse, BackendRegisterRequest,
+    BackendForgetPasswordRequest, BackendVerifyRequest, BackendChangePasswordRequest
 } from './auth.types';
 
-export { isTokenPair, mapTokenPair } from './auth.types';
+export { isAuthResponse, mapAuthResponse } from './auth.types';

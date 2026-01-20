@@ -33,7 +33,7 @@ export function goBack(): void {
 /**
  * Reset navigation stack
  */
-export function reset(routes: Array<{ name: string; params?: Record<string, unknown> }>): void {
+export function reset(routes: { name: string; params?: Record<string, unknown> }[]): void {
     if (navigationRef.isReady()) {
         navigationRef.reset({
             index: routes.length - 1,

@@ -2349,11 +2349,9 @@ components:
           type: string
     RegisterRequest:
       type: object
-      required: [firstname, lastname, email, username, password]
+      required: [fullname, email, username, password]
       properties:
-        firstname:
-          type: string
-        lastname:
+        fullname:
           type: string
         email:
           type: string

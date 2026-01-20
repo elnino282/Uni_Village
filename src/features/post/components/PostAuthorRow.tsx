@@ -7,15 +7,18 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { formatRelativeTime } from '@/shared/utils';
+
 import { Avatar } from '@/shared/components/ui';
 import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
-import type { PostDetailAuthor, PostVisibility } from '../types';
+import type { PostVisibility } from '../types';
 
 interface PostAuthorRowProps {
-  author: PostDetailAuthor;
-  createdAtText: string;
-  visibility: PostVisibility;
+  authorName?: string;
+  authorAvatarUrl?: string;
+  createdAt?: string;
+  visibility?: PostVisibility;
   onMenuPress?: () => void;
 }
 
@@ -26,8 +29,9 @@ const VISIBILITY_LABELS: Record<PostVisibility, string> = {
 };
 
 export function PostAuthorRow({
-  author,
-  createdAtText,
+  authorName,
+  authorAvatarUrl,
+  createdAt,
   visibility,
   onMenuPress,
 }: PostAuthorRowProps) {
@@ -40,34 +44,24 @@ export function PostAuthorRow({
       <View style={styles.avatarContainer}>
         <Avatar
           size="md"
-          source={author.avatarUrl}
-          name={author.displayName}
+          source={authorAvatarUrl}
+          name={authorName}
           style={styles.avatar}
         />
-        {author.isOnline && (
-          <View
-            style={[
-              styles.onlineIndicator,
-              { backgroundColor: colors.onlineIndicator, borderColor: colors.background },
-            ]}
-          />
-        )}
       </View>
 
       {/* Author info */}
       <View style={styles.info}>
         <View style={styles.nameRow}>
           <Text style={[styles.name, { color: colors.textPrimary }]}>
-            {author.displayName}
+            {authorName}
           </Text>
-          {author.isVerified && (
-            <MaterialIcons name="verified" size={14} color="#fbbf24" style={styles.badge} />
-          )}
         </View>
         <Text style={[styles.meta, { color: colors.textSecondary }]}>
-          {createdAtText} • {VISIBILITY_LABELS[visibility]}
+          {createdAt ? formatRelativeTime(createdAt) : ''} • {visibility ? VISIBILITY_LABELS[visibility] : ''}
         </Text>
       </View>
+
 
       {/* Menu button */}
       <TouchableOpacity

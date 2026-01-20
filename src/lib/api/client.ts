@@ -5,7 +5,7 @@
 
 import { useAuthStore } from '@/features/auth/store/authStore';
 import type { AuthTokens } from '@/features/auth/types';
-import { isTokenPair, mapTokenPair } from '@/features/auth/types';
+import { isAuthResponse, mapAuthResponse } from '@/features/auth/types';
 import { env } from '@/config/env';
 import { ApiError } from '@/lib/errors/ApiError';
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
@@ -13,7 +13,6 @@ import { API_ENDPOINTS } from './endpoints';
 
 type RetryableConfig = AxiosRequestConfig & { _retry?: boolean };
 
-// Create axios instance with default config
 const axiosInstance: AxiosInstance = axios.create({
     baseURL: env.API_URL,
     timeout: 30000,
@@ -21,6 +20,29 @@ const axiosInstance: AxiosInstance = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+const logRequest = (config: AxiosRequestConfig) => {
+    if (__DEV__) {
+        console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
+        if (config.data) {
+            console.log('[API Request Data]', config.data);
+        }
+    }
+};
+
+const logResponse = (response: AxiosResponse) => {
+    if (__DEV__) {
+        console.log(`[API Response] ${response.status} ${response.config.url}`);
+        console.log('[API Response Data]', response.data);
+    }
+};
+
+const logError = (error: AxiosError) => {
+    if (__DEV__) {
+        console.error(`[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+        console.error('[API Error Details]', error.response?.data || error.message);
+    }
+};
 
 let refreshPromise: Promise<AuthTokens | null> | null = null;
 
@@ -46,12 +68,12 @@ const refreshAccessToken = async (): Promise<AuthTokens | null> => {
                     },
                 });
 
-                if (!isTokenPair(response.data)) {
+                if (!isAuthResponse(response.data)) {
                     await clear();
                     return null;
                 }
 
-                const tokens = mapTokenPair(response.data);
+                const tokens = mapAuthResponse(response.data);
                 await setTokens(tokens);
                 return tokens;
             } catch {
@@ -66,9 +88,10 @@ const refreshAccessToken = async (): Promise<AuthTokens | null> => {
     return refreshPromise;
 };
 
-// Request interceptor - Add auth token
 axiosInstance.interceptors.request.use(
     async (config) => {
+        logRequest(config);
+
         if (isRefreshRequest(config)) {
             return config;
         }
@@ -84,13 +107,20 @@ axiosInstance.interceptors.request.use(
 
         return config;
     },
-    (error) => Promise.reject(error)
+    (error) => {
+        logError(error);
+        return Promise.reject(error);
+    }
 );
 
-// Response interceptor - Handle errors
 axiosInstance.interceptors.response.use(
-    (response: AxiosResponse) => response,
+    (response: AxiosResponse) => {
+        logResponse(response);
+        return response;
+    },
     async (error: AxiosError) => {
+        logError(error);
+        
         const originalRequest = error.config as RetryableConfig | undefined;
 
         if (
@@ -111,7 +141,6 @@ axiosInstance.interceptors.response.use(
             }
         }
 
-        // Transform to ApiError
         throw ApiError.fromAxiosError(error);
     }
 );
@@ -134,6 +163,39 @@ export const apiClient = {
 
     delete: <T>(url: string, config?: AxiosRequestConfig): Promise<T> =>
         axiosInstance.delete<T>(url, config).then((res) => res.data),
+
+    postMultipart: <T>(url: string, formData: FormData, config?: AxiosRequestConfig): Promise<T> =>
+        axiosInstance
+            .post<T>(url, formData, {
+                ...config,
+                headers: {
+                    ...config?.headers,
+                    'Content-Type': 'multipart/form-data',
+                },
+            })
+            .then((res) => res.data),
+
+    putMultipart: <T>(url: string, formData: FormData, config?: AxiosRequestConfig): Promise<T> =>
+        axiosInstance
+            .put<T>(url, formData, {
+                ...config,
+                headers: {
+                    ...config?.headers,
+                    'Content-Type': 'multipart/form-data',
+                },
+            })
+            .then((res) => res.data),
+
+    patchMultipart: <T>(url: string, formData: FormData, config?: AxiosRequestConfig): Promise<T> =>
+        axiosInstance
+            .patch<T>(url, formData, {
+                ...config,
+                headers: {
+                    ...config?.headers,
+                    'Content-Type': 'multipart/form-data',
+                },
+            })
+            .then((res) => res.data),
 };
 
 export { axiosInstance };

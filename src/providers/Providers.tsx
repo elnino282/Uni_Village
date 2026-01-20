@@ -10,19 +10,21 @@ import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryProvider } from './QueryProvider';
 import { ThemeProvider, useTheme } from './ThemeProvider';
+import { WebSocketProvider } from './WebSocketProvider';
 
 interface ProvidersProps {
     children: React.ReactNode;
 }
 
-// Inner component that uses theme context
 function InnerProviders({ children }: ProvidersProps) {
     const { colorScheme } = useTheme();
 
     return (
         <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <BottomSheetModalProvider>
-                {children}
+                <WebSocketProvider>
+                    {children}
+                </WebSocketProvider>
             </BottomSheetModalProvider>
         </NavigationThemeProvider>
     );

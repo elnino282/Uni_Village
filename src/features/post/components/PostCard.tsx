@@ -24,22 +24,22 @@ export function PostCard({ post, onPress, onLike, onComment, onShare }: PostCard
         <Card variant="elevated" padding="none" onPress={onPress}>
             <View style={styles.header}>
                 <Avatar
-                    source={post.author.avatarUrl}
-                    name={post.author.displayName}
+                    source={post.authorAvatarUrl}
+                    name={post.authorName}
                     size="md"
                 />
                 <View style={styles.headerInfo}>
-                    <Text style={styles.authorName}>{post.author.displayName}</Text>
-                    <Text style={styles.timestamp}>{formatRelativeTime(post.createdAt)}</Text>
+                    <Text style={styles.authorName}>{post.authorName}</Text>
+                    <Text style={styles.timestamp}>{post.createdAt ? formatRelativeTime(post.createdAt) : ''}</Text>
                 </View>
             </View>
 
             <View style={styles.content}>
                 <Text style={styles.contentText}>{post.content}</Text>
 
-                {post.imageUrls && post.imageUrls.length > 0 && (
+                {post.mediaUrls && post.mediaUrls.length > 0 && (
                     <Image
-                        source={{ uri: post.imageUrls[0] }}
+                        source={{ uri: post.mediaUrls[0] }}
                         style={styles.image}
                         contentFit="cover"
                     />
@@ -48,13 +48,13 @@ export function PostCard({ post, onPress, onLike, onComment, onShare }: PostCard
 
             <View style={styles.actions}>
                 <Pressable style={styles.actionButton} onPress={onLike}>
-                    <Text style={[styles.actionText, post.isLiked && styles.liked]}>
-                        ❤️ {post.likesCount}
+                    <Text style={[styles.actionText, false && styles.liked]}>
+                        ❤️ {0}
                     </Text>
                 </Pressable>
 
                 <Pressable style={styles.actionButton} onPress={onComment}>
-                    <Text style={styles.actionText}>💬 {post.commentsCount}</Text>
+                    <Text style={styles.actionText}>💬 {0}</Text>
                 </Pressable>
 
                 <Pressable style={styles.actionButton} onPress={onShare}>

@@ -95,6 +95,10 @@ export interface ChatThread {
   onlineStatus: OnlineStatus;
   /** Localized online status text: "Đang hoạt động", "Offline", etc. */
   onlineStatusText: string;
+  /** Relationship status with the other user (for DM chats) */
+  relationshipStatus?: 'NONE' | 'PENDING_OUTGOING' | 'PENDING_INCOMING' | 'ACCEPTED' | 'BLOCKED' | 'BLOCKED_BY' | 'FRIEND';
+  /** Participant status (INBOX/REQUEST) */
+  participantStatus?: 'INBOX' | 'REQUEST' | 'ARCHIVED' | 'DELETED';
 }
 
 /**
@@ -138,6 +142,19 @@ export interface UserPreview {
   displayName: string;
   avatarUrl?: string;
   phone?: string;
+}
+
+/**
+ * User search result with relationship status
+ * Used for user search in messages tab
+ */
+export interface UserSearchResult {
+  id: number;
+  username: string;
+  displayName: string;
+  email?: string;
+  avatarUrl?: string;
+  relationshipStatus: 'NONE' | 'PENDING_OUTGOING' | 'PENDING_INCOMING' | 'ACCEPTED' | 'BLOCKED' | 'BLOCKED_BY';
 }
 
 /**

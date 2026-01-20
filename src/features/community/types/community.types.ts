@@ -3,6 +3,7 @@
  */
 
 import type { ItineraryShareData } from '@/features/itinerary/types/itinerary.types';
+import type { PostType } from '@/shared/types/backend.types';
 import type { ChannelInvite } from '@/shared/types';
 
 export type CommunityTab = 'posts' | 'messages';
@@ -12,10 +13,12 @@ export type ContentFilterTab = 'posts' | 'itineraries' | 'channels';
 export type PostVisibility = 'public' | 'private';
 
 export interface PostLocation {
-  id: string;
+  id: string | number;
   name: string;
+  address?: string;
   lat?: number;
   lng?: number;
+  placeId?: string;
 }
 
 export interface PostAuthor {
@@ -29,6 +32,7 @@ export interface CommunityPost {
   author: PostAuthor;
   content: string;
   imageUrl?: string;
+  postType?: PostType;
   locations: PostLocation[];
   likesCount: number;
   commentsCount: number;

@@ -36,7 +36,7 @@ export async function getMyTours(status?: TourStatus, page = 0, size = 10) {
     }>(API_ENDPOINTS.TOURS.MY_TOURS, {
         params: { status, page, size },
     });
-    return response.data.result;
+    return response.result;
 }
 
 /**
@@ -47,8 +47,8 @@ export async function getCurrentTour() {
         code: number;
         message: string;
         result: TourResponse | null;
-    }>(API_ENDPOINTS.TOURS.CURRENT_TOUR);
-    return response.data.result;
+    }>(API_ENDPOINTS.TOURS.CURRENT);
+    return response.result;
 }
 
 /**
@@ -59,8 +59,8 @@ export async function createTour(data: TourRequest) {
         code: number;
         message: string;
         result: TourResponse;
-    }>(API_ENDPOINTS.TOURS.CREATE, data);
-    return response.data.result;
+    }>(API_ENDPOINTS.TOURS.MY_TOURS, data);
+    return response.result;
 }
 
 /**
@@ -71,8 +71,8 @@ export async function getTourById(id: number) {
         code: number;
         message: string;
         result: TourResponse;
-    }>(API_ENDPOINTS.TOURS.DETAIL(id));
-    return response.data.result;
+    }>(API_ENDPOINTS.TOURS.BY_ID(id));
+    return response.result;
 }
 
 /**
@@ -84,7 +84,7 @@ export async function updateTour(id: number, data: TourRequest) {
         message: string;
         result: TourResponse;
     }>(API_ENDPOINTS.TOURS.UPDATE(id), data);
-    return response.data.result;
+    return response.result;
 }
 
 /**
@@ -96,7 +96,7 @@ export async function completeTour(id: number) {
         message: string;
         result: TourResponse;
     }>(API_ENDPOINTS.TOURS.COMPLETE(id));
-    return response.data.result;
+    return response.result;
 }
 
 /**
@@ -108,7 +108,7 @@ export async function cancelTour(id: number) {
         message: string;
         result: TourResponse;
     }>(API_ENDPOINTS.TOURS.CANCEL(id));
-    return response.data.result;
+    return response.result;
 }
 
 /**
@@ -120,7 +120,7 @@ export async function copyTour(id: number) {
         message: string;
         result: TourResponse;
     }>(API_ENDPOINTS.TOURS.COPY(id));
-    return response.data.result;
+    return response.result;
 }
 
 // ============================================
@@ -136,7 +136,7 @@ export async function getTourStops(tourId: number) {
         message: string;
         result: TourStopResponse[];
     }>(API_ENDPOINTS.TOUR_STOPS.LIST(tourId));
-    return response.data.result;
+    return response.result;
 }
 
 /**
@@ -147,8 +147,8 @@ export async function addTourStop(tourId: number, data: TourStopRequest) {
         code: number;
         message: string;
         result: TourStopResponse;
-    }>(API_ENDPOINTS.TOUR_STOPS.ADD(tourId), data);
-    return response.data.result;
+    }>(API_ENDPOINTS.TOUR_STOPS.CREATE(tourId), data);
+    return response.result;
 }
 
 /**
@@ -160,14 +160,14 @@ export async function reorderTourStops(tourId: number, stopIds: number[]) {
         message: string;
         result: TourStopResponse[];
     }>(API_ENDPOINTS.TOUR_STOPS.REORDER(tourId), { stopIds });
-    return response.data.result;
+    return response.result;
 }
 
 /**
  * Remove stop from tour
  */
 export async function removeTourStop(tourId: number, stopId: number) {
-    await apiClient.delete(API_ENDPOINTS.TOUR_STOPS.REMOVE(tourId, stopId));
+    await apiClient.delete(API_ENDPOINTS.TOUR_STOPS.DELETE(tourId, stopId));
 }
 
 // ============================================
@@ -183,7 +183,7 @@ export async function checkIn(data: CheckInRequest) {
         message: string;
         result: CheckInResponse;
     }>(API_ENDPOINTS.CHECK_INS.CREATE, data);
-    return response.data.result;
+    return response.result;
 }
 
 /**
@@ -210,7 +210,7 @@ export async function getMyCheckIns(
     }>(API_ENDPOINTS.CHECK_INS.MY_CHECK_INS, {
         params: { ...filters, page, size },
     });
-    return response.data.result;
+    return response.result;
 }
 
 // ============================================
@@ -221,11 +221,8 @@ export async function getMyCheckIns(
  * Get AI-powered itinerary suggestions
  */
 export async function suggestItinerary(data: ItinerarySuggestRequest) {
-    const response = await apiClient.post<SuggestedItinerary>(
+    return await apiClient.post<SuggestedItinerary>(
         API_ENDPOINTS.AI.SUGGEST_ITINERARY,
         data
     );
-    return response.data;
 }
-
-export {};

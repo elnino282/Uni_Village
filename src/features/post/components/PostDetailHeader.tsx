@@ -14,9 +14,10 @@ import { useColorScheme } from '@/shared/hooks';
 
 interface PostDetailHeaderProps {
   title?: string;
+  onMenuPress?: () => void;
 }
 
-export function PostDetailHeader({ title = 'Bài viết' }: PostDetailHeaderProps) {
+export function PostDetailHeader({ title = 'Bài viết', onMenuPress }: PostDetailHeaderProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
@@ -37,14 +38,27 @@ export function PostDetailHeader({ title = 'Bài viết' }: PostDetailHeaderProp
       ]}
     >
       <View style={styles.content}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        <View style={styles.leftSection}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBack}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        </View>
+        {onMenuPress ? (
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={onMenuPress}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <MaterialIcons name="more-vert" size={24} color={colors.text} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.menuSpacer} />
+        )}
       </View>
     </View>
   );
@@ -58,7 +72,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 68,
-    paddingLeft: Spacing.cardPadding - 4, // 12px as per Figma
+    paddingHorizontal: Spacing.cardPadding - 4, // 12px as per Figma
+    justifyContent: 'space-between',
+  },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.cardPadding - 4, // 12px gap
   },
   backButton: {
@@ -66,6 +85,16 @@ const styles = StyleSheet.create({
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  menuButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuSpacer: {
+    width: 32,
+    height: 32,
   },
   title: {
     fontSize: Typography.sizes['2xl'], // 24px

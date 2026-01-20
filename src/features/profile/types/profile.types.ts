@@ -33,7 +33,5 @@ export interface UpdateProfileRequest {
     avatarUrl?: string;
     coverUrl?: string;
     interests?: string[];
-    links?: ProfileLink[];
-    podcastUrl?: string;
     isPrivate?: boolean;
 }

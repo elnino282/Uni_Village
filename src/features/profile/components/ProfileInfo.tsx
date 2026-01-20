@@ -1,33 +1,32 @@
 /**
  * ProfileInfo Component
- * Displays user's display name, username, and bio (simplified version for main profile screen)
+ * Displays user's display name and bio (text only - FAB serves as avatar)
  */
 
 import { Colors } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { ms, s, vs } from 'react-native-size-matters';
 import type { Profile } from '../types';
 
 interface ProfileInfoProps {
     profile: Profile;
+    /** Optional container style for layout customization */
+    style?: ViewStyle;
 }
 
-export function ProfileInfo({ profile }: ProfileInfoProps) {
+export function ProfileInfo({ profile, style }: ProfileInfoProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, style]}>
             <Text style={[styles.displayName, { color: colors.text }]}>
                 {profile.displayName}
             </Text>
-            <Text style={[styles.username, { color: colors.icon }]}>
-                {profile.username}
-            </Text>
             {profile.bio && (
-                <Text style={[styles.bio, { color: colors.text }]}>
+                <Text style={[styles.bio, { color: colors.textSecondary }]}>
                     {profile.bio}
                 </Text>
             )}
@@ -38,22 +37,18 @@ export function ProfileInfo({ profile }: ProfileInfoProps) {
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: s(16),
-        paddingTop: vs(16),
+        paddingTop: vs(24),
+        paddingBottom: vs(8),
     },
     displayName: {
-        fontSize: ms(24),
+        fontSize: ms(28),
         fontWeight: '700',
-        marginBottom: vs(4),
-    },
-    username: {
-        fontSize: ms(14),
-        fontWeight: '400',
         marginBottom: vs(8),
     },
     bio: {
-        fontSize: ms(16),
+        fontSize: ms(15),
         fontWeight: '400',
-        lineHeight: ms(24),
-        marginTop: vs(4),
+        lineHeight: ms(22),
     },
 });
+

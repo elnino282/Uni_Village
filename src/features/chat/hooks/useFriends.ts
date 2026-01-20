@@ -4,7 +4,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchFriends } from '../services/mockFriends';
+import { friendsApi } from '../api';
 import type { FriendPreview } from '../types/channel.types';
 
 /**
@@ -22,7 +22,17 @@ export const friendsKeys = {
 export function useFriends(searchQuery?: string) {
   return useQuery<FriendPreview[], Error>({
     queryKey: friendsKeys.search(searchQuery),
-    queryFn: () => fetchFriends(searchQuery),
+    queryFn: async (): Promise<FriendPreview[]> => {
+      const response = await friendsApi.getFriends(0, 100, searchQuery);
+      // Map FriendRequestItem to FriendPreview
+      return response.content.map(item => ({
+        id: item.user.id.toString(),
+        displayName: item.user.displayName,
+        avatarUrl: item.user.avatarUrl,
+        isOnline: false, // Online status from presence service
+        statusText: 'Không hoạt động',
+      }));
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

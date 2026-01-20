@@ -7,7 +7,7 @@ import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 
 export interface SelectDestinationsMapProps {
   markers: MapMarker[];
-  selectedDestinations: Array<{ place: { id: string }; order: number }>;
+  selectedDestinations: { place: { id: string }; order: number }[];
   initialRegion: MapRegion;
   onMarkerPress?: (markerId: string) => void;
   onRegionChange?: (region: MapRegion) => void;

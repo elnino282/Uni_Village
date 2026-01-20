@@ -1,21 +1,25 @@
+/**
+ * useUpdateProfile Hook - Mutation for updating profile
+ */
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { profileApi } from '../api/profileApi';
 import type { Profile, UpdateProfileRequest } from '../types';
+import { profileKeys } from './useProfile';
 
 interface UseUpdateProfileOptions {
-    userId: string;
     onSuccess?: (data: Profile) => void;
     onError?: (error: Error) => void;
 }
 
-export function useUpdateProfile({ userId, onSuccess, onError }: UseUpdateProfileOptions) {
+export function useUpdateProfile({ onSuccess, onError }: UseUpdateProfileOptions = {}) {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: (data: UpdateProfileRequest) => profileApi.updateProfile(userId, data),
+        mutationFn: (data: UpdateProfileRequest) => profileApi.updateProfile(data),
         onSuccess: (data) => {
             // Invalidate and refetch profile data
-            queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+            queryClient.invalidateQueries({ queryKey: profileKeys.me() });
             onSuccess?.(data);
         },
         onError: (error: Error) => {
@@ -31,3 +35,4 @@ export function useUpdateProfile({ userId, onSuccess, onError }: UseUpdateProfil
         reset: mutation.reset,
     };
 }
+

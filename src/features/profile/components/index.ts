@@ -12,6 +12,7 @@ export { ProfileHeaderIcons } from './ProfileHeaderIcons';
 export { ProfileInfo } from './ProfileInfo';
 export { ProfilePostCard } from './ProfilePostCard';
 export { ProfileScreen } from './ProfileScreen';
+export { ProfileShareSheet } from './ProfileShareSheet';
 export { ProfileTabs } from './ProfileTabs';
 export type { ProfileTabKey } from './ProfileTabs';
 export { PublicProfileHeader } from './PublicProfileHeader';
