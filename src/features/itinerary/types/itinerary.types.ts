@@ -1,5 +1,105 @@
 export type ItineraryStatus = 'ongoing' | 'upcoming' | 'past';
 
+// ============================================
+// Backend API Types (matching Java DTOs)
+// ============================================
+
+export enum TourStatus {
+    SCHEDULED = 'SCHEDULED',    // upcoming
+    IN_PROGRESS = 'IN_PROGRESS', // ongoing  
+    COMPLETED = 'COMPLETED',     // past
+    CANCELLED = 'CANCELLED'
+}
+
+export interface TourStopResponse {
+    id: number;
+    tourId: number;
+    placeId: number;
+    placeName: string;
+    placeImageUrl?: string;
+    order: number;
+    visitTime?: string;
+    isCheckedIn: boolean;
+    isSkipped: boolean;
+    checkedInAt?: string;
+    lat?: number;
+    lng?: number;
+}
+
+export interface TourResponse {
+    id: number;
+    userId: number;
+    tourName: string;
+    startDate: string; // ISO datetime
+    startTime: string; // ISO datetime
+    status: TourStatus;
+    stops: TourStopResponse[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface TourRequest {
+    tourName: string;
+    startDate: string; // ISO datetime
+    startTime: string; // ISO datetime
+}
+
+export interface TourStopRequest {
+    placeId: number;
+    order: number;
+    visitTime?: string;
+}
+
+export interface CheckInRequest {
+    placeId: number;
+    tourId?: number;
+    tourStopId?: number;
+}
+
+export interface CheckInResponse {
+    id: number;
+    userId: number;
+    placeId: number;
+    placeName: string;
+    tourId?: number;
+    tourStopId?: number;
+    checkedInAt: string;
+}
+
+// AI Itinerary Types
+export interface ItinerarySuggestRequest {
+    mood: string;
+    budget: string;
+    startLocation: {
+        lat: number;
+        lng: number;
+    };
+    maxDistance?: number;
+    categories?: string[];
+}
+
+export interface SuggestedItineraryStop {
+    placeId: number;
+    name: string;
+    description?: string;
+    imageUrl?: string;
+    lat: number;
+    lng: number;
+    order: number;
+    aiReason?: string;
+}
+
+export interface SuggestedItinerary {
+    mood: string;
+    stops: SuggestedItineraryStop[];
+    totalDistance: number;
+    estimatedDuration: number;
+}
+
+// ============================================
+// Frontend Types (for local state)
+// ============================================
+
 /**
  * Represents a stop/destination within an itinerary
  */

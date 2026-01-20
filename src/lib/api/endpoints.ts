@@ -42,6 +42,55 @@ export const API_ENDPOINTS = {
     },
 
     // ============================================
+    // Places
+    // ============================================
+    PLACES: {
+        SEARCH: '/api/v1/places',
+        NEARBY: '/api/v1/places/nearby',
+        DETAIL: (id: number) => `/api/v1/places/${id}`,
+    },
+
+    // ============================================
+    // Tours (Itineraries)
+    // ============================================
+    TOURS: {
+        MY_TOURS: '/api/v1/me/tours',
+        CURRENT_TOUR: '/api/v1/me/tours/current',
+        CREATE: '/api/v1/me/tours',
+        DETAIL: (id: number) => `/api/v1/tours/${id}`,
+        UPDATE: (id: number) => `/api/v1/me/tours/${id}`,
+        COMPLETE: (id: number) => `/api/v1/me/tours/${id}/complete`,
+        CANCEL: (id: number) => `/api/v1/me/tours/${id}/cancel`,
+        SHARE_AS_POST: (id: number) => `/api/v1/me/tours/${id}/share-as-post`,
+        COPY: (id: number) => `/api/v1/tours/${id}/copy`,
+    },
+
+    // ============================================
+    // Tour Stops
+    // ============================================
+    TOUR_STOPS: {
+        LIST: (tourId: number) => `/api/v1/tours/${tourId}/stops`,
+        ADD: (tourId: number) => `/api/v1/me/tours/${tourId}/stops`,
+        REORDER: (tourId: number) => `/api/v1/me/tours/${tourId}/stops/reorder`,
+        REMOVE: (tourId: number, stopId: number) => `/api/v1/me/tours/${tourId}/stops/${stopId}`,
+    },
+
+    // ============================================
+    // Check-ins
+    // ============================================
+    CHECK_INS: {
+        CREATE: '/api/v1/check-ins',
+        MY_CHECK_INS: '/api/v1/me/check-ins',
+    },
+
+    // ============================================
+    // AI Itinerary
+    // ============================================
+    AI: {
+        SUGGEST_ITINERARY: '/ai/itineraries/suggest',
+    },
+
+    // ============================================
     // Locations
     // ============================================
     LOCATIONS: {

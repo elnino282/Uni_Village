@@ -18,6 +18,16 @@ export type { DestinationMapRef } from './components/DestinationMap';
 export { ItineraryDetailsSheet } from './components/ItineraryDetailsSheet';
 export { ItineraryShareCard } from './components/ItineraryShareCard';
 export { SelectDestinationsMap } from './components/SelectDestinationsMap';
+
+// API & Services
+export * from './api';
+export * from './services/itineraryService';
+
+// Types
+export * from './types/itinerary.types';
+
+// Hooks
+export { useItineraries } from './hooks/useItineraries';
 export type { SelectDestinationsMapRef } from './components/SelectDestinationsMap';
 
 // Hooks
