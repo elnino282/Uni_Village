@@ -5,7 +5,7 @@
  */
 import BottomSheet from "@gorhom/bottom-sheet";
 import { router } from "expo-router";
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 
@@ -18,14 +18,20 @@ import { useColorScheme } from "@/shared/hooks";
 // Import i18n config
 import "@/lib/i18n";
 
+import { useAuthStore } from "@/features/auth/store/authStore";
+import type { MessageResponse } from "@/shared/types/backend.types";
+import type { ParticipantStatus } from "../api/conversations.api";
+import type { RelationshipStatus } from "../api/friends.api";
 import {
   useMessages,
   useSendMessage,
   useSendSharedCard,
   useThread,
 } from "../hooks";
-import type { GroupThread, UserPreview } from "../types";
+import type { ChatThread, GroupThread, Message, TextMessage, UserPreview } from "../types";
 import { isGroupThread } from "../types";
+import { AcceptMessageRequestBanner } from "./AcceptMessageRequestBanner";
+import { AddFriendBanner } from "./AddFriendBanner";
 import { AddMemberBottomSheet, type AddMemberBottomSheetRef } from "./AddMemberBottomSheet";
 import { ChatComposer } from "./ChatComposer";
 import { ChatHeader } from "./ChatHeader";
@@ -33,6 +39,27 @@ import { GroupChatHeader } from "./GroupChatHeader";
 import { ItineraryShareSheet } from "./ItineraryShareSheet";
 import { MessageList } from "./MessageList";
 import { PinnedMessageBar } from "./PinnedMessageBar";
+
+/**
+ * Map API MessageResponse to local Message type
+ */
+function mapMessageResponse(msg: MessageResponse, currentUserId?: string): Message {
+  const isSentByMe = String(msg.senderId) === currentUserId;
+  const time = msg.timestamp ? new Date(msg.timestamp) : new Date();
+  const timeLabel = time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+  return {
+    id: String(msg.id ?? Date.now()),
+    type: 'text' as const,
+    text: msg.content ?? '',
+    sender: isSentByMe ? 'me' : 'other',
+    createdAt: msg.timestamp ?? new Date().toISOString(),
+    timeLabel,
+    status: 'sent',
+    senderName: msg.senderName,
+    senderAvatar: msg.senderAvatarUrl,
+  } satisfies TextMessage;
+}
 
 interface ChatThreadScreenProps {
   threadId: string;
@@ -51,16 +78,42 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const itinerarySheetRef = useRef<BottomSheet>(null);
   const addMemberSheetRef = useRef<AddMemberBottomSheetRef>(null);
 
+  // Auth for current user ID
+  const currentUserId = useAuthStore(state => state.user?.id);
+
   // Data fetching
   const { data: thread, isLoading: isLoadingThread } = useThread(threadId);
-  const { data: messages = [], isLoading: isLoadingMessages } =
-    useMessages(threadId);
+  const messagesQuery = useMessages(threadId);
   const { mutate: sendMessage, isPending: isSending } = useSendMessage();
   const { mutate: sendSharedCard } = useSendSharedCard();
+
+  // Flatten and map messages from paginated response
+  const rawMessages = messagesQuery.data?.pages?.flatMap(page => page?.content || []) || [];
+  const messages: Message[] = rawMessages.map(msg => mapMessageResponse(msg, currentUserId));
+  const isLoadingMessages = messagesQuery.isLoading;
 
   // Determine if group chat
   const isGroup = thread ? isGroupThread(thread) : false;
   const groupThread = isGroup ? (thread as GroupThread) : null;
+  const dmThread = !isGroup ? (thread as ChatThread | undefined) : null;
+
+  // Conversation context for DM chats - get from thread metadata
+  const otherUserId = dmThread?.peer ? parseInt(dmThread.peer.id) : null;
+  const relationshipStatus = dmThread?.relationshipStatus || 'NONE';
+  const participantStatus = dmThread?.participantStatus || 'INBOX';
+
+  // Determine which banner to show
+  const shouldShowMessageRequestBanner =
+    !isGroup &&
+    dmThread &&
+    participantStatus === 'REQUEST';
+
+  const shouldShowAddFriendBanner =
+    !isGroup &&
+    dmThread &&
+    participantStatus === 'INBOX' &&
+    relationshipStatus &&
+    relationshipStatus !== 'ACCEPTED';
 
   // Handlers
   const handleSend = useCallback(
@@ -139,6 +192,27 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
         />
       ) : (
         <ChatHeader thread={thread} onInfoPress={handleInfoPress} />
+      )}
+
+      {/* Message Request Banner - for REQUEST conversations */}
+      {shouldShowMessageRequestBanner && otherUserId && (
+        <AcceptMessageRequestBanner
+          conversationId={threadId}
+          senderName={dmThread!.peer.displayName}
+        />
+      )}
+
+      {/* Add Friend Banner - for INBOX conversations with non-friends */}
+      {shouldShowAddFriendBanner && otherUserId && (
+        <AddFriendBanner
+          otherUserId={otherUserId}
+          otherUserName={dmThread!.peer.displayName}
+          relationshipStatus={relationshipStatus as RelationshipStatus}
+          onStatusChange={(newStatus) => {
+            // Update local state optimistically
+            // The thread will refresh on next navigation or refetch
+          }}
+        />
       )}
 
       {/* Pinned message banner (group only) */}
