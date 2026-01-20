@@ -2,6 +2,7 @@ import { Href, useRouter } from 'expo-router';
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
+import { MessageRequestsEntryRow } from '@/features/chat/components';
 import { EmptyState } from '@/shared/components/feedback';
 import { Spinner } from '@/shared/components/ui';
 import { Colors, Spacing } from '@/shared/constants';
@@ -87,6 +88,7 @@ export function InboxList({ searchQuery }: InboxListProps) {
       data={conversations}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
+      ListHeaderComponent={<MessageRequestsEntryRow />}
       style={[styles.list, { backgroundColor: colors.backgroundSecondary }]}
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}

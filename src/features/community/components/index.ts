@@ -25,4 +25,6 @@ export { ConversationItem } from './ConversationItem';
 export { InboxList } from './InboxList';
 export { MessagesSearchRow } from './MessagesSearchRow';
 export { MessagesSubTabs } from './MessagesSubTabs';
+export { UserSearchResultItem } from './UserSearchResultItem';
+export { UserSearchResults } from './UserSearchResults';
 
