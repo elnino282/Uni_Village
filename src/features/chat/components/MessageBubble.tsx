@@ -5,7 +5,7 @@
  * Matches Figma node 317:2269 (DM) and 317:2919 (Group)
  */
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { memo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '@/shared/constants';
@@ -34,7 +34,8 @@ interface MessageBubbleProps {
 /**
  * Chat message bubble with timestamp and optional sender label
  */
-export function MessageBubble({
+// PERF: Prevents message rows from re-rendering on every incoming WS event
+export const MessageBubble = memo(function MessageBubble({
   text,
   sender,
   timeLabel,
@@ -109,7 +110,7 @@ export function MessageBubble({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
