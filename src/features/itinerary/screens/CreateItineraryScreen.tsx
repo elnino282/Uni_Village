@@ -25,10 +25,16 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import { ActivityIndicator } from "react-native";
 
 interface CategoryResponse {
-  id: string;
+  id: number;
+  code: string;
   name: string;
   description: string;
-  iconType: string;
+}
+
+interface ApiResponse<T> {
+  code: number;
+  message: string;
+  result: T;
 }
 
 type Category = string;
@@ -118,21 +124,21 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
     const fetchCategories = async () => {
       try {
         setCategoriesLoading(true);
-        const response = await apiClient.get<CategoryResponse[]>(API_ENDPOINTS.ADMIN.CATEGORIES);
-        setCategories(response);
+        const response = await apiClient.get<ApiResponse<CategoryResponse[]>>(API_ENDPOINTS.PLACE_TYPES);
+        setCategories(response.result);
         setCategoriesError(null);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
         setCategoriesError('Không thể tải danh mục');
         // Fallback to default categories if API fails
         setCategories([
-          { id: 'coffee', name: 'Cà phê', description: '', iconType: '' },
-          { id: 'food', name: 'Ăn uống', description: '', iconType: '' },
-          { id: 'shopping', name: 'Mua sắm', description: '', iconType: '' },
-          { id: 'sightseeing', name: 'Tham quan', description: '', iconType: '' },
-          { id: 'relax', name: 'Thư giãn', description: '', iconType: '' },
-          { id: 'park', name: 'Công viên', description: '', iconType: '' },
-          { id: 'other', name: 'Khác', description: '', iconType: '' },
+          { id: 1, code: 'coffee', name: 'Cà phê', description: '' },
+          { id: 2, code: 'food', name: 'Ăn uống', description: '' },
+          { id: 3, code: 'shopping', name: 'Mua sắm', description: '' },
+          { id: 4, code: 'sightseeing', name: 'Tham quan', description: '' },
+          { id: 5, code: 'relax', name: 'Thư giãn', description: '' },
+          { id: 6, code: 'park', name: 'Công viên', description: '' },
+          { id: 7, code: 'other', name: 'Khác', description: '' },
         ]);
       } finally {
         setCategoriesLoading(false);
@@ -495,11 +501,11 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
           ) : (
             <View style={styles.chipRow}>
               {categories.map((cat) => {
-                const active = selectedCategories.includes(cat.id);
+                const active = selectedCategories.includes(cat.code);
                 return (
                   <Pressable
                     key={cat.id}
-                    onPress={() => toggleCategory(cat.id)}
+                    onPress={() => toggleCategory(cat.code)}
                     style={[
                       styles.chip,
                       {

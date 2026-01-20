@@ -277,10 +277,8 @@ export const API_ENDPOINTS = {
     },
 
     // ============================================
-    // Admin
+    // Place Types (Categories)
     // ============================================
-    ADMIN: {
-        CATEGORIES: '/api/v1/admin/categories',
-    },
+    PLACE_TYPES: '/api/v1/place-types',
 } as const;
 
