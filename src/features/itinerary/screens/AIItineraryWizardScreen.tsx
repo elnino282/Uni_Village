@@ -601,8 +601,8 @@ export function AIItineraryWizardScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { paddingTop: insets.top, borderBottomColor: colors.border }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={[]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12), paddingBottom: 8, borderBottomWidth: 0 }]}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.icon} />
         </Pressable>
@@ -807,8 +807,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     marginHorizontal: 20,
-    marginTop: 4,
-    marginBottom: 2,
+    marginTop: 2,
+    marginBottom: 4,
   },
   resultSubtitle: {
     fontSize: 15,
