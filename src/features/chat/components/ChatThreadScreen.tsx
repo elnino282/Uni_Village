@@ -4,7 +4,7 @@
  * Matches Figma node 317:2269 (DM) and 317:2919 (Group)
  */
 import BottomSheet from "@gorhom/bottom-sheet";
-import { router } from "expo-router";
+import { router, useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
@@ -28,6 +28,7 @@ import {
   useSendSharedCard,
   useThread,
 } from "../hooks";
+import { isVirtualThreadId } from "../services";
 import type { ChatThread, GroupThread, Message, TextMessage, UserPreview } from "../types";
 import { isGroupThread } from "../types";
 import { AcceptMessageRequestBanner } from "./AcceptMessageRequestBanner";
@@ -73,6 +74,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
+  const routerInstance = useRouter();
 
   // Bottom sheet refs
   const itinerarySheetRef = useRef<BottomSheet>(null);
@@ -84,7 +86,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   // Data fetching
   const { data: thread, isLoading: isLoadingThread } = useThread(threadId);
   const messagesQuery = useMessages(threadId);
-  const { mutate: sendMessage, isPending: isSending } = useSendMessage();
+  const { mutateAsync: sendMessage, isPending: isSending } = useSendMessage();
   const { mutate: sendSharedCard } = useSendSharedCard();
 
   // Flatten and map messages from paginated response
