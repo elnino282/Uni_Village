@@ -20,6 +20,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -174,26 +175,37 @@ export const LocationPicker = memo(function LocationPicker({
 
     return (
         <View style={styles.container}>
-            {/* Map */}
-            <MapAdapter
-                ref={mapRef}
-                initialRegion={defaultRegion}
-                onRegionChange={handleRegionChange}
-                markers={[]}
-                showsUserLocation
-                colorScheme={colorScheme}
-            />
+            {/* Map - Wrapped with TouchableWithoutFeedback to dismiss keyboard */}
+            <TouchableWithoutFeedback 
+                onPress={() => {
+                    if (isSearchFocused) {
+                        Keyboard.dismiss();
+                        setIsSearchFocused(false);
+                    }
+                }}
+            >
+                <View style={styles.mapContainer}>
+                    <MapAdapter
+                        ref={mapRef}
+                        initialRegion={defaultRegion}
+                        onRegionChange={handleRegionChange}
+                        markers={[]}
+                        showsUserLocation
+                        colorScheme={colorScheme}
+                    />
 
-            {/* Center Pin (fixed position) */}
-            <View style={styles.centerPinContainer} pointerEvents="none">
-                <MaterialIcons
-                    name="location-on"
-                    size={48}
-                    color={colors.tint}
-                    style={styles.centerPin}
-                />
-                <View style={[styles.pinShadow, { backgroundColor: colors.text }]} />
-            </View>
+                    {/* Center Pin (fixed position) */}
+                    <View style={styles.centerPinContainer} pointerEvents="none">
+                        <MaterialIcons
+                            name="location-on"
+                            size={48}
+                            color={colors.tint}
+                            style={styles.centerPin}
+                        />
+                        <View style={[styles.pinShadow, { backgroundColor: colors.text }]} />
+                    </View>
+                </View>
+            </TouchableWithoutFeedback>
 
             {/* Search Bar */}
             <View style={[styles.searchContainer, { paddingTop: insets.top + Spacing.sm }]}>
@@ -320,6 +332,9 @@ export const LocationPicker = memo(function LocationPicker({
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
+    },
+    mapContainer: {
         flex: 1,
     },
     centerPinContainer: {
