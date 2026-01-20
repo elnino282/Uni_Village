@@ -18,7 +18,7 @@ export function useAcceptMessageRequest() {
 
     return useMutation({
         mutationFn: async (conversationId: string) => {
-            await apiClient.post(`${BASE_URL}/${conversationId}/accept`);
+            await apiClient.post(API_ENDPOINTS.CONVERSATIONS.ACCEPT_REQUEST(conversationId));
             return conversationId;
         },
         onSuccess: (conversationId) => {
