@@ -1,4 +1,4 @@
-import type { MessageResponse } from '@/shared/types/backend.types';
+import type { MessageResponse, MessageType } from '@/shared/types/backend.types';
 
 export type WebSocketEventType =
     | 'SEND'
@@ -15,7 +15,10 @@ export type WebSocketEventType =
     | 'ACCEPT_JOIN_REQUEST'
     | 'REJECT_JOIN_REQUEST'
     | 'USER_ONLINE'
-    | 'USER_OFFLINE';
+    | 'USER_OFFLINE'
+    | 'ACK'
+    | 'MESSAGE_REQUEST'
+    | 'CONVERSATION_UPGRADED';
 
 export interface WebSocketMessage<T = unknown> {
     eventType: WebSocketEventType;
@@ -44,7 +47,10 @@ export type WebSocketTopic =
     | { type: 'channel'; conversationId: string }
     | { type: 'post-comments'; postId: number }
     | { type: 'post-reactions'; postId: number }
-    | { type: 'user-queue' };
+    | { type: 'user-queue' }
+    | { type: 'user-messages' }
+    | { type: 'user-ack' }
+    | { type: 'user-events' };
 
 export interface WebSocketConfig {
     url: string;
@@ -58,4 +64,71 @@ export interface StompSubscription {
     id: string;
     topic: string;
     unsubscribe: () => void;
+}
+
+// ========== Chat System DTOs ==========
+
+/**
+ * ACK status for message delivery confirmation
+ */
+export type AckStatus = 'DELIVERED' | 'DUPLICATE' | 'BLOCKED' | 'ERROR';
+
+/**
+ * ACK event sent to sender after message processing
+ */
+export interface AckEvent {
+    clientMessageId: string;
+    realMessageId?: number;
+    conversationId?: string;
+    status: AckStatus;
+    errorMessage?: string;
+}
+
+/**
+ * Participant status in a conversation
+ */
+export type ParticipantStatus = 'INBOX' | 'REQUEST' | 'ARCHIVED' | 'DELETED';
+
+/**
+ * Chat message event sent to recipient via user queue
+ */
+export interface ChatMessageEvent {
+    id: number;
+    clientMessageId: string;
+    conversationId: string;
+    senderId: number;
+    senderName: string;
+    senderAvatarUrl?: string;
+    content: string;
+    messageType: MessageType;
+    replyToId?: number;
+    timestamp: string;
+    /** True if this is a message request (sender is not a friend) */
+    isRequest: boolean;
+    /** True if this creates a new conversation */
+    isNewConversation: boolean;
+}
+
+/**
+ * Reason for conversation upgrade
+ */
+export type UpgradeReason = 'MESSAGE_REQUEST_ACCEPTED' | 'FRIEND_ADDED';
+
+/**
+ * Event when conversation upgrades from REQUEST -> INBOX
+ */
+export interface ConversationUpgradedEvent {
+    conversationId: string;
+    newStatus: ParticipantStatus;
+    reason: UpgradeReason;
+}
+
+/**
+ * Payload for sending a message via WebSocket
+ */
+export interface ChatSendPayload {
+    recipientId: number;
+    content: string;
+    clientMessageId: string;
+    replyToId?: number;
 }

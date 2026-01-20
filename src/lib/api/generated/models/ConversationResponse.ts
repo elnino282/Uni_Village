@@ -9,5 +9,8 @@ export type ConversationResponse = {
     unreadCount?: number;
     lastMessage?: string;
     lastMessageTime?: string;
+    otherUserId?: number;
+    participantStatus?: 'INBOX' | 'REQUEST' | 'ARCHIVED' | 'DELETED';
+    relationshipStatus?: 'NONE' | 'PENDING_OUTGOING' | 'PENDING_INCOMING' | 'ACCEPTED' | 'BLOCKED' | 'BLOCKED_BY';
 };
 
