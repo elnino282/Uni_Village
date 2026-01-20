@@ -1,15 +1,23 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
+import type { MarkReadRequest, MessageRequest } from '@/shared/types/backend.types';
 import { getNextPageParam } from '@/shared/types/pagination.types';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     messagesApi,
-    type SendMessageFormData,
-    type MessageSearchParams,
     type GetMessagesParams,
+    type MessageSearchParams,
+    type SendMessageFormData,
 } from '../api';
-import type { MessageRequest, MarkReadRequest } from '@/shared/types/backend.types';
 
 const STALE_TIME = 10 * 1000;
+
+/**
+ * Query key factory for messages - used by optimistic update hooks
+ */
+export const messageKeys = {
+    all: ['messages'] as const,
+    list: (threadId: string) => [...messageKeys.all, threadId] as const,
+};
 
 export function useMessages(conversationId: string | undefined, params: Omit<GetMessagesParams, 'conversationId'> = {}) {
     return useInfiniteQuery({
