@@ -78,7 +78,7 @@ export async function generateItinerary(request: ItineraryRequest): Promise<Itin
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 2048,  // Increased to prevent truncation
           }
         })
       }
@@ -143,9 +143,9 @@ Yêu cầu của người dùng:
 - Phương tiện: ${transportDescriptions[request.transport]}
 - Ngân sách: ${budgetDescriptions[request.budget]}
 
-Hãy đề xuất một lịch trình từ 2-4 địa điểm phù hợp ở khu vực Đại học Quốc Gia TP.HCM hoặc các khu vực gần đó.
+Hãy đề xuất một lịch trình từ 2-3 địa điểm phù hợp ở khu vực Đại học Quốc Gia TP.HCM hoặc các khu vực gần đó.
 
-CHỈ TRẢ VỀ JSON OBJECT, KHÔNG CÓ TEXT GIẢI THÍCH HOẶC MARKDOWN.
+CHỈ TRẢ VỀ JSON OBJECT HOÀN CHỈNH, KHÔNG CÓ TEXT GIẢI THÍCH.
 
 Format JSON bắt buộc:
 {
@@ -154,14 +154,14 @@ Format JSON bắt buộc:
     {
       "id": "1",
       "name": "Tên địa điểm",
-      "description": "Mô tả ngắn gọn 10-15 từ",
+      "description": "Mô tả ngắn 10 từ",
       "time": "14:00",
       "duration": "~30 phút",
-      "category": "Học tập/Ăn uống/Giải trí",
+      "category": "Học tập",
       "budget": "~50k",
       "place": {
-        "name": "Tên địa điểm đầy đủ",
-        "address": "Địa chỉ cụ thể",
+        "name": "Tên địa điểm",
+        "address": "Địa chỉ ngắn",
         "rating": 4.5,
         "lat": 10.7630,
         "lng": 106.6830
@@ -172,13 +172,12 @@ Format JSON bắt buộc:
   ]
 }
 
-QUY TẮC:
-- CHỈ trả về JSON object thuần, bắt đầu bằng { và kết thúc bằng }
-- KHÔNG thêm text giải thích, markdown, hoặc code block
-- Thời gian bắt đầu từ 14:00
-- Khoảng cách giữa các điểm phù hợp với phương tiện di chuyển
-- Mô tả ngắn gọn, có emoji phù hợp
-- Tọa độ chính xác của địa điểm thực tế
+QUY TẮC BẮT BUỘC:
+- CHỈ trả về JSON object hoàn chỉnh từ { đến }
+- KHÔNG code block, KHÔNG giải thích
+- 2-3 destinations (tối đa 3)
+- Mô tả và địa chỉ ngắn gọn
+- Tọa độ chính xác
 `;
 }
 
@@ -220,6 +219,15 @@ function parseAIResponse(aiText: string, request: ItineraryRequest): ItineraryRe
     // Clean up the text
     jsonText = jsonText.trim();
     
+    // Validate JSON is complete (basic check)
+    const openBraces = (jsonText.match(/\{/g) || []).length;
+    const closeBraces = (jsonText.match(/\}/g) || []).length;
+    if (openBraces !== closeBraces) {
+      console.warn('⚠️ Incomplete JSON detected - braces mismatch');
+      console.warn(`Open braces: ${openBraces}, Close braces: ${closeBraces}`);
+      throw new Error('Incomplete JSON response from AI - possibly truncated');
+    }
+    
     const parsed = JSON.parse(jsonText);
     
     // Validate the response structure
@@ -227,11 +235,17 @@ function parseAIResponse(aiText: string, request: ItineraryRequest): ItineraryRe
       throw new Error('Invalid response structure - missing title or destinations');
     }
     
+    // Validate destinations have required fields
+    if (parsed.destinations.length === 0) {
+      throw new Error('No destinations in response');
+    }
+    
     console.log('✅ Successfully parsed AI response:', parsed.title);
     return parsed as ItineraryResponse;
   } catch (error) {
     console.error('❌ Failed to parse AI response:', error);
-    console.error('Raw text that failed:', aiText);
+    console.error('📄 Raw text that failed:', aiText.substring(0, 500));
+    console.warn('⚠️ Using mock data as fallback');
     // Return fallback mock data
     return generateMockItinerary(request);
   }
