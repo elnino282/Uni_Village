@@ -78,7 +78,7 @@ export const SelectDestinationsMap = forwardRef<SelectDestinationsMapRef, Select
           style={styles.map}
           provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
           initialRegion={initialRegion}
-          showsUserLocation={false}
+          showsUserLocation={true}
           showsMyLocationButton={false}
           showsCompass={false}
           onRegionChangeComplete={handleRegionChangeComplete}
