@@ -8,10 +8,24 @@ import type {
     MediaAttachmentResponse,
 } from '@/shared/types/backend.types';
 import type { Slice } from '@/shared/types/pagination.types';
+import type { RelationshipStatus } from './friends.api';
 
 export interface ConversationSearchParams {
     page?: number;
     size?: number;
+}
+
+export type ParticipantStatus = 'INBOX' | 'REQUEST' | 'ARCHIVED' | 'DELETED';
+
+export interface DirectConversationResponse {
+    conversationId: string;
+    isNew: boolean;
+    areFriends: boolean;
+    relationshipStatus: RelationshipStatus;
+    participantStatus: ParticipantStatus;
+    otherUserId: number;
+    otherUserDisplayName: string;
+    otherUserAvatarUrl?: string;
 }
 
 export const conversationsApi = {
@@ -21,6 +35,11 @@ export const conversationsApi = {
         apiClient.post<ApiResponse<string>>(
             API_ENDPOINTS.CONVERSATIONS.CREATE_PRIVATE,
             data
+        ),
+
+    getOrCreateDirect: (targetUserId: number): Promise<ApiResponse<DirectConversationResponse>> =>
+        apiClient.get<ApiResponse<DirectConversationResponse>>(
+            API_ENDPOINTS.CONVERSATIONS.DIRECT(targetUserId)
         ),
 
     getPrivateConversations: (
