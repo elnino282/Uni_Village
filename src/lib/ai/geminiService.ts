@@ -60,9 +60,9 @@ export async function generateItinerary(request: ItineraryRequest): Promise<Itin
 
     console.log('🤖 Calling Gemini AI...');
 
-    // Call Gemini API
+    // Call Gemini API with the newer model
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
