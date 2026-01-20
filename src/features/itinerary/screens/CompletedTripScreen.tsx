@@ -398,9 +398,13 @@ export function CompletedTripScreen() {
               </Text>
               <Pressable 
                 style={[styles.successButton, { backgroundColor: colors.info }]}
-                onPress={() => setShowSuccessModal(false)}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  // Navigate to itinerary tab (main screen)
+                  router.replace('/(tabs)/itinerary');
+                }}
               >
-                <Text style={styles.successButtonText}>Xem chi tiết</Text>
+                <Text style={styles.successButtonText}>Về trang chủ</Text>
               </Pressable>
             </View>
           </Pressable>

@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { LocationPicker } from "@/features/map/components/LocationPicker";
 import { useUserLocation } from "@/features/map/hooks/useUserLocation";
 import { Colors, useColorScheme } from "@/shared";
 
@@ -73,6 +74,8 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
   // Location hook
   const { location, isLoading: locationLoading, error: locationError, requestPermission } = useUserLocation();
   const [locationAddress, setLocationAddress] = useState<string>("Chưa xác định");
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{latitude: number; longitude: number; address: string} | null>(null);
 
   const [tripName, setTripName] = useState("");
   const initialDateRef = useRef(new Date());
@@ -420,19 +423,20 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
             />
             <View style={{ flex: 1 }}>
               <Text style={[styles.rowTitle, { color: colors.text }]}>
-                {location ? "Vị trí hiện tại" : "Cho phép truy cập vị trí"}
+                {selectedLocation ? "Điểm xuất phát" : location ? "Vị trí hiện tại" : "Cho phép truy cập vị trí"}
               </Text>
               <Text style={[styles.rowValue, { color: secondaryTextColor }]} numberOfLines={1}>
-                {locationLoading ? "Đang lấy vị trí..." : locationError ? "Không thể lấy vị trí" : locationAddress}
+                {selectedLocation ? selectedLocation.address : locationLoading ? "Đang lấy vị trí..." : locationError ? "Không thể lấy vị trí" : locationAddress}
               </Text>
             </View>
 
             <Ionicons name="chevron-forward" size={18} color={colors.icon} />
           </Pressable>
 
-          <Pressable style={styles.linkRow}>
+          <Pressable style={styles.linkRow} onPress={() => setShowLocationPicker(true)}>
+            <Ionicons name="map-outline" size={16} color={colors.info} />
             <Text style={[styles.linkText, { color: colors.info }]}>
-              Chọn điểm xuất phát khác?
+              Chọn điểm xuất phát khác
             </Text>
           </Pressable>
         </View>
@@ -662,11 +666,12 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
 
             {/* iOS: show spinner inline for smoothness */}
             {Platform.OS === "ios" && showTimePicker && (
-              <View style={[styles.iosPickerWrap, { backgroundColor: colors.card ?? "#fff", borderColor: colors.border }]}>
+              <View style={[styles.iosPickerWrap, { backgroundColor: colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF', borderColor: colors.border }]}>
                 <DateTimePicker
                   value={selectedTime}
                   mode="time"
                   display="spinner"
+                  themeVariant={colorScheme}
                   onChange={(_, date) => {
                     if (!date) return;
                     const d = new Date(date);
@@ -759,6 +764,25 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
           </Animated.View>
         </Modal>
       )}
+
+      {/* Location Picker Modal */}
+      {showLocationPicker && (
+        <Modal
+          visible={showLocationPicker}
+          animationType="slide"
+          onRequestClose={() => setShowLocationPicker(false)}
+        >
+          <LocationPicker
+            initialLocation={location ? { latitude: location.latitude, longitude: location.longitude } : undefined}
+            onLocationSelect={(loc) => {
+              setSelectedLocation(loc);
+              setShowLocationPicker(false);
+            }}
+            onCancel={() => setShowLocationPicker(false)}
+            colorScheme={colorScheme}
+          />
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -837,7 +861,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  linkRow: { marginTop: 6 },
+  linkRow: { 
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   linkText: { fontSize: 14, fontWeight: "700" },
   
   errorText: {
