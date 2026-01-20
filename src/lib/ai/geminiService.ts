@@ -60,9 +60,9 @@ export async function generateItinerary(request: ItineraryRequest): Promise<Itin
 
     console.log('🤖 Calling Gemini AI...');
 
-    // Call Gemini API with gemini-2.5-flash model
+    // Call Gemini API with gemini-1.5-flash model (stable)
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -75,10 +75,11 @@ export async function generateItinerary(request: ItineraryRequest): Promise<Itin
             }]
           }],
           generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 2048,  // Increased to prevent truncation
+            temperature: 0.4,  // Lower for more consistent output
+            topK: 20,
+            topP: 0.8,
+            maxOutputTokens: 2048,
+            responseMimeType: "application/json"  // Force JSON output
           }
         })
       }
@@ -143,20 +144,18 @@ Yêu cầu của người dùng:
 - Phương tiện: ${transportDescriptions[request.transport]}
 - Ngân sách: ${budgetDescriptions[request.budget]}
 
-Hãy đề xuất một lịch trình từ 2-3 địa điểm phù hợp ở khu vực Đại học Quốc Gia TP.HCM hoặc các khu vực gần đó.
+ĐỀ XUẤT ĐÚNG 2 ĐỊA ĐIỂM ở khu vực ĐHQG TP.HCM.
 
-CHỈ TRẢ VỀ JSON OBJECT HOÀN CHỈNH, KHÔNG CÓ TEXT GIẢI THÍCH.
-
-Format JSON bắt buộc:
+Trả về JSON object với format:
 {
-  "title": "Tên lịch trình ngắn gọn",
+  "title": "Tên lịch trình (tối đa 8 từ)",
   "destinations": [
     {
       "id": "1",
       "name": "Tên địa điểm",
-      "description": "Mô tả ngắn 10 từ",
+      "description": "Mô tả (tối đa 8 từ)",
       "time": "14:00",
-      "duration": "~30 phút",
+      "duration": "~1 giờ",
       "category": "Học tập",
       "budget": "~50k",
       "place": {
@@ -172,12 +171,11 @@ Format JSON bắt buộc:
   ]
 }
 
-QUY TẮC BẮT BUỘC:
-- CHỈ trả về JSON object hoàn chỉnh từ { đến }
-- KHÔNG code block, KHÔNG giải thích
-- 2-3 destinations (tối đa 3)
-- Mô tả và địa chỉ ngắn gọn
-- Tọa độ chính xác
+QUY TẮC:
+- ĐÚNG 2 destinations, không nhiều hơn
+- Mỗi description tối đa 8 từ
+- Title tối đa 8 từ
+- JSON phải hoàn chỉnh từ { đến }
 `;
 }
 
