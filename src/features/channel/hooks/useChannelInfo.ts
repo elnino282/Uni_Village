@@ -7,16 +7,18 @@ import { useQuery } from '@tanstack/react-query';
 
 import type { ChannelInfo } from '@/shared/types';
 import { channelInfoService } from '../services';
+import { channelQueryKeys } from './channelQueryKeys';
 
-const CHANNEL_INFO_KEY = 'channelInfo';
+const STALE_TIME = 30 * 1000;
 
 /**
  * Hook to fetch channel info by ID
  */
 export function useChannelInfo(channelId: string) {
     return useQuery<ChannelInfo | null>({
-        queryKey: [CHANNEL_INFO_KEY, channelId],
+        queryKey: channelQueryKeys.info(channelId),
         queryFn: () => channelInfoService.getChannelInfo(channelId),
         enabled: !!channelId,
+        staleTime: STALE_TIME,
     });
 }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChannelInfoScreen
  * Displays channel/group information matching Figma design
  */
@@ -18,9 +18,10 @@ import {
 } from 'react-native';
 
 import { AvatarRow } from '@/shared/components/avatar';
-import { LoadingScreen } from '@/shared/components/feedback';
+import { EmptyState, ErrorMessage, LoadingScreen } from '@/shared/components/feedback';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
+import { showErrorToast } from '@/shared/utils';
 import { useChannelInfo, useJoinChannel } from '../hooks';
 
 /**
@@ -30,9 +31,10 @@ export function ChannelInfoScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme];
     const router = useRouter();
-    const { channelId } = useLocalSearchParams<{ channelId: string }>();
+    const params = useLocalSearchParams<{ channelId?: string | string[] }>();
+    const channelId = Array.isArray(params.channelId) ? params.channelId[0] : params.channelId;
 
-    const { data: channelInfo, isLoading } = useChannelInfo(channelId || '');
+    const { data: channelInfo, isLoading, isError, refetch } = useChannelInfo(channelId || '');
     const joinChannelMutation = useJoinChannel();
 
     const handleBack = () => {
@@ -41,6 +43,11 @@ export function ChannelInfoScreen() {
 
     const handleJoinChat = () => {
         if (!channelInfo) return;
+        if (!channelInfo.id) {
+            showErrorToast('Missing channel conversation id.');
+            return;
+        }
+        const cacheKey = channelId || channelInfo.id;
 
         if (channelInfo.isJoined) {
             // Navigate to channel thread
@@ -50,14 +57,19 @@ export function ChannelInfoScreen() {
             } as any);
         } else {
             // Join then navigate
-            joinChannelMutation.mutate(channelInfo.id, {
-                onSuccess: () => {
-                    router.push({
-                        pathname: '/channel/[channelId]',
-                        params: { channelId: channelInfo.id },
-                    } as any);
-                },
-            });
+            joinChannelMutation.mutate(
+                { conversationId: channelInfo.id, cacheKey },
+                {
+                    onSuccess: (data) => {
+                        const accepted = !data?.status || data.status === 'ACCEPTED';
+                        if (!accepted) return;
+                        router.push({
+                            pathname: '/channel/[channelId]',
+                            params: { channelId: channelInfo.id },
+                        } as any);
+                    },
+                }
+            );
         }
     };
 
@@ -66,10 +78,41 @@ export function ChannelInfoScreen() {
         console.log('Navigate to creator profile:', channelInfo?.creator.id);
     };
 
-    if (isLoading || !channelInfo) {
-        return <LoadingScreen message="Đang tải thông tin nhóm..." />;
+    if (!channelId) {
+        return (
+            <EmptyState
+                title="Channel not found"
+                message="Missing channel identifier."
+                actionLabel="Go back"
+                onAction={handleBack}
+            />
+        );
     }
 
+    if (isLoading) {
+        return <LoadingScreen message="Loading channel info..." />;
+    }
+
+    if (isError) {
+        return (
+            <ErrorMessage
+                title="Unable to load channel"
+                message="Please try again."
+                onRetry={refetch}
+            />
+        );
+    }
+
+    if (!channelInfo) {
+        return (
+            <EmptyState
+                title="Channel not found"
+                message="This channel may have been removed."
+                actionLabel="Go back"
+                onAction={handleBack}
+            />
+        );
+    }
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
             {/* Header */}
@@ -77,7 +120,7 @@ export function ChannelInfoScreen() {
                 <TouchableOpacity style={styles.backButton} onPress={handleBack}>
                     <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Thông tin nhóm</Text>
+                <Text style={styles.headerTitle}>ThÃ´ng tin nhÃ³m</Text>
                 <TouchableOpacity style={styles.menuButton}>
                     <MaterialIcons name="more-vert" size={24} color="#ffffff" />
                 </TouchableOpacity>
@@ -106,7 +149,7 @@ export function ChannelInfoScreen() {
                 {/* Creator */}
                 <View style={styles.creatorRow}>
                     <Text style={[styles.createdByText, { color: colors.textSecondary }]}>
-                        Tạo bởi{' '}
+                        Táº¡o bá»Ÿi{' '}
                     </Text>
                     <TouchableOpacity onPress={handleCreatorPress}>
                         <Text style={[styles.creatorName, { color: colors.actionBlue }]}>
@@ -125,7 +168,7 @@ export function ChannelInfoScreen() {
                 {/* Members Section */}
                 <View style={[styles.membersContainer, { backgroundColor: colors.card }]}>
                     <Text style={[styles.membersTitle, { color: colors.textPrimary }]}>
-                        Thành viên ({channelInfo.memberCount.toLocaleString()})
+                        ThÃ nh viÃªn ({channelInfo.memberCount.toLocaleString()})
                     </Text>
                     <View style={styles.membersRow}>
                         <AvatarRow
@@ -160,9 +203,9 @@ export function ChannelInfoScreen() {
                         />
                         <Text style={styles.ctaText}>
                             {joinChannelMutation.isPending
-                                ? 'Đang xử lý...'
+                                ? 'Äang xá»­ lÃ½...'
                                 : channelInfo.isJoined
-                                    ? 'Vào chat'
+                                    ? 'VÃ o chat'
                                     : 'Tham gia chat'}
                         </Text>
                     </LinearGradient>
@@ -295,3 +338,4 @@ const styles = StyleSheet.create({
         fontWeight: Typography.weights.semibold,
     },
 });
+

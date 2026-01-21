@@ -5,7 +5,39 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { ChannelInfo } from '@/shared/types';
+import type { JoinConversationResponse } from '@/shared/types/backend.types';
+import { handleApiError, showInfoToast, showSuccessToast } from '@/shared/utils';
 import { channelInfoService } from '../services';
+import { channelQueryKeys } from './channelQueryKeys';
+
+interface ChannelMutationContext {
+    previous?: ChannelInfo | null;
+    queryKey: readonly unknown[];
+}
+
+interface JoinChannelInput {
+    conversationId: string;
+    cacheKey: string;
+}
+
+interface LeaveChannelInput {
+    conversationId: string;
+    cacheKey: string;
+}
+
+const applyOptimisticUpdate = (
+    previous: ChannelInfo | null | undefined,
+    isJoined: boolean
+): ChannelInfo | null | undefined => {
+    if (!previous) return previous;
+    const nextCount = Math.max(0, previous.memberCount + (isJoined ? 1 : -1));
+    return {
+        ...previous,
+        isJoined,
+        memberCount: nextCount,
+    };
+};
 
 /**
  * Hook to join a channel
@@ -13,11 +45,37 @@ import { channelInfoService } from '../services';
 export function useJoinChannel() {
     const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: (channelId: string) => channelInfoService.joinChannel(channelId),
-        onSuccess: (data) => {
-            // Invalidate the channel info query to refetch with updated isJoined status
-            queryClient.invalidateQueries({ queryKey: ['channelInfo', data.channelId] });
+    return useMutation<
+        JoinConversationResponse | undefined,
+        Error,
+        JoinChannelInput,
+        ChannelMutationContext
+    >({
+        mutationFn: ({ conversationId }) => channelInfoService.joinChannel(conversationId),
+        onMutate: async ({ cacheKey }) => {
+            const queryKey = channelQueryKeys.info(cacheKey);
+            await queryClient.cancelQueries({ queryKey });
+            const previous = queryClient.getQueryData<ChannelInfo | null>(queryKey);
+            queryClient.setQueryData(queryKey, applyOptimisticUpdate(previous, true));
+            return { previous, queryKey };
+        },
+        onSuccess: (data, variables, context) => {
+            const status = data?.status;
+            const accepted = !status || status === 'ACCEPTED';
+            if (!accepted && context?.previous) {
+                queryClient.setQueryData(context.queryKey, context.previous);
+                showInfoToast('Join request sent.');
+            } else {
+                showSuccessToast('Joined channel.');
+            }
+            queryClient.invalidateQueries({ queryKey: channelQueryKeys.info(variables.cacheKey) });
+        },
+        onError: (error, variables, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(context.queryKey, context.previous);
+            }
+            handleApiError(error, 'Join channel');
+            queryClient.invalidateQueries({ queryKey: channelQueryKeys.info(variables.cacheKey) });
         },
     });
 }
@@ -28,10 +86,30 @@ export function useJoinChannel() {
 export function useLeaveChannel() {
     const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: (channelId: string) => channelInfoService.leaveChannel(channelId),
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ['channelInfo', data.channelId] });
+    return useMutation<
+        string | undefined,
+        Error,
+        LeaveChannelInput,
+        ChannelMutationContext
+    >({
+        mutationFn: ({ conversationId }) => channelInfoService.leaveChannel(conversationId),
+        onMutate: async ({ cacheKey }) => {
+            const queryKey = channelQueryKeys.info(cacheKey);
+            await queryClient.cancelQueries({ queryKey });
+            const previous = queryClient.getQueryData<ChannelInfo | null>(queryKey);
+            queryClient.setQueryData(queryKey, applyOptimisticUpdate(previous, false));
+            return { previous, queryKey };
+        },
+        onSuccess: (_, variables) => {
+            showSuccessToast('Left channel.');
+            queryClient.invalidateQueries({ queryKey: channelQueryKeys.info(variables.cacheKey) });
+        },
+        onError: (error, variables, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(context.queryKey, context.previous);
+            }
+            handleApiError(error, 'Leave channel');
+            queryClient.invalidateQueries({ queryKey: channelQueryKeys.info(variables.cacheKey) });
         },
     });
 }
