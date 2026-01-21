@@ -36,7 +36,8 @@ export function ProfileScreen() {
     };
 
     const handleSearchPress = () => {
-        router.push('/profile/search');
+        // TODO: Navigate to search screen
+        console.log('Search pressed');
     };
 
     const handleSettingsPress = () => {
