@@ -29,10 +29,20 @@ export function useMessages(conversationId: string | undefined, params: Omit<Get
             if (isVirtual) {
                 return {
                     content: [],
+                    pageable: {
+                        pageNumber: 0,
+                        pageSize: 20,
+                        sort: { sorted: false, unsorted: true, empty: true },
+                        offset: 0,
+                        paged: true,
+                        unpaged: false,
+                    },
                     totalElements: 0,
                     totalPages: 0,
-                    size: 0,
+                    size: 20,
                     number: 0,
+                    sort: { sorted: false, unsorted: true, empty: true },
+                    numberOfElements: 0,
                     first: true,
                     last: true,
                     empty: true,
@@ -48,7 +58,7 @@ export function useMessages(conversationId: string | undefined, params: Omit<Get
         },
         initialPageParam: 0,
         getNextPageParam: (lastPage) => getNextPageParam(lastPage),
-        enabled: !!conversationId && !isVirtual,
+        enabled: !!conversationId,
         staleTime: STALE_TIME,
     });
 }

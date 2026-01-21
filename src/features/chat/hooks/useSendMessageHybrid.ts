@@ -6,7 +6,8 @@ import { MessageType } from '@/lib/api/generated';
 import { websocketService, WebSocketService } from '@/lib/websocket';
 import type { MessageResponse } from '@/shared/types/backend.types';
 import type { Slice } from '@/shared/types/pagination.types';
-import { messagesApi } from '../api';
+import { conversationsApi, messagesApi } from '../api';
+import { extractUserIdFromVirtualThread, isVirtualThreadId } from '../services';
 import { useChatStore } from '../store';
 
 interface InfiniteMessagesData {
@@ -149,9 +150,46 @@ export function useSendMessageHybrid() {
             console.log('[Hybrid Send] Falling back to HTTP:', clientMessageId);
 
             try {
+                // Resolve conversation ID for virtual threads
+                let conversationId = input.threadId;
+
+                if (isVirtualThreadId(input.threadId)) {
+                    const userId = extractUserIdFromVirtualThread(input.threadId);
+                    if (!userId) {
+                        throw new Error('Invalid virtual thread ID');
+                    }
+                    console.log('[Hybrid Send] Resolving virtual thread for user:', userId);
+
+                    try {
+                        // Always fetch fresh - handles re-activation after delete
+                        const directResponse = await conversationsApi.getOrCreateDirect(userId);
+                        conversationId = directResponse.result.conversationId;
+
+                        // Update cache with fresh data
+                        queryClient.setQueryData(['directConversation', userId], directResponse.result);
+
+                        console.log('[Hybrid Send] Resolved to conversation:', conversationId);
+                    } catch (resolveError) {
+                        console.error('[Hybrid Send] Failed to resolve conversation:', resolveError);
+
+                        // Clear stale cache and retry once
+                        queryClient.removeQueries({
+                            predicate: (q) =>
+                                q.queryKey[0] === 'directConversation' ||
+                                (Array.isArray(q.queryKey) && q.queryKey.includes(input.threadId)),
+                        });
+
+                        // Retry once after clearing cache
+                        const retryResponse = await conversationsApi.getOrCreateDirect(userId);
+                        conversationId = retryResponse.result.conversationId;
+
+                        console.log('[Hybrid Send] Retry resolved to conversation:', conversationId);
+                    }
+                }
+
                 const response = await messagesApi.sendMessage({
                     content: input.text,
-                    ConversationId: input.threadId,
+                    ConversationId: conversationId,
                     replyToId: input.replyToId,
                 });
 
@@ -230,7 +268,7 @@ export function useSendMessageHybrid() {
 
             return new Promise<MessageResponse>((resolve, reject) => {
                 let resolved = false;
-                
+
                 const timeout = setTimeout(async () => {
                     if (resolved) return;
                     console.log('[Hybrid Send] ACK timeout, falling back to HTTP:', clientMessageId);
@@ -254,7 +292,7 @@ export function useSendMessageHybrid() {
                     }
 
                     const pending = useChatStore.getState().pendingMessages.get(clientMessageId);
-                    
+
                     if (!pending) {
                         const timeout = pendingTimeoutsRef.current.get(clientMessageId);
                         if (timeout) {
@@ -265,7 +303,7 @@ export function useSendMessageHybrid() {
                         resolved = true;
 
                         updateOptimisticStatus(input.threadId, clientMessageId, 'sent');
-                        
+
                         resolve(optimisticMessage as unknown as MessageResponse);
                     } else if (pending.status === 'error') {
                         const timeout = pendingTimeoutsRef.current.get(clientMessageId);

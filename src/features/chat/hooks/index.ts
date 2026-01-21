@@ -1,6 +1,6 @@
 export * from './useAddMembers';
 export { useAddChannelMembers, useChannel, useChannelByConversation, useChannelJoinRequests, useChannelMembers, useRemoveChannelMember, useUpdateChannel } from './useChannels';
-export * from './useConversations';
+export { useAcceptJoinRequest, useChannelConversations, useConversationMedia, useCreatePrivateConversation, useJoinConversation, usePrivateConversations, useRejectJoinRequest } from './useConversations';
 export * from './useCreateChannel';
 export * from './useDeleteConversation';
 export * from './useFriendRequests';

@@ -9,13 +9,14 @@ import type { Conversation } from '../types/message.types';
 interface ConversationItemProps {
   conversation: Conversation;
   onPress?: (conversation: Conversation) => void;
+  onLongPress?: (conversation: Conversation) => void;
 }
 
 /**
  * Individual conversation row for inbox list
  * Matches Figma node 204:537 - 70px height, 44px avatar
  */
-export function ConversationItem({ conversation, onPress }: ConversationItemProps) {
+export function ConversationItem({ conversation, onPress, onLongPress }: ConversationItemProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
@@ -25,6 +26,8 @@ export function ConversationItem({ conversation, onPress }: ConversationItemProp
     <TouchableOpacity
       style={[styles.container, { backgroundColor: colors.card }]}
       onPress={() => onPress?.(conversation)}
+      onLongPress={() => onLongPress?.(conversation)}
+      delayLongPress={500}
       activeOpacity={0.7}
     >
       {/* Avatar with unread indicator */}

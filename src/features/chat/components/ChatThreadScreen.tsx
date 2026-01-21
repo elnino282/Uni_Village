@@ -204,7 +204,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
       }
 
       try {
-        await sendMessageHybrid({
+        const message = await sendMessageHybrid({
           threadId,
           text,
           recipientId: otherUserId ?? undefined,
@@ -214,6 +214,13 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
             avatarUrl: user.avatarUrl,
           },
         });
+
+        // If we were on a virtual thread and created a real conversation, redirect to it
+        // This ensures WebSocket events (which use the real ID) are received correctly
+        if (isVirtualThreadId(threadId) && message.conversationId && message.conversationId !== threadId) {
+          console.log(`[ChatThread] Redirecting from virtual thread ${threadId} to ${message.conversationId}`);
+          routerInstance.replace(`/chat/${message.conversationId}`);
+        }
       } catch (error) {
         console.error('[ChatThread] Failed to send message:', error);
       }
