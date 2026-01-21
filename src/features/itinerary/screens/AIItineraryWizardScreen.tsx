@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import {
     Animated,
     Dimensions,
+    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -28,6 +29,8 @@ import {
     useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+import { AIItineraryMap, AIItineraryMapRef } from "@/features/itinerary/components/AIItineraryMap";
+import { useUserLocation } from "@/features/map/hooks";
 import { MapAdapter } from "@/features/map/components/MapAdapter";
 import { generateItinerary } from "@/lib/ai/geminiService";
 import { Colors, useColorScheme } from "@/shared";
@@ -197,9 +200,14 @@ export function AIItineraryWizardScreen() {
   const [wizardData, setWizardData] = useState<WizardData>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedItinerary, setGeneratedItinerary] = useState<any>(null);
+  const [showMapModal, setShowMapModal] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
   const loadingDots = useRef(new Animated.Value(0)).current;
+  const mapRef = useRef<AIItineraryMapRef>(null);
+  
+  // Get user location for map
+  const { location: userLocation } = useUserLocation();
 
   useEffect(() => {
     // Slide in animation when step changes
@@ -767,13 +775,24 @@ export function AIItineraryWizardScreen() {
           {generatedItinerary.title}
         </Text>
 
-        {/* Map Preview Placeholder */}
-        <View style={[styles.mapPreview, { backgroundColor: colors.border }]}>
-          <Ionicons name="map" size={48} color={colors.icon} />
-          <Text style={[styles.mapPreviewText, { color: colors.textSecondary }]}>
-            Bản đồ lộ trình
-          </Text>
-        </View>
+        {/* Map Preview */}
+        <Pressable 
+          style={styles.mapPreview}
+          onPress={() => setShowMapModal(true)}
+          onLongPress={() => setShowMapModal(true)}
+        >
+          <AIItineraryMap
+            destinations={generatedItinerary.destinations}
+            colorScheme={colorScheme}
+            userLocation={userLocation}
+          />
+          <View style={styles.mapOverlay}>
+            <View style={[styles.mapHint, { backgroundColor: 'rgba(0,0,0,0.75)' }]}>
+              <Ionicons name="expand-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.mapHintText}>Nhấn để xem toàn màn hình</Text>
+            </View>
+          </View>
+        </Pressable>
 
         {/* Timeline */}
         <View style={styles.timelineContainer}>
@@ -968,6 +987,79 @@ export function AIItineraryWizardScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {/* Fullscreen Map Modal */}
+      {generatedItinerary && (
+        <Modal
+          visible={showMapModal}
+          animationType="slide"
+          onRequestClose={() => setShowMapModal(false)}
+        >
+          <SafeAreaView style={styles.modalContainer} edges={['top']}>
+            <View style={[styles.modalHeader, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+              <Pressable onPress={() => setShowMapModal(false)} style={styles.backButton}>
+                <Ionicons name="close" size={24} color={colors.icon} />
+              </Pressable>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                Bản đồ lộ trình
+              </Text>
+              <Pressable 
+                onPress={() => {
+                  mapRef.current?.fitToCoordinates();
+                }} 
+                style={styles.backButton}
+              >
+                <Ionicons name="locate" size={24} color={colors.info} />
+              </Pressable>
+            </View>
+
+            <View style={styles.fullscreenMap}>
+              <AIItineraryMap
+                ref={mapRef}
+                destinations={generatedItinerary.destinations}
+                colorScheme={colorScheme}
+                userLocation={userLocation}
+              />
+            </View>
+
+            {/* Destination List Overlay */}
+            <View style={[styles.destinationOverlay, { backgroundColor: colors.background }]}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.destinationScrollContent}
+              >
+                {generatedItinerary.destinations.map((dest: any, index: number) => (
+                  <Pressable
+                    key={dest.id}
+                    style={[styles.miniDestCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={() => {
+                      if (dest.lat && dest.lng) {
+                        mapRef.current?.animateToCoordinate({
+                          latitude: dest.lat,
+                          longitude: dest.lng,
+                        });
+                      }
+                    }}
+                  >
+                    <View style={[styles.miniNumber, { backgroundColor: colors.error }]}>
+                      <Text style={styles.miniNumberText}>{dest.order}</Text>
+                    </View>
+                    <View style={styles.miniDestInfo}>
+                      <Text style={[styles.miniDestName, { color: colors.text }]} numberOfLines={1}>
+                        {dest.name}
+                      </Text>
+                      <Text style={[styles.miniDestTime, { color: colors.textSecondary }]}>
+                        {dest.time}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </SafeAreaView>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -1150,9 +1242,29 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     height: 200,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: 'hidden',
     marginBottom: 20,
+    position: 'relative',
+  },
+  mapOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 12,
+    pointerEvents: 'none',
+  },
+  mapHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  mapHintText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   mapPreviewText: {
     marginTop: 8,
@@ -1262,5 +1374,65 @@ const styles = StyleSheet.create({
   halfButtonText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  fullscreenMap: {
+    flex: 1,
+  },
+  destinationOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+  },
+  destinationScrollContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  miniDestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    minWidth: 160,
+  },
+  miniNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniNumberText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  miniDestInfo: {
+    flex: 1,
+  },
+  miniDestName: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  miniDestTime: {
+    fontSize: 11,
   },
 });
