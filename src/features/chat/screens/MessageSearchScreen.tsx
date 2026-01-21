@@ -17,6 +17,10 @@ import { LoadingScreen, EmptyState } from '@/shared/components/feedback';
 import { useSearchMessages } from '../hooks';
 import { HighlightedText } from '../components/HighlightedText';
 
+// Calculated height for each item:
+// padding (16*2) + marginBottom (4) + senderName (16) + content (20) + border (1) = 73
+const ITEM_HEIGHT = 73;
+
 export function MessageSearchScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme];
@@ -37,6 +41,12 @@ export function MessageSearchScreen() {
     const handleResultPress = (messageId: number) => {
         router.back();
     };
+
+    const getItemLayout = (data: any, index: number) => ({
+        length: ITEM_HEIGHT,
+        offset: ITEM_HEIGHT * index,
+        index,
+    });
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -85,6 +95,7 @@ export function MessageSearchScreen() {
                 <FlatList
                     data={results}
                     keyExtractor={(item) => String(item.id)}
+                    getItemLayout={getItemLayout}
                     renderItem={({ item }) => (
                         <Pressable
                             style={[styles.resultItem, { borderBottomColor: colors.border }]}
