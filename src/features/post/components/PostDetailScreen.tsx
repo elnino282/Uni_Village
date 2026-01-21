@@ -30,6 +30,7 @@ import {
   useUpdatePost,
 } from '../hooks';
 import { useLikeComment, useLikePost } from '../hooks/useReactions';
+import { sharePost } from '../utils';
 import type { CommentRequest, PostLocation, PostVisibility } from '../types';
 
 import { EditPrivacySheet } from '@/features/community/components/EditPrivacySheet';
@@ -135,9 +136,12 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   }, []);
 
   const handleSharePress = useCallback(() => {
-    // TODO: Implement share functionality
-    console.log('Share pressed');
-  }, []);
+    if (post) {
+      sharePost(post, (error) => {
+        console.error('Share failed:', error);
+      });
+    }
+  }, [post]);
 
   const handleLocationPress = useCallback((location: PostLocation) => {
     setSelectedLocation(location);
