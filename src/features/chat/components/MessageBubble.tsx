@@ -5,12 +5,14 @@
  * Matches Figma node 317:2269 (DM) and 317:2919 (Group)
  */
 import { Ionicons } from '@expo/vector-icons';
-import React, { memo } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import React, { memo, useCallback } from 'react';
+import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 
+import { useMessageActions } from '../hooks';
 import type { MessageSender, MessageStatus } from '../types';
 import { SenderLabel } from './SenderLabel';
 
@@ -19,6 +21,10 @@ interface MessageBubbleProps {
   sender: MessageSender;
   timeLabel: string;
   status?: MessageStatus;
+  /** Message ID for actions like unsend */
+  messageId?: number;
+  /** Conversation ID for cache updates */
+  conversationId?: string;
   /** For group chats: sender name to display above bubble */
   senderName?: string;
   /** For group chats: sender avatar URL */
@@ -29,6 +35,8 @@ interface MessageBubbleProps {
   errorMessage?: string;
   /** Callback for retry when message failed */
   onRetry?: () => void;
+  /** Whether message has been unsent/deleted */
+  isUnsent?: boolean;
 }
 
 /**
@@ -40,14 +48,18 @@ export const MessageBubble = memo(function MessageBubble({
   sender,
   timeLabel,
   status,
+  messageId,
+  conversationId,
   senderName,
   senderAvatar,
   isGroupChat = false,
   errorMessage,
   onRetry,
+  isUnsent = false,
 }: MessageBubbleProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
+  const { unsendMessage } = useMessageActions();
 
   const isMe = sender === 'me';
   const showSenderLabel = isGroupChat && !isMe && senderName;
@@ -56,6 +68,62 @@ export const MessageBubble = memo(function MessageBubble({
   const bubbleBackgroundColor = isMe ? colors.fabBlue : colors.chipBackground;
   const textColor = isMe ? '#FFFFFF' : colors.textPrimary;
   const timestampColor = colors.separatorDot;
+
+  const handleLongPress = useCallback(() => {
+    if (!messageId || !conversationId || isUnsent) return;
+
+    const options = [];
+    const handlers: Array<() => void> = [];
+
+    if (isMe) {
+      options.push('Thu hồi tin nhắn');
+      handlers.push(() => {
+        Alert.alert(
+          'Thu hồi tin nhắn',
+          'Bạn có chắc chắn muốn thu hồi tin nhắn này? Tin nhắn sẽ bị xóa cho tất cả mọi người.',
+          [
+            { text: 'Hủy', style: 'cancel' },
+            {
+              text: 'Thu hồi',
+              style: 'destructive',
+              onPress: () => {
+                unsendMessage.mutate({ messageId, conversationId });
+              },
+            },
+          ]
+        );
+      });
+    }
+
+    options.push('Sao chép');
+    handlers.push(async () => {
+      await Clipboard.setStringAsync(text);
+      Alert.alert('Đã sao chép', 'Nội dung tin nhắn đã được sao chép.');
+    });
+
+    options.push('Hủy');
+    handlers.push(() => {});
+
+    if (Platform.OS === 'ios') {
+      Alert.alert('', '', 
+        options.map((option, index) => ({
+          text: option,
+          style: index === 0 && isMe ? 'destructive' : index === options.length - 1 ? 'cancel' : 'default',
+          onPress: handlers[index],
+        }))
+      );
+    } else {
+      Alert.alert(
+        'Tùy chọn tin nhắn',
+        '',
+        options.map((option, index) => ({
+          text: option,
+          style: index === 0 && isMe ? 'destructive' : index === options.length - 1 ? 'cancel' : 'default',
+          onPress: handlers[index],
+        }))
+      );
+    }
+  }, [messageId, conversationId, isMe, isUnsent, text, unsendMessage]);
 
   const renderStatusIcon = () => {
     if (!isMe || !status) return null;
@@ -79,7 +147,11 @@ export const MessageBubble = memo(function MessageBubble({
   };
 
   return (
-    <View style={[styles.container, isMe && styles.containerMe]}>
+    <Pressable 
+      style={[styles.container, isMe && styles.containerMe]}
+      onLongPress={handleLongPress}
+      delayLongPress={500}
+    >
       {/* Sender label for group chat incoming messages */}
       {showSenderLabel && (
         <SenderLabel senderName={senderName!} senderAvatar={senderAvatar} />
@@ -90,9 +162,16 @@ export const MessageBubble = memo(function MessageBubble({
           styles.bubble,
           { backgroundColor: bubbleBackgroundColor },
           isMe ? styles.bubbleMe : styles.bubbleOther,
+          isUnsent && styles.bubbleUnsent,
         ]}
       >
-        <Text style={[styles.text, { color: textColor }]}>{text}</Text>
+        <Text style={[
+          styles.text, 
+          { color: textColor },
+          isUnsent && styles.textUnsent,
+        ]}>
+          {text}
+        </Text>
       </View>
       <View style={[styles.metaRow, isMe && styles.metaRowMe]}>
         <Text style={[styles.timestamp, { color: timestampColor }]}>
@@ -108,7 +187,7 @@ export const MessageBubble = memo(function MessageBubble({
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 });
 
@@ -165,5 +244,11 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 11,
     fontWeight: Typography.weights.medium,
+  },
+  bubbleUnsent: {
+    opacity: 0.6,
+  },
+  textUnsent: {
+    fontStyle: 'italic',
   },
 });

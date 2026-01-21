@@ -58,9 +58,12 @@ function MessageItem({ message, isGroupChat }: { message: Message; isGroupChat: 
       sender={message.sender}
       timeLabel={message.timeLabel}
       status={message.status}
+      messageId={message.messageId}
+      conversationId={message.conversationId}
       senderName={message.senderName}
       senderAvatar={message.senderAvatar}
       isGroupChat={isGroupChat}
+      isUnsent={message.isUnsent}
     />
   );
 }

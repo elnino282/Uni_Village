@@ -69,6 +69,10 @@ function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Messa
   const optimisticMsg = msg as any;
   const status = optimisticMsg._status || 'sent';
 
+  const messageId = typeof msg.id === 'number' ? msg.id : undefined;
+  const conversationId = msg.conversationId;
+  const isUnsent = msg.isActive === false;
+
   if (msg.messageType === MessageType.IMAGE) {
     // Read from attachments array (backend MediaAttachmentResponse structure)
     const attachments = (msg as { attachments?: AttachmentResponse[] }).attachments;
@@ -87,6 +91,9 @@ function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Messa
         status,
         senderName: msg.senderName,
         senderAvatar: msg.senderAvatarUrl,
+        messageId,
+        conversationId,
+        isUnsent,
       } satisfies TextMessage;
     }
 
@@ -101,19 +108,25 @@ function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Messa
       status,
       senderName: msg.senderName,
       senderAvatar: msg.senderAvatarUrl,
+      messageId,
+      conversationId,
+      isUnsent,
     } satisfies ImageMessage;
   }
 
   return {
     id: String(msg.id ?? Date.now()),
     type: 'text' as const,
-    text: msg.content ?? '',
+    text: isUnsent ? 'Tin nhắn đã bị thu hồi' : (msg.content ?? ''),
     sender: isSentByMe ? 'me' : 'other',
     createdAt: msg.timestamp ?? new Date().toISOString(),
     timeLabel,
     status,
     senderName: msg.senderName,
     senderAvatar: msg.senderAvatarUrl,
+    messageId,
+    conversationId,
+    isUnsent,
   } satisfies TextMessage;
 }
 
@@ -355,7 +368,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
             const newPages = oldData.pages.map((page) => ({
               ...page,
               content: page.content.map((msg) =>
-                msg.id === messageId ? { ...msg, isActive: false, content: 'This message is unsent' } : msg
+                msg.id === messageId ? { ...msg, isActive: false, content: 'Tin nhắn đã bị thu hồi' } : msg
               ),
             }));
 
