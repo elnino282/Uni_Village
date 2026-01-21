@@ -191,9 +191,13 @@ export function PlaceDetailsScreen() {
     const handleShare = useCallback(async () => {
         if (!place) return;
         try {
+            const deepLinkUrl = `univillage://place-details?placeId=${place.id}`;
+            const message = `${place.name}\n${place.address || ""}\n\nXem chi tiết tại: ${deepLinkUrl}`;
+
             await Share.share({
-                message: `${place.name}\n${place.address || ""}`,
                 title: place.name,
+                message: message,
+                url: deepLinkUrl, // For iOS
             });
         } catch (error) {
             console.error("Share error:", error);
