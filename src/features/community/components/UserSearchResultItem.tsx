@@ -1,5 +1,6 @@
+import { Image } from 'expo-image';
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { UserSearchResult } from '@/features/chat/api';
 import { Colors, Spacing, Typography } from '@/shared/constants';
@@ -56,7 +57,13 @@ export function UserSearchResultItem({ user, onPress }: UserSearchResultItemProp
         >
             <View style={styles.avatar}>
                 {user.avatarUrl ? (
-                    <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+                    <Image
+                        source={{ uri: user.avatarUrl }}
+                        style={styles.avatarImage}
+                        contentFit="cover"
+                        transition={200}
+                        testID="user-avatar"
+                    />
                 ) : (
                     <View
                         style={[styles.avatarPlaceholder, { backgroundColor: colors.actionBlue }]}
