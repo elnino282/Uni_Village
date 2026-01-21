@@ -5,7 +5,8 @@
 
 import { EmptyState, Spinner } from '@/shared/components';
 import { Colors } from '@/shared/constants';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useFeed } from '../hooks/useFeed';
 import { FeedCard } from './FeedCard';
 
@@ -28,9 +29,10 @@ export function FeedList() {
     }
 
     return (
-        <FlatList
+        <FlashList
             data={feedItems}
             keyExtractor={(item) => item.id}
+            estimatedItemSize={200}
             renderItem={({ item }) => (
                 <FeedCard
                     item={item}
