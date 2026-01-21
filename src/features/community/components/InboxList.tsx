@@ -1,6 +1,7 @@
+import { FlashList } from '@shopify/flash-list';
 import { Href, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActionSheetIOS, FlatList, Platform, StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, Platform, StyleSheet, View } from 'react-native';
 
 import { MessageRequestsEntryRow } from '@/features/chat/components';
 import { useDeleteConversation } from '@/features/chat/hooks';
@@ -18,7 +19,8 @@ interface InboxListProps {
 }
 
 /**
- * FlatList of direct message conversations
+ * FlashList of direct message conversations
+ * Optimization: Replaced FlatList with FlashList for better performance with large lists
  */
 export function InboxList({ searchQuery }: InboxListProps) {
   const colorScheme = useColorScheme();
@@ -133,10 +135,11 @@ export function InboxList({ searchQuery }: InboxListProps) {
 
   return (
     <>
-      <FlatList
+      <FlashList
         data={conversations}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
+        estimatedItemSize={74}
         ListHeaderComponent={<MessageRequestsEntryRow />}
         style={[styles.list, { backgroundColor: colors.backgroundSecondary }]}
         contentContainerStyle={styles.listContent}
