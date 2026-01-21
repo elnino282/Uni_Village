@@ -12,15 +12,15 @@ interface ItineraryListCardProps {
     onPress?: (itinerary: Itinerary) => void;
 }
 
+const badgeConfig: Record<ItineraryStatus, { label: string; bg: string; text: string }> = {
+    ongoing: { label: 'Đang diễn ra', bg: '#DCFCE7', text: '#16A34A' },
+    upcoming: { label: 'Sắp tới', bg: '#DBEAFE', text: '#2563EB' },
+    past: { label: 'Đã kết thúc', bg: '#F3F4F6', text: '#6B7280' },
+};
+
 function StatusBadge({ status }: { status: ItineraryStatus }) {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme];
-
-    const badgeConfig: Record<ItineraryStatus, { label: string; bg: string; text: string }> = {
-        ongoing: { label: 'Đang diễn ra', bg: '#DCFCE7', text: '#16A34A' },
-        upcoming: { label: 'Sắp tới', bg: '#DBEAFE', text: '#2563EB' },
-        past: { label: 'Đã kết thúc', bg: '#F3F4F6', text: '#6B7280' },
-    };
 
     const config = badgeConfig[status];
 
