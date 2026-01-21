@@ -6,6 +6,7 @@ export { ChatHeader } from './ChatHeader';
 export { ChatThreadScreen } from './ChatThreadScreen';
 export { ConnectionStatusBanner } from './ConnectionStatusBanner';
 export { ItineraryShareSheet } from './ItineraryShareSheet';
+export { ImageMessageBubble } from './ImageMessageBubble';
 export { MessageBubble } from './MessageBubble';
 export { MessageList } from './MessageList';
 export { SharedCardMessage } from './SharedCardMessage';

@@ -16,7 +16,7 @@ export type MessageSender = 'me' | 'other';
 /**
  * Message type discriminator
  */
-export type MessageType = 'text' | 'sharedCard';
+export type MessageType = 'text' | 'sharedCard' | 'image';
 
 /**
  * Message delivery status
@@ -67,9 +67,18 @@ export interface SharedCardMessage extends BaseMessage {
 }
 
 /**
+ * Image message
+ */
+export interface ImageMessage extends BaseMessage {
+  type: 'image';
+  imageUrl: string;
+  caption?: string;
+}
+
+/**
  * Union type for all message types
  */
-export type Message = TextMessage | SharedCardMessage;
+export type Message = TextMessage | SharedCardMessage | ImageMessage;
 
 /**
  * Chat thread peer information
