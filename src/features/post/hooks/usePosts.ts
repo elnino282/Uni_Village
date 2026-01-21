@@ -12,10 +12,12 @@ const STALE_TIME = {
 export type PostSlice = Slice<PostResponse>;
 export type PostInfiniteData = InfiniteData<PostSlice>;
 
+const POST_COLLECTION_SCOPES = new Set(['feed', 'my', 'saved']);
+
 export const isPostCollectionKey = (queryKey: QueryKey) => {
     if (!Array.isArray(queryKey)) return false;
     const [root, scope] = queryKey;
-    return root === queryKeys.posts.all[0] && ['feed', 'my', 'saved'].includes(String(scope));
+    return root === queryKeys.posts.all[0] && POST_COLLECTION_SCOPES.has(String(scope));
 };
 
 export const isSavedPostsKey = (queryKey: QueryKey) => {
@@ -31,14 +33,14 @@ export const updatePostInInfiniteData = (
     if (!data || updatedPost.id == null) return data;
     let changed = false;
     const pages = data.pages.map((page) => {
-        let pageChanged = false;
+        const hasPost = page.content.some((post) => post.id === updatedPost.id);
+        if (!hasPost) return page;
+
+        changed = true;
         const content = page.content.map((post) => {
             if (post.id !== updatedPost.id) return post;
-            pageChanged = true;
             return { ...post, ...updatedPost };
         });
-        if (!pageChanged) return page;
-        changed = true;
         return { ...page, content };
     });
     return changed ? { ...data, pages } : data;
@@ -48,11 +50,11 @@ export const removePostFromInfiniteData = (data: PostInfiniteData | undefined, p
     if (!data) return data;
     let changed = false;
     const pages = data.pages.map((page) => {
-        const nextContent = page.content.filter((post) => post.id !== postId);
-        if (nextContent.length === page.content.length) {
-            return page;
-        }
+        const hasPost = page.content.some((post) => post.id === postId);
+        if (!hasPost) return page;
+
         changed = true;
+        const nextContent = page.content.filter((post) => post.id !== postId);
         const removedCount = page.content.length - nextContent.length;
         return {
             ...page,
@@ -129,10 +131,12 @@ const addPostToSavedInfiniteData = (data: PostInfiniteData | undefined, post: Po
 };
 
 export const updatePostInCollections = (queryClient: ReturnType<typeof useQueryClient>, post: PostResponse) => {
-    queryClient.setQueriesData<PostInfiniteData>(
-        { predicate: (query) => isPostCollectionKey(query.queryKey) },
-        (data) => updatePostInInfiniteData(data, post)
-    );
+    POST_COLLECTION_SCOPES.forEach((scope) => {
+        queryClient.setQueriesData<PostInfiniteData>(
+            { queryKey: [...queryKeys.posts.all, scope] },
+            (data) => updatePostInInfiniteData(data, post)
+        );
+    });
 };
 
 export const addPostToCollections = (
