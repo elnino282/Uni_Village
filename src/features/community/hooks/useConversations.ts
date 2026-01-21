@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { queryKeys } from '@/config/queryKeys';
 import { inboxService } from '../services/inbox.service';
 import type { ConversationsResponse } from '../types/message.types';
-
-const CONVERSATIONS_KEY = ['community', 'conversations'];
 
 /**
  * Hook to fetch inbox conversations with search filtering
@@ -14,7 +13,7 @@ export function useConversations(
   search?: string
 ) {
   return useQuery<ConversationsResponse>({
-    queryKey: [...CONVERSATIONS_KEY, { page, limit, search }],
+    queryKey: queryKeys.conversations.communityInbox({ page, limit, search }),
     queryFn: () => inboxService.getConversations({ page, limit, search }),
   });
 }

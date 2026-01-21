@@ -81,6 +81,10 @@ export const queryKeys = {
         all: ['conversations'] as const,
         private: (params: PaginationParams) => [...queryKeys.conversations.all, 'private', params] as const,
         channels: (params: PaginationParams) => [...queryKeys.conversations.all, 'channels', params] as const,
+        communityInbox: (params: { page?: number; limit?: number; search?: string }) =>
+            [...queryKeys.conversations.all, 'community', 'inbox', params] as const,
+        communityChannels: (params: { page?: number; limit?: number; search?: string }) =>
+            [...queryKeys.conversations.all, 'community', 'channels', params] as const,
     },
 
     messages: {
