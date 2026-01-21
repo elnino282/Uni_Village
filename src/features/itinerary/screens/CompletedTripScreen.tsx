@@ -334,7 +334,7 @@ export function CompletedTripScreen() {
               
               const newTrip = {
                 id: newTripId,
-                tripName: tripData.tripName + ' (Lặp lại)',
+                tripName: tripData.tripName,
                 status: 'upcoming',
                 startDate: now.toISOString(),
                 startTime: now.toISOString(),
