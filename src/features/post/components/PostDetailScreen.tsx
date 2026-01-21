@@ -27,6 +27,7 @@ import {
   useDeletePost,
   usePostComments,
   usePostDetail,
+  useReportComment,
   useUpdatePost,
 } from '../hooks';
 import { useLikeComment, useLikePost } from '../hooks/useReactions';
@@ -91,6 +92,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const { mutate: deletePost, isPending: isDeletingPost } = useDeletePost();
   const { mutate: savePost, isPending: isSavingPost } = useSavePost();
   const { mutate: reportPost, isPending: isReportingPost } = useReportPost();
+  const { mutate: reportComment, isPending: isReportingComment } = useReportComment();
   const { mutate: blockPost, isPending: isBlockingPost } = useBlockPost();
 
   const isPostOwner = useMemo(() => {
@@ -166,10 +168,30 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
     setReplyingToId(commentId);
   }, []);
 
-  const handleReportComment = useCallback((commentId: string) => {
-    // TODO: Implement report functionality
-    console.log('Report comment:', commentId);
-  }, []);
+  const handleReportComment = useCallback(
+    (commentId: string) => {
+      const id = parseInt(commentId, 10);
+      if (isNaN(id) || isReportingComment) return;
+
+      Alert.alert('Báo cáo bình luận', 'Bạn có chắc muốn báo cáo bình luận này?', [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Báo cáo',
+          onPress: () => {
+            reportComment(
+              { commentId: id, reason: 'Inappropriate content' },
+              {
+                onSuccess: () => {
+                  Alert.alert('Đã báo cáo', 'Cảm ơn bạn đã báo cáo bình luận này.');
+                },
+              }
+            );
+          },
+        },
+      ]);
+    },
+    [reportComment, isReportingComment]
+  );
 
   const handleSavePost = useCallback(
     (postIdOverride?: string) => {

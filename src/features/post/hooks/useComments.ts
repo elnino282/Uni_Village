@@ -204,3 +204,14 @@ export function useDeleteComment() {
         },
     });
 }
+
+export function useReportComment() {
+    return useMutation({
+        mutationFn: async ({ commentId, reason }: { commentId: number; reason: string }) => {
+            // TODO: Integrate with backend API
+            return { success: true };
+        },
+        onSuccess: () => {
+        },
+    });
+}
