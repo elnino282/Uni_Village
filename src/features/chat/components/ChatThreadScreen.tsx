@@ -19,13 +19,13 @@ import { useColorScheme } from "@/shared/hooks";
 // Import i18n config
 import "@/lib/i18n";
 
+import { queryKeys } from "@/config/queryKeys";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { websocketService } from "@/lib/websocket";
 import type { MessageResponse } from "@/shared/types/backend.types";
 import { MessageType } from "@/shared/types/backend.types";
-import { websocketService } from "@/lib/websocket";
-import { useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/config/queryKeys";
 import type { Slice } from "@/shared/types/pagination.types";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useMessages,
   useSendMessageHybrid,
@@ -46,6 +46,19 @@ import { MessageList } from "./MessageList";
 import { PinnedMessageBar } from "./PinnedMessageBar";
 
 /**
+ * Complete interface matching backend MediaAttachmentResponse
+ */
+interface AttachmentResponse {
+  id: number;
+  messageId: number;
+  fileId: number;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
+/**
  * Map API MessageResponse to local Message type
  */
 function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Message {
@@ -57,8 +70,25 @@ function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Messa
   const status = optimisticMsg._status || 'sent';
 
   if (msg.messageType === MessageType.IMAGE) {
-    const fileUrls = (msg as any).fileUrls as string[] | undefined;
-    const imageUrl = fileUrls && fileUrls.length > 0 ? fileUrls[0] : '';
+    // Read from attachments array (backend MediaAttachmentResponse structure)
+    const attachments = (msg as { attachments?: AttachmentResponse[] }).attachments;
+    const imageUrl = attachments?.[0]?.fileUrl;
+
+    // Graceful fallback when image URL missing
+    if (!imageUrl) {
+      console.warn(`[Chat] Message ${msg.id} has IMAGE type but missing fileUrl`);
+      return {
+        id: String(msg.id ?? Date.now()),
+        type: 'text' as const,
+        text: '📷 [Image unavailable]',
+        sender: isSentByMe ? 'me' : 'other',
+        createdAt: msg.timestamp ?? new Date().toISOString(),
+        timeLabel,
+        status,
+        senderName: msg.senderName,
+        senderAvatar: msg.senderAvatarUrl,
+      } satisfies TextMessage;
+    }
 
     return {
       id: String(msg.id ?? Date.now()),
@@ -147,11 +177,11 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const handleSend = useCallback(
     async (text: string) => {
       const user = useAuthStore.getState().user;
-      
+
       if (!user || !user.id) {
         console.error('[ChatThread] Cannot send message: User not initialized');
         console.error('[ChatThread] Please log out and log in again');
-        
+
         Alert.alert(
           'Error',
           'User session expired. Please log in again.',
@@ -270,27 +300,27 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
         const eventData = message.data as any;
 
         if (message.eventType === 'SEND') {
-            // New message received
-            const newMessage = eventData.message as MessageResponse;
-            if (!newMessage) return;
+          // New message received
+          const newMessage = eventData.message as MessageResponse;
+          if (!newMessage) return;
 
-            const queryKey = queryKeys.messages.list(threadId, {});
-            queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
-                if (!oldData?.pages?.length) return oldData;
+          const queryKey = queryKeys.messages.list(threadId, {});
+          queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
+            if (!oldData?.pages?.length) return oldData;
 
-                // Avoid duplicates (if we already have it from global subscription or optimistic)
-                const exists = oldData.pages[0]?.content.some(msg => msg.id === newMessage.id);
-                if (exists) return oldData;
+            // Avoid duplicates (if we already have it from global subscription or optimistic)
+            const exists = oldData.pages[0]?.content.some(msg => msg.id === newMessage.id);
+            if (exists) return oldData;
 
-                const newPages = [...oldData.pages];
-                newPages[0] = {
-                    ...newPages[0],
-                    content: [newMessage, ...newPages[0].content],
-                    numberOfElements: newPages[0].numberOfElements + 1,
-                };
+            const newPages = [...oldData.pages];
+            newPages[0] = {
+              ...newPages[0],
+              content: [newMessage, ...newPages[0].content],
+              numberOfElements: newPages[0].numberOfElements + 1,
+            };
 
-                return { ...oldData, pages: newPages };
-            });
+            return { ...oldData, pages: newPages };
+          });
 
         } else if (message.eventType === 'EDIT') {
           // Update edited message in cache

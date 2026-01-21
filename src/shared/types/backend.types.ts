@@ -2,108 +2,63 @@ export * from '@/lib/api/generated';
 
 export type {
     AuthenticationRequest,
-    AuthenticationResponse,
-    RegisterRequest,
-    ForgetPasswordRequest,
-    VerifyRequest,
-    ChangePasswordRequest,
+    AuthenticationResponse, ChangePasswordRequest, ForgetPasswordRequest, RegisterRequest, VerifyRequest
 } from '@/lib/api/generated';
 
 export type {
     AreaRequest,
-    AreaResponse,
-    PlaceTypeRequest,
-    PlaceTypeResponse,
-    PlaceRequest,
-    PlaceResponse,
-    PlaceStatusRequest,
-    PlaceStatus,
-    PlaceSuggestionRequest,
-    PlaceSuggestionResponse,
-    PlaceSuggestionStatus,
-    PlaceSuggestionReviewRequest,
-    PersonalPinRequest,
-    PersonalPinResponse,
-    ProvinceResponse,
-    DistrictResponse,
-    WardResponse,
+    AreaResponse, DistrictResponse, PersonalPinRequest,
+    PersonalPinResponse, PlaceRequest,
+    PlaceResponse, PlaceStatus, PlaceStatusRequest, PlaceSuggestionRequest,
+    PlaceSuggestionResponse, PlaceSuggestionReviewRequest, PlaceSuggestionStatus, PlaceTypeRequest,
+    PlaceTypeResponse, ProvinceResponse, WardResponse
 } from '@/lib/api/generated';
 
 export type {
-    TourRequest,
-    TourResponse,
-    TourStatus,
-    TourShareRequest,
-    TourStopRequest,
-    TourStopResponse,
-    TourStopReorderRequest,
     CheckInRequest,
-    CheckInResponse,
+    CheckInResponse, TourRequest,
+    TourResponse, TourShareRequest, TourStatus, TourStopReorderRequest, TourStopRequest,
+    TourStopResponse
 } from '@/lib/api/generated';
 
 export type {
-    PostResponse,
-    PostType,
-    Visibility,
     CommentRequest,
-    CommentResponse,
-    SharePostRequest,
-    SharePostResponse,
-    SavedPostResponse,
-    LikeResponse,
+    CommentResponse, LikeResponse, PostResponse,
+    PostType, SavedPostResponse, SharePostRequest,
+    SharePostResponse, Visibility
 } from '@/lib/api/generated';
 
 export type {
-    ConversationResponse,
-    ConversationPrivateRequest,
-    MessageRequest,
-    MessageResponse,
-    FileMessageResponse,
-    MessageType,
-    MessageSearchResponse,
-    MarkReadRequest,
-    MediaAttachmentResponse,
-    FileType,
-    ReadReceiptResponse,
+    ConversationPrivateRequest, ConversationResponse, FileMessageResponse, FileType, MarkReadRequest,
+    MediaAttachmentResponse, MessageRequest,
+    MessageResponse, MessageSearchResponse, ReadReceiptResponse
 } from '@/lib/api/generated';
 
+// Export MessageType as value (enum), not just type
+export { MessageType } from '@/lib/api/generated';
+
 export type {
-    ChannelResponse,
-    ChannelMemberResponse,
-    ChannelPrivacy,
-    ChannelType,
-    CreateChannelRequest,
-    UpdateChannelRequest,
-    AddChannelMemberRequest,
-    ParticipantRole,
-    JoinConversationResponse,
-    JoinRequestStatus,
+    AddChannelMemberRequest, ChannelMemberResponse,
+    ChannelPrivacy, ChannelResponse, ChannelType,
+    CreateChannelRequest, JoinConversationResponse,
+    JoinRequestStatus, ParticipantRole, UpdateChannelRequest
 } from '@/lib/api/generated';
 
 export type {
     ItinerarySuggestRequest,
     SuggestedItinerary,
-    SuggestedStop,
+    SuggestedStop
 } from '@/lib/api/generated';
 
 export type {
-    ApiResponseBase,
-    ApiResponseVoid,
-    ApiResponseString,
-    ApiResponseAuthenticationResponse,
+    ApiResponseAuthenticationResponse, ApiResponseBase, ApiResponseString, ApiResponseVoid
 } from '@/lib/api/generated';
 
 export type {
-    PagePlaceResponse,
-    PagePlaceSuggestionResponse,
-    PagePersonalPinResponse,
-    PageTourResponse,
-    PageCheckInResponse,
-    SlicePostResponse,
-    SliceCommentResponse,
+    PageCheckInResponse, PagePersonalPinResponse, PagePlaceResponse,
+    PagePlaceSuggestionResponse, PageTourResponse, Pageable, SliceCommentResponse,
     SliceConversationResponse,
     SliceMessageResponse,
-    SliceMessageSearchResponse,
-    Pageable,
-    Sort,
+    SliceMessageSearchResponse, SlicePostResponse, Sort
 } from '@/lib/api/generated';
+
