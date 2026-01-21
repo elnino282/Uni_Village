@@ -21,16 +21,16 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    Image,
-    Linking,
-    Pressable,
-    Share,
-    StyleSheet,
-    Text,
-    View
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  Linking,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
