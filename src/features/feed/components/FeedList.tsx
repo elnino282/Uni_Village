@@ -5,8 +5,9 @@
 
 import { EmptyState, Spinner } from '@/shared/components';
 import { Colors } from '@/shared/constants';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFeed } from '../hooks/useFeed';
+import { FeedCard } from './FeedCard';
 
 export function FeedList() {
     const {
@@ -31,10 +32,14 @@ export function FeedList() {
             data={feedItems}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-                // TODO: Replace with FeedCard component
-                <View style={styles.placeholder}>
-                    <Text>{item.content}</Text>
-                </View>
+                <FeedCard
+                    item={item}
+                    // TODO: Integrate with feed mutations
+                    onLikePress={() => console.log('Like pressed', item.id)}
+                    onCommentPress={() => console.log('Comment pressed', item.id)}
+                    onSharePress={() => console.log('Share pressed', item.id)}
+                    onUserPress={() => console.log('User pressed', item.author.id)}
+                />
             )}
             refreshControl={
                 <RefreshControl
@@ -73,10 +78,5 @@ const styles = StyleSheet.create({
     list: {
         padding: 16,
         gap: 16,
-    },
-    placeholder: {
-        padding: 16,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 8,
     },
 });
