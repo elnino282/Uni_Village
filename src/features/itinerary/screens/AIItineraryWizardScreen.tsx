@@ -868,7 +868,7 @@ export function AIItineraryWizardScreen() {
   if (generatedItinerary) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { paddingTop: insets.top, borderBottomColor: colors.border }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.icon} />
           </Pressable>
@@ -926,7 +926,7 @@ export function AIItineraryWizardScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { paddingTop: insets.top, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.icon} />
         </Pressable>
