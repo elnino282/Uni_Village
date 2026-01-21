@@ -36,6 +36,12 @@ interface BaseMessage {
   /** Sender info for group chats */
   senderName?: string;
   senderAvatar?: string;
+  /** Backend message ID for actions like unsend */
+  messageId?: number;
+  /** Conversation ID for cache updates */
+  conversationId?: string;
+  /** Whether message has been unsent/deleted */
+  isUnsent?: boolean;
 }
 
 /**
