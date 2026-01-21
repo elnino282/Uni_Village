@@ -1,10 +1,15 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
+    Animated,
+    Easing,
     Image,
+    Modal,
+    Platform,
     Pressable,
     ScrollView,
     Share,
@@ -49,6 +54,11 @@ export function ItineraryDetailScreen() {
     startTime: new Date(),
     destinations: [],
   });
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showDateTimeModal, setShowDateTimeModal] = useState(false);
+  const modalOpacity = React.useRef(new Animated.Value(0)).current;
 
   // Load trip data from AsyncStorage when screen is focused
   useFocusEffect(
@@ -108,6 +118,63 @@ export function ItineraryDetailScreen() {
     const minutes = String(date.getMinutes()).padStart(2, '0');
     return `${hours}:${minutes}`;
   };
+
+  const updateTripDateTime = async (newDate: Date, newTime: Date) => {
+    try {
+      const tripId = params.tripId as string;
+      if (!tripId) return;
+
+      // Update local state
+      setTripData({
+        ...tripData,
+        startDate: newDate,
+        startTime: newTime,
+      });
+
+      // Update AsyncStorage
+      const tripsJson = await AsyncStorage.getItem('@trips');
+      if (tripsJson) {
+        const trips = JSON.parse(tripsJson);
+        const updatedTrips = trips.map((t: any) => 
+          t.id === tripId ? { 
+            ...t, 
+            startDate: newDate.toISOString(), 
+            startTime: newTime.toISOString() 
+          } : t
+        );
+        await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
+      }
+    } catch (error) {
+      console.error('Failed to update trip date/time:', error);
+    }
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    if (selectedDate && selectedDate >= new Date(new Date().setHours(0, 0, 0, 0))) {
+      updateTripDateTime(selectedDate, tripData.startTime);
+    }
+  };
+
+  const handleTimeChange = (event: any, selectedTime?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+    }
+    if (selectedTime) {
+      updateTripDateTime(tripData.startDate, selectedTime);
+    }
+  };
+
+  React.useEffect(() => {
+    Animated.timing(modalOpacity, {
+      toValue: showDateTimeModal ? 1 : 0,
+      duration: 200,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [showDateTimeModal]);
 
   const handleStartTrip = async () => {
     try {
@@ -187,14 +254,34 @@ export function ItineraryDetailScreen() {
 
         {/* Date and Time */}
         <View style={styles.dateTimeRow}>
-          <View style={styles.dateTimeItem}>
+          <Pressable 
+            style={styles.dateTimeItem}
+            onPress={() => {
+              if (Platform.OS === 'ios') {
+                setShowDateTimeModal(true);
+              } else {
+                setShowDatePicker(true);
+              }
+            }}
+          >
             <Ionicons name="calendar-outline" size={16} color="#FFFFFF" />
             <Text style={styles.dateTimeText}>{formatDate(tripData.startDate)}</Text>
-          </View>
-          <View style={styles.dateTimeItem}>
+            <Ionicons name="create-outline" size={14} color="#FFFFFF" />
+          </Pressable>
+          <Pressable 
+            style={styles.dateTimeItem}
+            onPress={() => {
+              if (Platform.OS === 'ios') {
+                setShowDateTimeModal(true);
+              } else {
+                setShowTimePicker(true);
+              }
+            }}
+          >
             <Ionicons name="time-outline" size={16} color="#FFFFFF" />
             <Text style={styles.dateTimeText}>{formatTime(tripData.startTime)}</Text>
-          </View>
+            <Ionicons name="create-outline" size={14} color="#FFFFFF" />
+          </Pressable>
         </View>
       </LinearGradient>
 
@@ -323,6 +410,98 @@ export function ItineraryDetailScreen() {
           </LinearGradient>
         </Pressable>
       </View>
+
+      {/* Android Date Picker */}
+      {showDatePicker && Platform.OS === 'android' && (
+        <DateTimePicker
+          value={tripData.startDate}
+          mode="date"
+          display="default"
+          minimumDate={new Date()}
+          onChange={handleDateChange}
+        />
+      )}
+
+      {/* Android Time Picker */}
+      {showTimePicker && Platform.OS === 'android' && (
+        <DateTimePicker
+          value={tripData.startTime}
+          mode="time"
+          display="default"
+          onChange={handleTimeChange}
+        />
+      )}
+
+      {/* iOS Date & Time Modal */}
+      {showDateTimeModal && Platform.OS === 'ios' && (
+        <Modal
+          visible={showDateTimeModal}
+          transparent
+          animationType="none"
+          onRequestClose={() => setShowDateTimeModal(false)}
+        >
+          <Pressable 
+            style={styles.modalOverlay}
+            onPress={() => setShowDateTimeModal(false)}
+          >
+            <Animated.View 
+              style={[
+                styles.dateTimeModalContent,
+                { 
+                  backgroundColor: colors.card,
+                  opacity: modalOpacity,
+                }
+              ]}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  Chọn ngày & giờ
+                </Text>
+                <Pressable onPress={() => setShowDateTimeModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.icon} />
+                </Pressable>
+              </View>
+
+              <View style={styles.pickerSection}>
+                <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>
+                  Ngày khởi hành
+                </Text>
+                <DateTimePicker
+                  value={tripData.startDate}
+                  mode="date"
+                  display="spinner"
+                  minimumDate={new Date()}
+                  themeVariant={colorScheme}
+                  onChange={handleDateChange}
+                  style={styles.picker}
+                />
+              </View>
+
+              <View style={styles.pickerSection}>
+                <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>
+                  Giờ xuất phát
+                </Text>
+                <DateTimePicker
+                  value={tripData.startTime}
+                  mode="time"
+                  display="spinner"
+                  themeVariant={colorScheme}
+                  onChange={handleTimeChange}
+                  style={styles.picker}
+                />
+              </View>
+
+              <Pressable
+                style={[styles.doneButton, { backgroundColor: colors.info }]}
+                onPress={() => setShowDateTimeModal(false)}
+              >
+                <Text style={styles.doneButtonText}>Xong</Text>
+              </Pressable>
+            </Animated.View>
+          </Pressable>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -509,5 +688,55 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dateTimeModalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  pickerSection: {
+    marginBottom: 16,
+  },
+  pickerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  picker: {
+    width: '100%',
+  },
+  doneButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
