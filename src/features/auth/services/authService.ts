@@ -2,6 +2,7 @@ import { authApi } from '../api';
 import { useAuthStore } from '../store/authStore';
 import type { ForgetPasswordRequest, LoginRequest, RegisterRequest, VerifyRequest } from '../types';
 import { isAuthResponse, mapAuthResponse } from '../types';
+import { mapProfileToUser } from '../utils';
 
 interface AuthResponse {
     success: boolean;
@@ -14,14 +15,13 @@ export const authService = {
             const data: LoginRequest = { email, password };
             const response = await authApi.login(data);
 
-            if (response.result) {
-                if (isAuthResponse(response.result)) {
-                    const tokens = mapAuthResponse(response.result);
-                    useAuthStore.getState().setTokens(tokens);
-                }
-                return { success: true, message: response.message };
-            }
-            return { success: false, message: 'Login failed' };
+            const { tokens, profile } = response;
+            useAuthStore.getState().setTokens(tokens);
+            const user = mapProfileToUser(profile);
+            useAuthStore.getState().setUser(user);
+            console.log('[Auth Service] User initialized:', { id: user.id, displayName: user.displayName });
+            
+            return { success: true, message: 'Login successful' };
         } catch (error: any) {
             return { success: false, message: error.message || 'Login failed' };
         }

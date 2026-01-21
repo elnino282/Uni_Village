@@ -12,6 +12,7 @@ import { Colors, Spacing } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 
 import type { Message } from '../types';
+import { ImageMessageBubble } from './ImageMessageBubble';
 import { MessageBubble } from './MessageBubble';
 import { SharedCardMessage } from './SharedCardMessage';
 
@@ -36,15 +37,33 @@ function MessageItem({ message, isGroupChat }: { message: Message; isGroupChat: 
     );
   }
 
+  if (message.type === 'image') {
+    return (
+      <ImageMessageBubble
+        imageUrl={message.imageUrl}
+        caption={message.caption}
+        sender={message.sender}
+        timeLabel={message.timeLabel}
+        status={message.status}
+        senderName={message.senderName}
+        senderAvatar={message.senderAvatar}
+        isGroupChat={isGroupChat}
+      />
+    );
+  }
+
   return (
     <MessageBubble
       text={message.text}
       sender={message.sender}
       timeLabel={message.timeLabel}
       status={message.status}
+      messageId={message.messageId}
+      conversationId={message.conversationId}
       senderName={message.senderName}
       senderAvatar={message.senderAvatar}
       isGroupChat={isGroupChat}
+      isUnsent={message.isUnsent}
     />
   );
 }
@@ -63,13 +82,6 @@ export function MessageList({ messages, isLoading, isGroupChat = false }: Messag
 
   const keyExtractor = useCallback((item: Message) => item.id, []);
 
-  // Scroll to bottom when new messages arrive
-  const handleContentSizeChange = useCallback(() => {
-    if (messages.length > 0) {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }
-  }, [messages.length]);
-
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -86,7 +98,7 @@ export function MessageList({ messages, isLoading, isGroupChat = false }: Messag
       keyExtractor={keyExtractor}
       style={[styles.list, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.contentContainer}
-      onContentSizeChange={handleContentSizeChange}
+      inverted={true}
       showsVerticalScrollIndicator={false}
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"

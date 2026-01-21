@@ -9,17 +9,19 @@ import type {
     ChangePasswordRequest,
 } from '../types';
 import { mapAuthResponse } from '../types';
+import { mapProfileToUser } from '../utils';
 
 export function useLogin() {
-    const { setTokens } = useAuthStore();
+    const { setTokens, setUser } = useAuthStore();
 
     return useMutation({
         mutationFn: (data: LoginRequest) => authApi.login(data),
         onSuccess: (response) => {
-            if (response.result) {
-                const tokens = mapAuthResponse(response.result);
-                setTokens(tokens);
-            }
+            const { tokens, profile } = response;
+            setTokens(tokens);
+            const user = mapProfileToUser(profile);
+            setUser(user);
+            console.log('[Auth] User initialized:', { id: user.id, displayName: user.displayName });
         },
     });
 }

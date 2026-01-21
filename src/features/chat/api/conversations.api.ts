@@ -5,6 +5,7 @@ import type {
     ConversationPrivateRequest,
     ConversationResponse,
     FileType,
+    JoinConversationResponse,
     MediaAttachmentResponse,
 } from '@/shared/types/backend.types';
 import type { Slice } from '@/shared/types/pagination.types';
@@ -72,8 +73,8 @@ export const conversationsApi = {
             { params: { fileType } }
         ),
 
-    joinConversation: (conversationId: string): Promise<ApiResponse<any>> =>
-        apiClient.post<ApiResponse<any>>(
+    joinConversation: (conversationId: string): Promise<ApiResponse<JoinConversationResponse>> =>
+        apiClient.post<ApiResponse<JoinConversationResponse>>(
             API_ENDPOINTS.CONVERSATIONS.JOIN(conversationId)
         ),
 

@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Href, router } from 'expo-router';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '@/shared/constants';
@@ -24,7 +24,8 @@ interface SharedCardMessageProps {
 /**
  * Shared content card message (itinerary, location, etc.)
  */
-export function SharedCardMessage({
+// PERF: Prevents message rows from re-rendering on every incoming WS event
+export const SharedCardMessage = memo(function SharedCardMessage({
   card,
   timeLabel,
   status,
@@ -81,7 +82,7 @@ export function SharedCardMessage({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

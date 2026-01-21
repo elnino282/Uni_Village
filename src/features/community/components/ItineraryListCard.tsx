@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import type { Itinerary, ItineraryStatus } from '@/features/itinerary/types/itinerary.types';
 import { getItineraryCoverImage, getItineraryDestinationsCount } from '@/features/itinerary/types/itinerary.types';
@@ -12,15 +13,15 @@ interface ItineraryListCardProps {
     onPress?: (itinerary: Itinerary) => void;
 }
 
+const badgeConfig: Record<ItineraryStatus, { label: string; bg: string; text: string }> = {
+    ongoing: { label: 'Đang diễn ra', bg: '#DCFCE7', text: '#16A34A' },
+    upcoming: { label: 'Sắp tới', bg: '#DBEAFE', text: '#2563EB' },
+    past: { label: 'Đã kết thúc', bg: '#F3F4F6', text: '#6B7280' },
+};
+
 function StatusBadge({ status }: { status: ItineraryStatus }) {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme];
-
-    const badgeConfig: Record<ItineraryStatus, { label: string; bg: string; text: string }> = {
-        ongoing: { label: 'Đang diễn ra', bg: '#DCFCE7', text: '#16A34A' },
-        upcoming: { label: 'Sắp tới', bg: '#DBEAFE', text: '#2563EB' },
-        past: { label: 'Đã kết thúc', bg: '#F3F4F6', text: '#6B7280' },
-    };
 
     const config = badgeConfig[status];
 
@@ -49,7 +50,12 @@ export function ItineraryListCard({ itinerary, onPress }: ItineraryListCardProps
             onPress={() => onPress?.(itinerary)}
             activeOpacity={0.7}
         >
-            <Image source={{ uri: coverImage }} style={styles.coverImage} />
+            <Image
+                source={{ uri: coverImage }}
+                style={styles.coverImage}
+                contentFit="cover"
+                transition={200}
+            />
             <View style={styles.content}>
                 <View style={styles.header}>
                     <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>

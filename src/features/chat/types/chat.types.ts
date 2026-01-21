@@ -16,7 +16,7 @@ export type MessageSender = 'me' | 'other';
 /**
  * Message type discriminator
  */
-export type MessageType = 'text' | 'sharedCard';
+export type MessageType = 'text' | 'sharedCard' | 'image';
 
 /**
  * Message delivery status
@@ -36,6 +36,12 @@ interface BaseMessage {
   /** Sender info for group chats */
   senderName?: string;
   senderAvatar?: string;
+  /** Backend message ID for actions like unsend */
+  messageId?: number;
+  /** Conversation ID for cache updates */
+  conversationId?: string;
+  /** Whether message has been unsent/deleted */
+  isUnsent?: boolean;
 }
 
 /**
@@ -67,15 +73,24 @@ export interface SharedCardMessage extends BaseMessage {
 }
 
 /**
+ * Image message
+ */
+export interface ImageMessage extends BaseMessage {
+  type: 'image';
+  imageUrl: string;
+  caption?: string;
+}
+
+/**
  * Union type for all message types
  */
-export type Message = TextMessage | SharedCardMessage;
+export type Message = TextMessage | SharedCardMessage | ImageMessage;
 
 /**
  * Chat thread peer information
  */
 export interface ThreadPeer {
-  id: string;
+  id: number;
   displayName: string;
   avatarUrl?: string;
 }
@@ -138,7 +153,7 @@ export interface GroupMember {
  * User preview for search/suggestions
  */
 export interface UserPreview {
-  id: string;
+  id: number;
   displayName: string;
   avatarUrl?: string;
   phone?: string;

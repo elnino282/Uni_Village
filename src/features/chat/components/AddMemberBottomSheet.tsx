@@ -112,7 +112,7 @@ export const AddMemberBottomSheet = forwardRef<
     });
   }, []);
 
-  const handleRemoveUser = useCallback((userId: string) => {
+  const handleRemoveUser = useCallback((userId: number) => {
     setSelectedUsers((prev) => prev.filter((u) => u.id !== userId));
   }, []);
 

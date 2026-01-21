@@ -41,7 +41,7 @@ export function useCreateCommunityPost() {
 
   return useMutation({
     mutationFn: async (data: any) => {
-      console.log('Create post:', data);
+      // TODO: Integrate with backend API
       return { success: true };
     },
     onSuccess: () => {
@@ -68,7 +68,6 @@ export function useSavePost() {
   return useMutation({
     mutationFn: (postId: string) => realSavePost.mutateAsync(Number(postId)),
     onSuccess: () => {
-      console.log('Post saved successfully');
     },
   });
 }
@@ -76,11 +75,10 @@ export function useSavePost() {
 export function useReportPost() {
   return useMutation({
     mutationFn: async ({ postId, reason }: { postId: string; reason: string }) => {
-      console.log('Report post:', postId, reason);
+      // TODO: Integrate with backend API
       return { success: true };
     },
     onSuccess: () => {
-      console.log('Post reported successfully');
     },
   });
 }
@@ -90,12 +88,11 @@ export function useBlockPost() {
 
   return useMutation({
     mutationFn: async (postId: string) => {
-      console.log('Block post:', postId);
+      // TODO: Integrate with backend API
       return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: COMMUNITY_POSTS_KEY });
-      console.log('Post blocked successfully');
     },
   });
 }

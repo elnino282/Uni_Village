@@ -15,7 +15,7 @@ import type { UserPreview } from '../types';
 
 interface SelectedMemberChipProps {
   user: UserPreview;
-  onRemove: (userId: string) => void;
+  onRemove: (userId: number) => void;
 }
 
 /**

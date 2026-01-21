@@ -9,10 +9,12 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/shared/components/ui';
+import { ConfirmModal } from '@/shared/components/ui/ConfirmModal';
 import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
+import { handleApiError, showErrorToast } from '@/shared/utils';
 
-import { useSentMediaPreview, useThreadInfo } from '../hooks';
+import { useDeleteConversation, useSentMediaPreview, useThreadInfo } from '../hooks';
 import { toggleThreadMute } from '../services';
 import { SentMediaPreviewGrid } from './SentMediaPreviewGrid';
 import { ThreadInfoActionsRow } from './ThreadInfoActionsRow';
@@ -32,8 +34,10 @@ export function ThreadInfoScreen({ threadId }: ThreadInfoScreenProps) {
 
   const { data: threadInfo, isLoading, error } = useThreadInfo(threadId);
   const { data: sentMedia = [] } = useSentMediaPreview(threadId);
+  const { deleteConversation, isDeleting } = useDeleteConversation();
 
   const [isMuted, setIsMuted] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   React.useEffect(() => {
     if (threadInfo) {
@@ -54,14 +58,15 @@ export function ThreadInfoScreen({ threadId }: ThreadInfoScreenProps) {
   const handleMutePress = useCallback(async () => {
     if (!threadId) return;
 
+    const previousMuteState = isMuted;
     const newMuteState = !isMuted;
     setIsMuted(newMuteState);
 
     try {
       await toggleThreadMute(threadId);
     } catch (err) {
-      setIsMuted(!newMuteState);
-      Alert.alert('Lỗi', 'Không thể thay đổi trạng thái thông báo.');
+      setIsMuted(previousMuteState);
+      showErrorToast('Không thể thay đổi trạng thái thông báo');
     }
   }, [threadId, isMuted]);
 
@@ -102,21 +107,16 @@ export function ThreadInfoScreen({ threadId }: ThreadInfoScreenProps) {
 
 
   const handleDeletePress = useCallback(() => {
-    Alert.alert(
-      'Xóa lịch sử trò chuyện',
-      'Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện? Hành động này không thể hoàn tác.',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Đã xóa', 'Lịch sử trò chuyện đã được xóa.');
-            router.back();
-          },
-        },
-      ]
-    );
+    setShowDeleteModal(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!threadId) return;
+    deleteConversation.mutate(threadId);
+  }, [threadId, deleteConversation]);
+
+  const handleCancelDelete = useCallback(() => {
+    setShowDeleteModal(false);
   }, []);
 
   const handleViewAllMediaPress = useCallback(() => {
@@ -210,6 +210,18 @@ export function ThreadInfoScreen({ threadId }: ThreadInfoScreenProps) {
           </View>
         )}
       </ScrollView>
+
+      <ConfirmModal
+        visible={showDeleteModal}
+        title="Xóa lịch sử trò chuyện"
+        message="Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện? Hành động này không thể hoàn tác."
+        confirmText="Xóa"
+        cancelText="Hủy"
+        confirmVariant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isLoading={isDeleting}
+      />
     </View>
   );
 }

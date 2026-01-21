@@ -1,10 +1,12 @@
 import { Href, useRouter } from 'expo-router';
-import React from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActionSheetIOS, FlatList, Platform, StyleSheet, View } from 'react-native';
 
 import { MessageRequestsEntryRow } from '@/features/chat/components';
+import { useDeleteConversation } from '@/features/chat/hooks';
 import { EmptyState } from '@/shared/components/feedback';
 import { Spinner } from '@/shared/components/ui';
+import { ConfirmModal } from '@/shared/components/ui/ConfirmModal';
 import { Colors, Spacing } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import { useConversations } from '../hooks/useConversations';
@@ -29,15 +31,61 @@ export function InboxList({ searchQuery }: InboxListProps) {
     searchQuery || undefined
   );
 
+  // Delete conversation state
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const { deleteConversation, isDeleting } = useDeleteConversation({ navigateAfterDelete: false });
+
   const handleConversationPress = (conversation: Conversation) => {
     // Navigate to chat thread (stub screen)
     router.push(`/chat/${conversation.id}` as Href);
   };
 
+  const handleLongPress = useCallback((conversation: Conversation) => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Hủy', 'Xóa cuộc hội thoại'],
+          destructiveButtonIndex: 1,
+          cancelButtonIndex: 0,
+          title: conversation.participant.displayName,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            setSelectedConversation(conversation);
+            setDeleteModalVisible(true);
+          }
+        }
+      );
+    } else {
+      // Android - show confirm modal directly
+      setSelectedConversation(conversation);
+      setDeleteModalVisible(true);
+    }
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (selectedConversation) {
+      try {
+        await deleteConversation.mutateAsync(selectedConversation.id);
+        setDeleteModalVisible(false);
+        setSelectedConversation(null);
+      } catch {
+        // Error handled by hook
+      }
+    }
+  }, [selectedConversation, deleteConversation]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteModalVisible(false);
+    setSelectedConversation(null);
+  }, []);
+
   const renderItem = ({ item }: { item: Conversation }) => (
     <ConversationItem
       conversation={item}
       onPress={handleConversationPress}
+      onLongPress={handleLongPress}
     />
   );
 
@@ -84,15 +132,28 @@ export function InboxList({ searchQuery }: InboxListProps) {
   }
 
   return (
-    <FlatList
-      data={conversations}
-      renderItem={renderItem}
-      keyExtractor={keyExtractor}
-      ListHeaderComponent={<MessageRequestsEntryRow />}
-      style={[styles.list, { backgroundColor: colors.backgroundSecondary }]}
-      contentContainerStyle={styles.listContent}
-      showsVerticalScrollIndicator={false}
-    />
+    <>
+      <FlatList
+        data={conversations}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={<MessageRequestsEntryRow />}
+        style={[styles.list, { backgroundColor: colors.backgroundSecondary }]}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
+      <ConfirmModal
+        visible={deleteModalVisible}
+        title="Xóa cuộc hội thoại"
+        message={`Bạn có chắc chắn muốn xóa cuộc hội thoại với ${selectedConversation?.participant.displayName ?? ''}? Hành động này không thể hoàn tác.`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        confirmVariant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        isLoading={isDeleting}
+      />
+    </>
   );
 }
 

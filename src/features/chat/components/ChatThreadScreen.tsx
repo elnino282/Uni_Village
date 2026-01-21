@@ -4,10 +4,11 @@
  * Matches Figma node 317:2269 (DM) and 317:2919 (Group)
  */
 import BottomSheet from "@gorhom/bottom-sheet";
+import * as ImagePicker from "expo-image-picker";
 import { router, useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 
 import type { Itinerary } from "@/features/itinerary/types/itinerary.types";
 import { getItineraryCoverImage } from "@/features/itinerary/types/itinerary.types";
@@ -18,18 +19,21 @@ import { useColorScheme } from "@/shared/hooks";
 // Import i18n config
 import "@/lib/i18n";
 
+import { queryKeys } from "@/config/queryKeys";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { websocketService } from "@/lib/websocket";
 import type { MessageResponse } from "@/shared/types/backend.types";
-import type { ParticipantStatus } from "../api/conversations.api";
-import type { RelationshipStatus } from "../api/friends.api";
+import { MessageType } from "@/shared/types/backend.types";
+import type { Slice } from "@/shared/types/pagination.types";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useMessages,
-  useSendMessage,
+  useSendMessageHybrid,
   useSendSharedCard,
   useThread,
 } from "../hooks";
 import { isVirtualThreadId } from "../services";
-import type { ChatThread, GroupThread, Message, TextMessage, UserPreview } from "../types";
+import type { ChatThread, GroupThread, ImageMessage, Message, TextMessage, UserPreview } from "../types";
 import { isGroupThread } from "../types";
 import { AcceptMessageRequestBanner } from "./AcceptMessageRequestBanner";
 import { AddFriendBanner } from "./AddFriendBanner";
@@ -42,23 +46,87 @@ import { MessageList } from "./MessageList";
 import { PinnedMessageBar } from "./PinnedMessageBar";
 
 /**
+ * Complete interface matching backend MediaAttachmentResponse
+ */
+interface AttachmentResponse {
+  id: number;
+  messageId: number;
+  fileId: number;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
+/**
  * Map API MessageResponse to local Message type
  */
-function mapMessageResponse(msg: MessageResponse, currentUserId?: string): Message {
-  const isSentByMe = String(msg.senderId) === currentUserId;
+function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Message {
+  const isSentByMe = currentUserId ? msg.senderId === currentUserId : false;
   const time = msg.timestamp ? new Date(msg.timestamp) : new Date();
   const timeLabel = time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+  const optimisticMsg = msg as any;
+  const status = optimisticMsg._status || 'sent';
+
+  const messageId = typeof msg.id === 'number' ? msg.id : undefined;
+  const conversationId = msg.conversationId;
+  const isUnsent = msg.isActive === false;
+
+  if (msg.messageType === MessageType.IMAGE) {
+    // Read from attachments array (backend MediaAttachmentResponse structure)
+    const attachments = (msg as { attachments?: AttachmentResponse[] }).attachments;
+    const imageUrl = attachments?.[0]?.fileUrl;
+
+    // Graceful fallback when image URL missing
+    if (!imageUrl) {
+      console.warn(`[Chat] Message ${msg.id} has IMAGE type but missing fileUrl`);
+      return {
+        id: String(msg.id ?? Date.now()),
+        type: 'text' as const,
+        text: '📷 [Image unavailable]',
+        sender: isSentByMe ? 'me' : 'other',
+        createdAt: msg.timestamp ?? new Date().toISOString(),
+        timeLabel,
+        status,
+        senderName: msg.senderName,
+        senderAvatar: msg.senderAvatarUrl,
+        messageId,
+        conversationId,
+        isUnsent,
+      } satisfies TextMessage;
+    }
+
+    return {
+      id: String(msg.id ?? Date.now()),
+      type: 'image' as const,
+      imageUrl,
+      caption: msg.content,
+      sender: isSentByMe ? 'me' : 'other',
+      createdAt: msg.timestamp ?? new Date().toISOString(),
+      timeLabel,
+      status,
+      senderName: msg.senderName,
+      senderAvatar: msg.senderAvatarUrl,
+      messageId,
+      conversationId,
+      isUnsent,
+    } satisfies ImageMessage;
+  }
 
   return {
     id: String(msg.id ?? Date.now()),
     type: 'text' as const,
-    text: msg.content ?? '',
+    text: isUnsent ? 'Tin nhắn đã bị thu hồi' : (msg.content ?? ''),
     sender: isSentByMe ? 'me' : 'other',
     createdAt: msg.timestamp ?? new Date().toISOString(),
     timeLabel,
-    status: 'sent',
+    status,
     senderName: msg.senderName,
     senderAvatar: msg.senderAvatarUrl,
+    messageId,
+    conversationId,
+    isUnsent,
   } satisfies TextMessage;
 }
 
@@ -86,7 +154,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   // Data fetching
   const { data: thread, isLoading: isLoadingThread } = useThread(threadId);
   const messagesQuery = useMessages(threadId);
-  const { mutateAsync: sendMessage, isPending: isSending } = useSendMessage();
+  const { sendMessage: sendMessageHybrid, sendImage, canSend } = useSendMessageHybrid();
   const { mutate: sendSharedCard } = useSendSharedCard();
 
   // Flatten and map messages from paginated response
@@ -100,7 +168,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const dmThread = !isGroup ? (thread as ChatThread | undefined) : null;
 
   // Conversation context for DM chats - get from thread metadata
-  const otherUserId = dmThread?.peer ? parseInt(dmThread.peer.id) : null;
+  const otherUserId = dmThread?.peer ? Number(dmThread.peer.id) : null;
   const relationshipStatus = dmThread?.relationshipStatus || 'NONE';
   const participantStatus = dmThread?.participantStatus || 'INBOX';
 
@@ -120,16 +188,82 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
 
   // Handlers
   const handleSend = useCallback(
-    (text: string) => {
-      sendMessage({ threadId, text });
+    async (text: string) => {
+      const user = useAuthStore.getState().user;
+
+      if (!user || !user.id) {
+        console.error('[ChatThread] Cannot send message: User not initialized');
+        console.error('[ChatThread] Please log out and log in again');
+
+        Alert.alert(
+          'Error',
+          'User session expired. Please log in again.',
+          [{ text: 'OK', onPress: () => router.replace('/login') }]
+        );
+        return;
+      }
+
+      try {
+        const message = await sendMessageHybrid({
+          threadId,
+          text,
+          recipientId: otherUserId ?? undefined,
+          senderInfo: {
+            id: user.id,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+          },
+        });
+
+        // If we were on a virtual thread and created a real conversation, redirect to it
+        // This ensures WebSocket events (which use the real ID) are received correctly
+        if (isVirtualThreadId(threadId) && message.conversationId && message.conversationId !== threadId) {
+          console.log(`[ChatThread] Redirecting from virtual thread ${threadId} to ${message.conversationId}`);
+          routerInstance.replace(`/chat/${message.conversationId}`);
+        }
+      } catch (error) {
+        console.error('[ChatThread] Failed to send message:', error);
+      }
     },
-    [sendMessage, threadId]
+    [sendMessageHybrid, threadId]
   );
 
-  const handleImagePress = useCallback(() => {
-    // TODO: Implement image picker
-    console.log("Image attachment pressed");
-  }, []);
+  const handleImagePress = useCallback(async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const user = useAuthStore.getState().user;
+
+        if (!user || !user.id) return;
+
+        // Extract name and type if missing
+        const fileName = asset.fileName || `image_${Date.now()}.jpg`;
+        const fileType = asset.mimeType || 'image/jpeg';
+
+        await sendImage(
+          threadId,
+          {
+            uri: asset.uri,
+            name: fileName,
+            type: fileType,
+          },
+          {
+            id: user.id,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Failed to pick image:", error);
+      Alert.alert("Error", "Failed to select image");
+    }
+  }, [sendImage, threadId]);
 
   const handleCalendarPress = useCallback(() => {
     // Open itinerary share sheet
@@ -173,6 +307,88 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const handlePinnedDismiss = useCallback(() => {
     console.log("Pinned message dismissed");
   }, []);
+
+  // Subscribe to conversation-specific WebSocket events
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!threadId || isVirtualThreadId(threadId)) return;
+
+    const subscription = websocketService.subscribeToMessages(
+      threadId,
+      (message) => {
+        console.log('[ChatThread] WS event:', message.eventType);
+        const eventData = message.data as any;
+
+        if (message.eventType === 'SEND') {
+          // New message received
+          const newMessage = eventData.message as MessageResponse;
+          if (!newMessage) return;
+
+          const queryKey = queryKeys.messages.list(threadId, {});
+          queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
+            if (!oldData?.pages?.length) return oldData;
+
+            // Avoid duplicates (if we already have it from global subscription or optimistic)
+            const exists = oldData.pages[0]?.content.some(msg => msg.id === newMessage.id);
+            if (exists) return oldData;
+
+            const newPages = [...oldData.pages];
+            newPages[0] = {
+              ...newPages[0],
+              content: [newMessage, ...newPages[0].content],
+              numberOfElements: newPages[0].numberOfElements + 1,
+            };
+
+            return { ...oldData, pages: newPages };
+          });
+
+        } else if (message.eventType === 'EDIT') {
+          // Update edited message in cache
+          const queryKey = queryKeys.messages.list(threadId, {});
+          queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
+            if (!oldData?.pages?.length) return oldData;
+
+            const editedMessage = eventData.message as MessageResponse;
+            if (!editedMessage) return oldData;
+
+            const newPages = oldData.pages.map((page) => ({
+              ...page,
+              content: page.content.map((msg) =>
+                msg.id === editedMessage.id ? editedMessage : msg
+              ),
+            }));
+
+            return { ...oldData, pages: newPages };
+          });
+        } else if (message.eventType === 'UNSEND') {
+          // Mark message as deleted in cache
+          const queryKey = queryKeys.messages.list(threadId, {});
+          queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
+            if (!oldData?.pages?.length) return oldData;
+
+            // UNSEND event might have message object or just messageId
+            // Check structure based on types.ts, but fallback to any
+            const messageId = eventData.message?.id || eventData.messageId;
+
+            if (!messageId) return oldData;
+
+            const newPages = oldData.pages.map((page) => ({
+              ...page,
+              content: page.content.map((msg) =>
+                msg.id === messageId ? { ...msg, isActive: false, content: 'Tin nhắn đã bị thu hồi' } : msg
+              ),
+            }));
+
+            return { ...oldData, pages: newPages };
+          });
+        }
+      }
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [threadId, queryClient]);
 
   // Loading state for thread
   if (isLoadingThread || !thread) {
@@ -244,7 +460,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
           onSend={handleSend}
           onImagePress={handleImagePress}
           onCalendarPress={handleCalendarPress}
-          isSending={isSending}
+          isSending={false}
         />
       </KeyboardAvoidingView>
 

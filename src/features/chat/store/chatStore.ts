@@ -84,6 +84,8 @@ interface ChatActions {
     setParticipantStatus: (conversationId: string, status: ParticipantStatus) => void;
     /** Get unread message request count */
     getMessageRequestCount: () => number;
+    /** Clear all state for a specific conversation (used after deletion) */
+    clearConversationState: (conversationId: string) => void;
     /** Reset store to initial state */
     reset: () => void;
 }
@@ -245,6 +247,32 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     getMessageRequestCount: () => {
         return get().messageRequests.size;
+    },
+
+    clearConversationState: (conversationId) => {
+        set((state) => {
+            // Clear message requests for this conversation
+            const newMessageRequests = new Map(state.messageRequests);
+            newMessageRequests.delete(conversationId);
+
+            // Clear participant status
+            const newParticipantStatuses = new Map(state.participantStatuses);
+            newParticipantStatuses.delete(conversationId);
+
+            // Clear typing users (they're keyed by userId, but clear all when conversation is deleted)
+            const newTypingUsers = new Map(state.typingUsers);
+
+            // Clear active conversation if it's the deleted one
+            const newActiveId =
+                state.activeConversationId === conversationId ? null : state.activeConversationId;
+
+            return {
+                messageRequests: newMessageRequests,
+                participantStatuses: newParticipantStatuses,
+                typingUsers: newTypingUsers,
+                activeConversationId: newActiveId,
+            };
+        });
     },
 
     reset: () => {

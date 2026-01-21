@@ -1,8 +1,8 @@
 /**
  * AI Itinerary Wizard Screen
- * 
+ *
  * CURRENT STATUS: Using MOCK AI RESPONSES
- * 
+ *
  * TO ENABLE REAL GEMINI AI:
  * 1. Get API key from: https://ai.google.dev/
  * 2. Add to .env: EXPO_PUBLIC_GEMINI_API_KEY=your_key
@@ -13,88 +13,178 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Dimensions,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    Animated,
+    Dimensions,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+    SafeAreaView,
+    useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { MapAdapter } from "@/features/map/components/MapAdapter";
 import { generateItinerary } from "@/lib/ai/geminiService";
 import { Colors, useColorScheme } from "@/shared";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
-type ActivityType = 'deadline' | 'food-tour' | 'date-chill' | 'hangout';
-type TransportType = 'walking-bus' | 'motorbike';
-type BudgetType = 'low' | 'high';
+type ActivityType = "deadline" | "food-tour" | "date-chill" | "hangout";
+type TransportType = "walking-bus" | "motorbike";
+type BudgetType = "low" | "high";
+type TimeSlotType = "morning" | "afternoon" | "evening" | "fullday";
+type GroupSizeType = "solo" | "couple" | "small-group" | "large-group";
+type SpecialPreferenceType =
+  | "pet-friendly"
+  | "photo-spots"
+  | "wifi-available"
+  | "outdoor";
 
 interface WizardData {
   activity?: ActivityType;
   transport?: TransportType;
   budget?: BudgetType;
+  timeSlot?: TimeSlotType;
+  groupSize?: GroupSizeType;
+  specialPreferences?: SpecialPreferenceType[];
 }
 
 const ACTIVITIES = [
   {
-    id: 'deadline' as ActivityType,
-    icon: '🍱',
-    title: 'Chạy Deadline',
-    subtitle: 'Cafe yên tĩnh, wifi mạnh, có ổ cắm',
+    id: "deadline" as ActivityType,
+    icon: "🍱",
+    title: "Chạy Deadline",
+    subtitle: "Cafe yên tĩnh, wifi mạnh, có ổ cắm",
   },
   {
-    id: 'food-tour' as ActivityType,
-    icon: '😋',
-    title: 'Food Tour',
-    subtitle: 'Chọ đêm, quán ăn vặt, lẩu nướng',
+    id: "food-tour" as ActivityType,
+    icon: "😋",
+    title: "Food Tour",
+    subtitle: "Chọ đêm, quán ăn vặt, lẩu nướng",
   },
   {
-    id: 'date-chill' as ActivityType,
-    icon: '💖',
-    title: 'Hẹn hò / Chill',
-    subtitle: 'Hồ Đá, cafe view đẹp, riêng tư',
+    id: "date-chill" as ActivityType,
+    icon: "💖",
+    title: "Hẹn hò / Chill",
+    subtitle: "Hồ Đá, cafe view đẹp, riêng tư",
   },
   {
-    id: 'hangout' as ActivityType,
-    icon: '🎮',
-    title: 'Tụ tập bạn bè',
-    subtitle: 'Boardgame, quán nhậu, karaoke',
+    id: "hangout" as ActivityType,
+    icon: "🎮",
+    title: "Tụ tập bạn bè",
+    subtitle: "Boardgame, quán nhậu, karaoke",
   },
 ];
 
 const TRANSPORTS = [
   {
-    id: 'walking-bus' as TransportType,
-    icon: '🚶',
-    title: 'Đi bộ / Xe buýt',
-    subtitle: 'Gợi ý địa điểm gần nhau',
+    id: "walking-bus" as TransportType,
+    icon: "🚶",
+    title: "Đi bộ / Xe buýt",
+    subtitle: "Gợi ý địa điểm gần nhau",
   },
   {
-    id: 'motorbike' as TransportType,
-    icon: '🏍️',
-    title: 'Xe máy',
-    subtitle: 'Có thể đi xa hơn',
+    id: "motorbike" as TransportType,
+    icon: "🏍️",
+    title: "Xe máy",
+    subtitle: "Có thể đi xa hơn",
   },
 ];
 
 const BUDGETS = [
   {
     id: 'low' as BudgetType,
-    icon: '💸',
+    icon: '💰',
     title: 'Cuối tháng rồi...',
     subtitle: 'Camteen, cơm 25k, trà đá',
   },
   {
-    id: 'high' as BudgetType,
-    icon: '💎',
-    title: 'Đầu tháng / Có lương',
-    subtitle: 'Quán mấy lành, thượng hảo',
+    id: "high" as BudgetType,
+    icon: "💎",
+    title: "Đầu tháng / Có lương",
+    subtitle: "Quán mấy lành, thượng hảo",
+  },
+];
+
+const TIME_SLOTS = [
+  {
+    id: "morning" as TimeSlotType,
+    icon: "🌅",
+    title: "Buổi sáng",
+    subtitle: "7:00 - 11:00",
+  },
+  {
+    id: "afternoon" as TimeSlotType,
+    icon: "☀️",
+    title: "Buổi chiều",
+    subtitle: "13:00 - 17:00",
+  },
+  {
+    id: "evening" as TimeSlotType,
+    icon: "🌙",
+    title: "Buổi tối",
+    subtitle: "18:00 - 22:00",
+  },
+  {
+    id: "fullday" as TimeSlotType,
+    icon: "📅",
+    title: "Cả ngày",
+    subtitle: "Từ sáng đến tối",
+  },
+];
+
+const GROUP_SIZES = [
+  {
+    id: "solo" as GroupSizeType,
+    icon: "🧍",
+    title: "Một mình",
+    subtitle: "Me time, tự do khám phá",
+  },
+  {
+    id: "couple" as GroupSizeType,
+    icon: "💑",
+    title: "Hai người",
+    subtitle: "Hẹn hò, chill cùng bạn",
+  },
+  {
+    id: "small-group" as GroupSizeType,
+    icon: "👨‍👩‍👧",
+    title: "3-5 người",
+    subtitle: "Nhóm nhỏ, dễ di chuyển",
+  },
+  {
+    id: "large-group" as GroupSizeType,
+    icon: "👥",
+    title: "6+ người",
+    subtitle: "Đông vui, cần chỗ rộng",
+  },
+];
+
+const SPECIAL_PREFERENCES = [
+  {
+    id: "pet-friendly" as SpecialPreferenceType,
+    icon: "🐕",
+    title: "Pet-friendly",
+  },
+  {
+    id: "photo-spots" as SpecialPreferenceType,
+    icon: "📸",
+    title: "Có view đẹp",
+  },
+  {
+    id: "wifi-available" as SpecialPreferenceType,
+    icon: "📶",
+    title: "Có WiFi",
+  },
+  {
+    id: "outdoor" as SpecialPreferenceType,
+    icon: "🌳",
+    title: "Ngoài trời",
   },
 ];
 
@@ -137,13 +227,13 @@ export function AIItineraryWizardScreen() {
             duration: 500,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
     }
   }, [isGenerating]);
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
     } else {
       handleGenerate();
@@ -168,6 +258,8 @@ export function AIItineraryWizardScreen() {
         activity: wizardData.activity!,
         transport: wizardData.transport!,
         budget: wizardData.budget!,
+        timeSlot: wizardData.timeSlot,
+        groupSize: wizardData.groupSize,
       });
 
       // Ensure loading screen shows for at least 3 seconds
@@ -179,7 +271,7 @@ export function AIItineraryWizardScreen() {
 
       setGeneratedItinerary(itinerary);
     } catch (error) {
-      console.error('Failed to generate itinerary:', error);
+      console.error("Failed to generate itinerary:", error);
     } finally {
       setIsGenerating(false);
     }
@@ -199,13 +291,13 @@ export function AIItineraryWizardScreen() {
         startTime: now.toISOString(),
         destinations: generatedItinerary.destinations,
         createdAt: now.toISOString(),
-        status: 'upcoming',
+        status: "upcoming",
       };
 
-      const tripsJson = await AsyncStorage.getItem('@trips');
+      const tripsJson = await AsyncStorage.getItem("@trips");
       const trips = tripsJson ? JSON.parse(tripsJson) : [];
       trips.push(newTrip);
-      await AsyncStorage.setItem('@trips', JSON.stringify(trips));
+      await AsyncStorage.setItem("@trips", JSON.stringify(trips));
 
       // Navigate to itinerary detail
       router.replace({
@@ -216,10 +308,10 @@ export function AIItineraryWizardScreen() {
           startDate: newTrip.startDate,
           startTime: newTrip.startTime,
           destinations: JSON.stringify(newTrip.destinations),
-        }
+        },
       });
     } catch (error) {
-      console.error('Failed to save itinerary:', error);
+      console.error("Failed to save itinerary:", error);
     }
   };
 
@@ -227,32 +319,42 @@ export function AIItineraryWizardScreen() {
     if (currentStep === 1) return !!wizardData.activity;
     if (currentStep === 2) return !!wizardData.transport;
     if (currentStep === 3) return !!wizardData.budget;
+    if (currentStep === 4) return !!wizardData.timeSlot;
+    if (currentStep === 5) return !!wizardData.groupSize;
     return false;
   };
 
   const getActivityLabel = (id: ActivityType) => {
-    return ACTIVITIES.find(a => a.id === id)?.title || '';
+    return ACTIVITIES.find((a) => a.id === id)?.title || "";
   };
 
   const getTransportLabel = (id: TransportType) => {
-    return TRANSPORTS.find(t => t.id === id)?.title || '';
+    return TRANSPORTS.find((t) => t.id === id)?.title || "";
   };
 
   const getBudgetLabel = (id: BudgetType) => {
-    return BUDGETS.find(b => b.id === id)?.title || '';
+    return BUDGETS.find((b) => b.id === id)?.title || "";
+  };
+
+  const getTimeSlotLabel = (id: TimeSlotType) => {
+    return TIME_SLOTS.find((t) => t.id === id)?.title || "";
+  };
+
+  const getGroupSizeLabel = (id: GroupSizeType) => {
+    return GROUP_SIZES.find((g) => g.id === id)?.title || "";
   };
 
   const renderProgressBar = () => {
     return (
       <View style={styles.progressContainer}>
-        {[1, 2, 3].map((step) => (
-          <View 
+        {[1, 2, 3, 4, 5].map((step) => (
+          <View
             key={step}
             style={[
               styles.progressDot,
-              { 
-                backgroundColor: currentStep >= step ? '#3b82f6' : '#E5E7EB',
-              }
+              {
+                backgroundColor: currentStep >= step ? "#3b82f6" : "#E5E7EB",
+              },
             ]}
           />
         ))}
@@ -261,7 +363,9 @@ export function AIItineraryWizardScreen() {
   };
 
   const renderStep1 = () => (
-    <Animated.View style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}>
+    <Animated.View
+      style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}
+    >
       <Text style={[styles.stepTitle, { color: colors.text }]}>
         Bạn đang muốn làm gì?
       </Text>
@@ -277,18 +381,25 @@ export function AIItineraryWizardScreen() {
               styles.optionCard,
               {
                 backgroundColor: colors.card,
-                borderColor: wizardData.activity === activity.id ? colors.info : colors.border,
+                borderColor:
+                  wizardData.activity === activity.id
+                    ? colors.info
+                    : colors.border,
                 borderWidth: wizardData.activity === activity.id ? 2 : 1,
-              }
+              },
             ]}
-            onPress={() => setWizardData({ ...wizardData, activity: activity.id })}
+            onPress={() =>
+              setWizardData({ ...wizardData, activity: activity.id })
+            }
           >
             <Text style={styles.optionIcon}>{activity.icon}</Text>
             <View style={styles.optionContent}>
               <Text style={[styles.optionTitle, { color: colors.text }]}>
                 {activity.title}
               </Text>
-              <Text style={[styles.optionSubtitle, { color: colors.textSecondary }]}>
+              <Text
+                style={[styles.optionSubtitle, { color: colors.textSecondary }]}
+              >
                 {activity.subtitle}
               </Text>
             </View>
@@ -302,7 +413,9 @@ export function AIItineraryWizardScreen() {
   );
 
   const renderStep2 = () => (
-    <Animated.View style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}>
+    <Animated.View
+      style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}
+    >
       <Text style={[styles.stepTitle, { color: colors.text }]}>
         Phương tiện di chuyển?
       </Text>
@@ -318,18 +431,25 @@ export function AIItineraryWizardScreen() {
               styles.optionCard,
               {
                 backgroundColor: colors.card,
-                borderColor: wizardData.transport === transport.id ? colors.info : colors.border,
+                borderColor:
+                  wizardData.transport === transport.id
+                    ? colors.info
+                    : colors.border,
                 borderWidth: wizardData.transport === transport.id ? 2 : 1,
-              }
+              },
             ]}
-            onPress={() => setWizardData({ ...wizardData, transport: transport.id })}
+            onPress={() =>
+              setWizardData({ ...wizardData, transport: transport.id })
+            }
           >
             <Text style={styles.optionIcon}>{transport.icon}</Text>
             <View style={styles.optionContent}>
               <Text style={[styles.optionTitle, { color: colors.text }]}>
                 {transport.title}
               </Text>
-              <Text style={[styles.optionSubtitle, { color: colors.textSecondary }]}>
+              <Text
+                style={[styles.optionSubtitle, { color: colors.textSecondary }]}
+              >
                 {transport.subtitle}
               </Text>
             </View>
@@ -343,7 +463,9 @@ export function AIItineraryWizardScreen() {
   );
 
   const renderStep3 = () => (
-    <Animated.View style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}>
+    <Animated.View
+      style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}
+    >
       <Text style={[styles.stepTitle, { color: colors.text }]}>
         Tình trạng ví tiền?
       </Text>
@@ -359,9 +481,10 @@ export function AIItineraryWizardScreen() {
               styles.optionCard,
               {
                 backgroundColor: colors.card,
-                borderColor: wizardData.budget === budget.id ? colors.info : colors.border,
+                borderColor:
+                  wizardData.budget === budget.id ? colors.info : colors.border,
                 borderWidth: wizardData.budget === budget.id ? 2 : 1,
-              }
+              },
             ]}
             onPress={() => setWizardData({ ...wizardData, budget: budget.id })}
           >
@@ -370,7 +493,9 @@ export function AIItineraryWizardScreen() {
               <Text style={[styles.optionTitle, { color: colors.text }]}>
                 {budget.title}
               </Text>
-              <Text style={[styles.optionSubtitle, { color: colors.textSecondary }]}>
+              <Text
+                style={[styles.optionSubtitle, { color: colors.textSecondary }]}
+              >
                 {budget.subtitle}
               </Text>
             </View>
@@ -380,10 +505,171 @@ export function AIItineraryWizardScreen() {
           </Pressable>
         ))}
       </View>
+    </Animated.View>
+  );
+
+  const renderStep4 = () => (
+    <Animated.View
+      style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}
+    >
+      <Text style={[styles.stepTitle, { color: colors.text }]}>
+        Bạn muốn đi lúc nào?
+      </Text>
+      <Text style={[styles.stepSubtitle, { color: colors.textSecondary }]}>
+        Chọn khung giờ phù hợp
+      </Text>
+
+      <View style={styles.optionsContainer}>
+        {TIME_SLOTS.map((timeSlot) => (
+          <Pressable
+            key={timeSlot.id}
+            style={[
+              styles.optionCard,
+              {
+                backgroundColor: colors.card,
+                borderColor:
+                  wizardData.timeSlot === timeSlot.id
+                    ? colors.info
+                    : colors.border,
+                borderWidth: wizardData.timeSlot === timeSlot.id ? 2 : 1,
+              },
+            ]}
+            onPress={() =>
+              setWizardData({ ...wizardData, timeSlot: timeSlot.id })
+            }
+          >
+            <Text style={styles.optionIcon}>{timeSlot.icon}</Text>
+            <View style={styles.optionContent}>
+              <Text style={[styles.optionTitle, { color: colors.text }]}>
+                {timeSlot.title}
+              </Text>
+              <Text
+                style={[styles.optionSubtitle, { color: colors.textSecondary }]}
+              >
+                {timeSlot.subtitle}
+              </Text>
+            </View>
+            {wizardData.timeSlot === timeSlot.id && (
+              <Ionicons name="checkmark-circle" size={24} color={colors.info} />
+            )}
+          </Pressable>
+        ))}
+      </View>
+    </Animated.View>
+  );
+
+  const renderStep5 = () => (
+    <Animated.View
+      style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}
+    >
+      <Text style={[styles.stepTitle, { color: colors.text }]}>
+        Đi bao nhiêu người?
+      </Text>
+      <Text style={[styles.stepSubtitle, { color: colors.textSecondary }]}>
+        Giúp AI gợi ý địa điểm phù hợp
+      </Text>
+
+      <View style={styles.optionsContainer}>
+        {GROUP_SIZES.map((groupSize) => (
+          <Pressable
+            key={groupSize.id}
+            style={[
+              styles.optionCard,
+              {
+                backgroundColor: colors.card,
+                borderColor:
+                  wizardData.groupSize === groupSize.id
+                    ? colors.info
+                    : colors.border,
+                borderWidth: wizardData.groupSize === groupSize.id ? 2 : 1,
+              },
+            ]}
+            onPress={() =>
+              setWizardData({ ...wizardData, groupSize: groupSize.id })
+            }
+          >
+            <Text style={styles.optionIcon}>{groupSize.icon}</Text>
+            <View style={styles.optionContent}>
+              <Text style={[styles.optionTitle, { color: colors.text }]}>
+                {groupSize.title}
+              </Text>
+              <Text
+                style={[styles.optionSubtitle, { color: colors.textSecondary }]}
+              >
+                {groupSize.subtitle}
+              </Text>
+            </View>
+            {wizardData.groupSize === groupSize.id && (
+              <Ionicons name="checkmark-circle" size={24} color={colors.info} />
+            )}
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Special Preferences - Optional Toggles */}
+      <Text
+        style={[
+          styles.stepSubtitle,
+          { color: colors.textSecondary, marginTop: 16, marginBottom: 8 },
+        ]}
+      >
+        Ưu tiên (không bắt buộc)
+      </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 8,
+          marginBottom: 16,
+        }}
+      >
+        {SPECIAL_PREFERENCES.map((pref) => {
+          const isSelected = wizardData.specialPreferences?.includes(pref.id);
+          return (
+            <Pressable
+              key={pref.id}
+              style={[
+                {
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  backgroundColor: isSelected ? "#DBEAFE" : colors.card,
+                  borderColor: isSelected ? "#3B82F6" : colors.border,
+                },
+              ]}
+              onPress={() => {
+                const currentPrefs = wizardData.specialPreferences || [];
+                const newPrefs = isSelected
+                  ? currentPrefs.filter((p) => p !== pref.id)
+                  : [...currentPrefs, pref.id];
+                setWizardData({ ...wizardData, specialPreferences: newPrefs });
+              }}
+            >
+              <Text style={{ fontSize: 16, marginRight: 4 }}>{pref.icon}</Text>
+              <Text
+                style={{
+                  color: isSelected ? "#3B82F6" : colors.text,
+                  fontSize: 13,
+                }}
+              >
+                {pref.title}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       {/* Summary */}
-      <View style={[styles.summaryCard, { backgroundColor: '#F3E8FF', borderColor: '#E9D5FF' }]}>
-        <Text style={[styles.summaryTitle, { color: '#7C3AED' }]}>
+      <View
+        style={[
+          styles.summaryCard,
+          { backgroundColor: "#F3E8FF", borderColor: "#E9D5FF" },
+        ]}
+      >
+        <Text style={[styles.summaryTitle, { color: "#7C3AED" }]}>
           📋 Tóm tắt:
         </Text>
         <Text style={[styles.summaryText, { color: colors.text }]}>
@@ -392,9 +678,15 @@ export function AIItineraryWizardScreen() {
         <Text style={[styles.summaryText, { color: colors.text }]}>
           Di chuyển: {getTransportLabel(wizardData.transport!)}
         </Text>
-        {wizardData.budget && (
+        <Text style={[styles.summaryText, { color: colors.text }]}>
+          Ngân sách: {getBudgetLabel(wizardData.budget!)}
+        </Text>
+        <Text style={[styles.summaryText, { color: colors.text }]}>
+          Khung giờ: {getTimeSlotLabel(wizardData.timeSlot!)}
+        </Text>
+        {wizardData.groupSize && (
           <Text style={[styles.summaryText, { color: colors.text }]}>
-            Ngân sách: {getBudgetLabel(wizardData.budget)}
+            Số người: {getGroupSizeLabel(wizardData.groupSize)}
           </Text>
         )}
       </View>
@@ -405,17 +697,19 @@ export function AIItineraryWizardScreen() {
     <View style={styles.loadingContainer}>
       <View style={styles.loadingContent}>
         <View style={styles.aiIconContainer}>
-          <Animated.View 
+          <Animated.View
             style={[
               styles.aiIconPulse,
               {
-                transform: [{
-                  scale: loadingDots.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 1.2],
-                  })
-                }]
-              }
+                transform: [
+                  {
+                    scale: loadingDots.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.2],
+                    }),
+                  },
+                ],
+              },
             ]}
           >
             <Ionicons name="sparkles" size={48} color="#FFFFFF" />
@@ -439,19 +733,20 @@ export function AIItineraryWizardScreen() {
                 {
                   opacity: loadingDots.interpolate({
                     inputRange: [0, 1],
-                    outputRange: i === 0 ? [0.3, 1] : i === 1 ? [0.3, 0.6] : [0.3, 0.3],
-                  })
-                }
+                    outputRange:
+                      i === 0 ? [0.3, 1] : i === 1 ? [0.3, 0.6] : [0.3, 0.3],
+                  }),
+                },
               ]}
             />
           ))}
         </View>
 
         <Text style={[styles.loadingHint, { color: colors.textSecondary }]}>
-            Nhanh thôi mà, chờ xíu xíu nha!
+          Nhanh thôi mà, chờ xíu xíu nha!
         </Text>
         <Text style={[styles.loadingHint, { color: colors.textSecondary }]}>
-            (Thường mất khoảng 10-20 giây)
+          (Thường mất khoảng 10-20 giây)
         </Text>
       </View>
     </View>
@@ -461,7 +756,10 @@ export function AIItineraryWizardScreen() {
     if (!generatedItinerary) return null;
 
     return (
-      <ScrollView style={styles.resultContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.resultContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={[styles.resultTitle, { color: colors.text }]}>
           Lộ trình của bạn
         </Text>
@@ -469,32 +767,12 @@ export function AIItineraryWizardScreen() {
           {generatedItinerary.title}
         </Text>
 
-        {/* Map Preview with Route */}
-        <View style={styles.mapPreview}>
-          <MapAdapter
-            initialRegion={{
-              latitude: generatedItinerary.destinations[0]?.latitude || 10.7626,
-              longitude: generatedItinerary.destinations[0]?.longitude || 106.6824,
-              latitudeDelta: 0.05,
-              longitudeDelta: 0.05,
-            }}
-            markers={generatedItinerary.destinations.map((dest: any) => ({
-              id: dest.id,
-              coordinate: {
-                latitude: dest.latitude,
-                longitude: dest.longitude,
-              },
-              title: dest.name,
-              description: dest.description,
-              category: dest.category as any,
-            }))}
-            routePolyline={generatedItinerary.destinations.map((dest: any) => ({
-              latitude: dest.latitude,
-              longitude: dest.longitude,
-            }))}
-            showPolylineStroke
-            colorScheme={colorScheme}
-          />
+        {/* Map Preview Placeholder */}
+        <View style={[styles.mapPreview, { backgroundColor: colors.border }]}>
+          <Ionicons name="map" size={48} color={colors.icon} />
+          <Text style={[styles.mapPreviewText, { color: colors.textSecondary }]}>
+            Bản đồ lộ trình
+          </Text>
         </View>
 
         {/* Timeline */}
@@ -502,41 +780,65 @@ export function AIItineraryWizardScreen() {
           {generatedItinerary.destinations.map((dest: any, index: number) => (
             <View key={dest.id} style={styles.timelineItem}>
               <View style={styles.timelineLeft}>
-                <View style={[styles.timelineDot, { backgroundColor: colors.info }]} />
+                <View
+                  style={[styles.timelineDot, { backgroundColor: colors.info }]}
+                />
                 {index < generatedItinerary.destinations.length - 1 && (
-                  <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
+                  <View
+                    style={[
+                      styles.timelineLine,
+                      { backgroundColor: colors.border },
+                    ]}
+                  />
                 )}
               </View>
 
-              <View style={[styles.timelineCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View
+                style={[
+                  styles.timelineCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
                 <View style={styles.timelineHeader}>
-                  <View style={[styles.timeChip, { backgroundColor: '#E3F2FD' }]}>
+                  <View
+                    style={[styles.timeChip, { backgroundColor: "#E3F2FD" }]}
+                  >
                     <Ionicons name="time-outline" size={14} color="#2196F3" />
-                    <Text style={[styles.timeChipText, { color: '#2196F3' }]}>
+                    <Text style={[styles.timeChipText, { color: "#2196F3" }]}>
                       {dest.time}
                     </Text>
                   </View>
-                  <Text style={[styles.durationText, { color: colors.textSecondary }]}>
-                    {dest.duration || '~30 phút'}
+                  <Text
+                    style={[
+                      styles.durationText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {dest.duration || "~30 phút"}
                   </Text>
                 </View>
 
                 <Text style={[styles.destinationName, { color: colors.text }]}>
                   {dest.name}
                 </Text>
-                <Text style={[styles.destinationDesc, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.destinationDesc,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {dest.description}
                 </Text>
 
                 <View style={styles.chipRow}>
-                  <View style={[styles.chip, { backgroundColor: '#E8F5E9' }]}>
-                    <Text style={[styles.chipText, { color: '#4CAF50' }]}>
+                  <View style={[styles.chip, { backgroundColor: "#E8F5E9" }]}>
+                    <Text style={[styles.chipText, { color: "#4CAF50" }]}>
                       {dest.category}
                     </Text>
                   </View>
                   {dest.budget && (
-                    <View style={[styles.chip, { backgroundColor: '#FFF3E0' }]}>
-                      <Text style={[styles.chipText, { color: '#FF9800' }]}>
+                    <View style={[styles.chip, { backgroundColor: "#FFF3E0" }]}>
+                      <Text style={[styles.chipText, { color: "#FF9800" }]}>
                         {dest.budget}
                       </Text>
                     </View>
@@ -554,7 +856,10 @@ export function AIItineraryWizardScreen() {
 
   if (isGenerating) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={["top"]}
+      >
         {renderLoading()}
       </SafeAreaView>
     );
@@ -562,8 +867,8 @@ export function AIItineraryWizardScreen() {
 
   if (generatedItinerary) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={[]}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 12), paddingBottom: 8, borderBottomWidth: 0 }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { paddingTop: insets.top, borderBottomColor: colors.border }]}>
           <Pressable onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.icon} />
           </Pressable>
@@ -576,9 +881,24 @@ export function AIItineraryWizardScreen() {
         {renderResult()}
 
         {/* Action Buttons */}
-        <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-          <Pressable 
-            style={[styles.halfButton, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1.5 }]}
+        <View
+          style={[
+            styles.bottomBar,
+            {
+              backgroundColor: colors.background,
+              borderTopColor: colors.border,
+            },
+          ]}
+        >
+          <Pressable
+            style={[
+              styles.halfButton,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                borderWidth: 1.5,
+              },
+            ]}
             onPress={() => {
               setGeneratedItinerary(null);
               setCurrentStep(1);
@@ -586,14 +906,18 @@ export function AIItineraryWizardScreen() {
             }}
           >
             <Ionicons name="refresh-outline" size={20} color={colors.text} />
-            <Text style={[styles.halfButtonText, { color: colors.text }]}>Tạo lại</Text>
+            <Text style={[styles.halfButtonText, { color: colors.text }]}>
+              Tạo lại
+            </Text>
           </Pressable>
-          <Pressable 
+          <Pressable
             style={[styles.halfButton, { backgroundColor: colors.info }]}
             onPress={handleSaveItinerary}
           >
             <Ionicons name="rocket-outline" size={20} color="#FFFFFF" />
-            <Text style={[styles.halfButtonText, { color: '#FFFFFF' }]}>Bắt đầu đi</Text>
+            <Text style={[styles.halfButtonText, { color: "#FFFFFF" }]}>
+              Bắt đầu đi
+            </Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -601,8 +925,8 @@ export function AIItineraryWizardScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={[]}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12), paddingBottom: 8, borderBottomWidth: 0 }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { paddingTop: insets.top, borderBottomColor: colors.border }]}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.icon} />
         </Pressable>
@@ -618,22 +942,29 @@ export function AIItineraryWizardScreen() {
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
         {currentStep === 3 && renderStep3()}
+        {currentStep === 4 && renderStep4()}
+        {currentStep === 5 && renderStep5()}
       </ScrollView>
 
-      <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-        <Pressable 
+      <View
+        style={[
+          styles.bottomBar,
+          { backgroundColor: colors.background, borderTopColor: colors.border },
+        ]}
+      >
+        <Pressable
           style={[
-            styles.continueButton, 
-            { 
+            styles.continueButton,
+            {
               backgroundColor: canContinue() ? colors.info : colors.border,
               opacity: canContinue() ? 1 : 0.5,
-            }
+            },
           ]}
           onPress={handleNext}
           disabled={!canContinue()}
         >
-          <Text style={[styles.continueButtonText, { color: '#FFFFFF' }]}>
-            {currentStep === 3 ? 'Gợi ý cho tôi ngay!' : 'Tiếp tục'} →
+          <Text style={[styles.continueButtonText, { color: "#FFFFFF" }]}>
+            {currentStep === 5 ? "Gợi ý cho tôi ngay!" : "Tiếp tục"} →
           </Text>
         </Pressable>
       </View>
@@ -646,9 +977,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -656,17 +987,17 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginVertical: 20,
     gap: 8,
   },
@@ -683,25 +1014,25 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   stepSubtitle: {
     fontSize: 14,
     marginBottom: 32,
-    textAlign: 'center',
+    textAlign: "center",
   },
   optionsContainer: {
     gap: 12,
   },
   optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderRadius: 12,
     gap: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   optionIcon: {
     fontSize: 48,
@@ -711,7 +1042,7 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   optionSubtitle: {
@@ -726,7 +1057,7 @@ const styles = StyleSheet.create({
   },
   summaryTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
   },
   summaryText: {
@@ -735,7 +1066,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   bottomBar: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 16,
     paddingVertical: 12,
     paddingBottom: 16,
@@ -746,48 +1077,48 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   continueButtonText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.5,
   },
   loadingContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
   },
   loadingContent: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   aiIconContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#7C4DFF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#7C4DFF",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 24,
   },
   aiIconPulse: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 8,
   },
   loadingSubtitle: {
     fontSize: 14,
     marginBottom: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   loadingDots: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     marginBottom: 24,
   },
@@ -805,7 +1136,7 @@ const styles = StyleSheet.create({
   },
   resultTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     marginHorizontal: 20,
     marginTop: 2,
     marginBottom: 4,
@@ -819,8 +1150,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     height: 200,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
   },
   mapPreviewText: {
@@ -831,11 +1162,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   timelineItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 16,
   },
   timelineLeft: {
-    alignItems: 'center',
+    alignItems: "center",
     marginRight: 12,
     width: 24,
   },
@@ -856,14 +1187,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   timelineHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 12,
   },
   timeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -871,14 +1202,14 @@ const styles = StyleSheet.create({
   },
   timeChipText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   durationText: {
     fontSize: 12,
   },
   destinationName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 6,
   },
   destinationDesc: {
@@ -887,9 +1218,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   chipRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   chip: {
     paddingHorizontal: 8,
@@ -898,38 +1229,38 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   resultActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginHorizontal: 20,
     marginTop: 20,
   },
   resultActionButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     paddingVertical: 12,
     borderRadius: 12,
   },
   resultActionText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   halfButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
   },
   halfButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

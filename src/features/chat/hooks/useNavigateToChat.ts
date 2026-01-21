@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
@@ -18,7 +17,20 @@ export function useNavigateToChat() {
         try {
             setIsNavigating(true);
 
-            router.push(`/chat/user-${userId}` as any);
+            let threadId = `user-${userId}`;
+
+            try {
+                // Try to find existing conversation ID (even if deleted)
+                const response = await conversationsApi.getOrCreateDirect(userId);
+                if (response.result && response.result.conversationId) {
+                    threadId = response.result.conversationId;
+                }
+            } catch (apiError) {
+                // Network error or other issue - fallback to virtual thread
+                console.warn('[useNavigateToChat] Failed to resolve conversation ID:', apiError);
+            }
+
+            router.push(`/chat/${threadId}` as any);
         } catch (error) {
             console.error('[useNavigateToChat] Error navigating to chat:', error);
         } finally {

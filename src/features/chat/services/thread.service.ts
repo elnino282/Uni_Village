@@ -2,10 +2,11 @@
  * Thread Service
  * Provides thread/conversation data using the real backend API
  */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ChannelResponse, ConversationResponse } from '@/shared/types/backend.types';
 import { profileApi } from '@/features/profile/api/profileApi';
 import { channelsApi, conversationsApi, friendsApi } from '../api';
-import type { ChatThread, GroupThread, ThreadResponse } from '../types';
+import type { ChatThread, GroupThread, ThreadInfo, ThreadResponse } from '../types';
 
 /**
  * Check if a thread ID is a virtual thread (user-{userId})
@@ -180,5 +181,92 @@ export async function fetchGroupThread(conversationId: string): Promise<ThreadRe
     } catch (error) {
         console.error('[Thread Service] Error fetching group thread:', error);
         return null;
+    }
+}
+
+/**
+ * Fetch thread info for info sidebar
+ * @param threadId - Thread identifier
+ */
+export async function fetchThreadInfo(threadId: string): Promise<ThreadInfo> {
+    try {
+        // Get conversation details
+        const response = await conversationsApi.getPrivateConversations({ page: 0, size: 100 });
+        const conversations = response.result?.content || [];
+        const conversation = conversations.find(c => c.id === threadId);
+
+        if (!conversation || !conversation.otherUserId) {
+            throw new Error('Conversation not found');
+        }
+
+        const otherUserId = conversation.otherUserId;
+
+        // Fetch user profile and media in parallel
+        const [profile, mediaResponse, muteStatus] = await Promise.all([
+            profileApi.getProfile(otherUserId),
+            conversationsApi.getConversationMedia(threadId).catch(() => ({ result: [] })),
+            getMuteStatus(threadId),
+        ]);
+
+        const mediaList = mediaResponse.result || [];
+
+        return {
+            threadId,
+            peerId: String(otherUserId),
+            peerName: profile.displayName || profile.username || 'Người dùng',
+            peerAvatarUrl: profile.avatarUrl,
+            isMuted: muteStatus,
+            isBlocked: false, // TODO: Implement block status from backend
+            sentMediaCount: mediaList.length,
+        };
+    } catch (error) {
+        console.error('[Thread Service] Error fetching thread info:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get mute status from local storage
+ * @param threadId - Thread identifier
+ */
+async function getMuteStatus(threadId: string): Promise<boolean> {
+    try {
+        const key = `mute_${threadId}`;
+        const value = await AsyncStorage.getItem(key);
+        return value === 'true';
+    } catch (error) {
+        console.error('[Thread Service] Error getting mute status:', error);
+        return false;
+    }
+}
+
+/**
+ * Set mute status in local storage
+ * @param threadId - Thread identifier
+ * @param isMuted - Mute status
+ */
+async function setMuteStatus(threadId: string, isMuted: boolean): Promise<void> {
+    try {
+        const key = `mute_${threadId}`;
+        await AsyncStorage.setItem(key, String(isMuted));
+    } catch (error) {
+        console.error('[Thread Service] Error setting mute status:', error);
+        throw error;
+    }
+}
+
+/**
+ * Toggle thread mute status
+ * @param threadId - Thread identifier
+ */
+export async function toggleThreadMute(threadId: string): Promise<boolean> {
+    try {
+        const currentStatus = await getMuteStatus(threadId);
+        const newStatus = !currentStatus;
+        await setMuteStatus(threadId, newStatus);
+        return newStatus;
+    } catch (error) {
+        console.error('[Thread Service] Error toggling mute:', error);
+        throw error;
     }
 }

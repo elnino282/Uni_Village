@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useWebSocketConnection } from '@/features/chat/hooks/useRealtime';
+import { useGlobalWebSocketSubscriptions } from '@/features/chat/hooks/useGlobalWebSocketSubscriptions';
+import { presenceService } from '@/features/chat/services/presenceService';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/config/queryKeys';
 
 interface WebSocketContextValue {
     isConnected: boolean;
@@ -19,6 +23,10 @@ interface WebSocketProviderProps {
 export function WebSocketProvider({ children }: WebSocketProviderProps) {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const { isConnected, isConnecting, error, connect, disconnect } = useWebSocketConnection();
+    const queryClient = useQueryClient();
+    const wasConnectedRef = React.useRef(false);
+
+    useGlobalWebSocketSubscriptions();
 
     useEffect(() => {
         if (isAuthenticated && !isConnected && !isConnecting) {
@@ -31,6 +39,29 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
             disconnect();
         }
     }, [isAuthenticated, isConnected, isConnecting, connect, disconnect]);
+
+    useEffect(() => {
+        if (isConnected) {
+            presenceService.initialize();
+            
+            if (wasConnectedRef.current) {
+                console.log('[WebSocket Provider] Reconnected - triggering sync');
+                setTimeout(() => {
+                    queryClient.invalidateQueries({
+                        queryKey: queryKeys.conversations.all,
+                    });
+                }, 1000);
+            }
+            
+            wasConnectedRef.current = true;
+        } else {
+            presenceService.cleanup();
+        }
+
+        return () => {
+            presenceService.cleanup();
+        };
+    }, [isConnected, queryClient]);
 
     const value: WebSocketContextValue = {
         isConnected,
