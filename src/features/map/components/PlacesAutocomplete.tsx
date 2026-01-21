@@ -25,6 +25,7 @@ import {
     PlaceDetails,
     PlacePrediction,
 } from '../services/placesService';
+import { LocationCache } from '../utils/LocationCache';
 import { calculateDistance, formatDistance } from '../utils/placeConverters';
 
 // Extended prediction with distance info
@@ -51,7 +52,7 @@ interface PlacesAutocompleteProps {
 }
 
 // Cache for place locations to avoid repeated API calls
-const locationCache = new Map<string, { lat: number; lng: number }>();
+const locationCache = new LocationCache(100);
 
 export const PlacesAutocomplete = memo(function PlacesAutocomplete({
     query,

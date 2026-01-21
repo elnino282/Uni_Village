@@ -3,3 +3,4 @@
  */
 
 export * from './placeConverters';
+export * from './LocationCache';
