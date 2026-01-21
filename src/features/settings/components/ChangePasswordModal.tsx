@@ -112,8 +112,11 @@ export function ChangePasswordModal({
             const result = await changePassword(currentPassword, newPassword);
 
             if (result.success) {
-                onSuccess?.();
-                handleClose();
+                if (onSuccess) {
+                    onSuccess();
+                } else {
+                    handleClose();
+                }
             } else {
                 setErrors({ general: result.error });
             }

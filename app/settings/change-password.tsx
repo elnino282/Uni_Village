@@ -6,7 +6,7 @@
 import { ChangePasswordModal } from '@/features/settings/components/ChangePasswordModal';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 export default function ChangePasswordRoute() {
     const [visible, setVisible] = useState(false);
@@ -25,8 +25,9 @@ export default function ChangePasswordRoute() {
     };
 
     const handleSuccess = () => {
-        // TODO: Show success toast
-        console.log('Password changed successfully');
+        Alert.alert('Thành công', 'Đổi mật khẩu thành công', [
+            { text: 'OK', onPress: handleClose },
+        ]);
     };
 
     return (
