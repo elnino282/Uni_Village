@@ -3,11 +3,11 @@ import { useMyProfile } from "@/features/profile";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -16,27 +16,27 @@ import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.ty
 import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
 import type { CreatePostTab } from "@/features/post/types/createPost.types";
 import {
-  EmptyState,
-  ErrorMessage,
-  LoadingScreen,
+    EmptyState,
+    ErrorMessage,
+    LoadingScreen,
 } from "@/shared/components/feedback";
 import { PostLocationDetailSheet } from "@/shared/components/post";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { PostType, Visibility } from "@/shared/types/backend.types";
 import {
-  useBlockPost,
-  useCommunityPosts,
-  useLikePost,
-  useReportPost,
-  useSavePost,
+    useBlockPost,
+    useCommunityPosts,
+    useLikePost,
+    useReportPost,
+    useSavePost,
 } from "../hooks";
 import type {
-  CommunityPost,
-  CommunityTab,
-  ContentFilterTab,
-  PostLocation,
-  PostVisibility,
+    CommunityPost,
+    CommunityTab,
+    ContentFilterTab,
+    PostLocation,
+    PostVisibility,
 } from "../types";
 
 import { CommunityFAB } from "./CommunityFAB";
@@ -71,7 +71,9 @@ export function CommunityScreen() {
   const [isSheetVisible, setIsSheetVisible] = useState(false);
   const [selectedItinerary, setSelectedItinerary] =
     useState<ItineraryShareData | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(
+    null,
+  );
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
 
   // Dynamic search placeholder based on content filter tab
@@ -170,6 +172,16 @@ export function CommunityScreen() {
     setSelectedLocation(location);
     setIsLocationSheetOpen(true);
   }, []);
+
+  const handleAvatarPress = useCallback(
+    (authorId: string) => {
+      console.log("Avatar pressed, navigating to profile:", authorId);
+      if (authorId) {
+        router.push(`/profile/${authorId}` as any);
+      }
+    },
+    [router],
+  );
 
   const handleCloseLocationSheet = useCallback(() => {
     setIsLocationSheetOpen(false);
@@ -307,6 +319,7 @@ export function CommunityScreen() {
         onLikePress={handleLikePress}
         onCommentPress={handleCommentPress}
         onLocationPress={handleLocationPress}
+        onAvatarPress={handleAvatarPress}
         onViewItineraryDetails={
           item.itineraryShare
             ? () => handleViewItineraryDetails(item.itineraryShare!)
@@ -324,6 +337,7 @@ export function CommunityScreen() {
       handleLikePress,
       handleCommentPress,
       handleLocationPress,
+      handleAvatarPress,
       handleViewItineraryDetails,
       handleOpenItinerary,
     ],

@@ -1,28 +1,29 @@
 /**
  * PublicProfileScreen Component
  */
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors, Spacing, Typography } from '@/shared/constants';
-import { useColorScheme } from '@/shared/hooks';
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { Colors, Spacing, Typography } from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
 
-import { useProfilePosts, usePublicProfile } from '../hooks';
-import type { ProfilePost, PublicProfileTab } from '../types';
-import { ProfilePostCard } from './ProfilePostCard';
-import { PublicProfileHeader } from './PublicProfileHeader';
-import { PublicProfileTabs } from './PublicProfileTabs';
+import { useProfilePosts, usePublicProfile } from "../hooks";
+import type { ProfilePost, PublicProfileTab } from "../types";
+import { ProfilePostCard } from "./ProfilePostCard";
+import { PublicProfileHeader } from "./PublicProfileHeader";
+import { PublicProfileTabs } from "./PublicProfileTabs";
 
 interface PublicProfileScreenProps {
   userId: number;
@@ -33,29 +34,36 @@ export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
 
-  const [activeTab, setActiveTab] = useState<PublicProfileTab>('posts');
+  const [activeTab, setActiveTab] = useState<PublicProfileTab>("posts");
 
-  const { data: profile, isLoading: isProfileLoading, error: profileError } =
-    usePublicProfile(userId);
+  const {
+    data: profile,
+    isLoading: isProfileLoading,
+    error: profileError,
+  } = usePublicProfile(userId);
   const { data: posts = [], isLoading: isPostsLoading } = useProfilePosts(
     userId,
-    activeTab
+    activeTab,
   );
+
+  // Check if viewing own profile to hide message button
+  const currentUser = useAuthStore((state) => state.user);
+  const isOwnProfile = currentUser?.id === userId;
 
   const handleBack = useCallback(() => {
     router.back();
   }, []);
 
   const handleSearch = useCallback(() => {
-    Alert.alert('Tìm kiếm', 'Chức năng tìm kiếm sẽ được cập nhật.');
+    Alert.alert("Tìm kiếm", "Chức năng tìm kiếm sẽ được cập nhật.");
   }, []);
 
   const handleNotifications = useCallback(() => {
-    Alert.alert('Thông báo', 'Cài đặt thông báo sẽ được cập nhật.');
+    Alert.alert("Thông báo", "Cài đặt thông báo sẽ được cập nhật.");
   }, []);
 
   const handleSettings = useCallback(() => {
-    Alert.alert('Cài đặt', 'Cài đặt hồ sơ sẽ được cập nhật.');
+    Alert.alert("Cài đặt", "Cài đặt hồ sơ sẽ được cập nhật.");
   }, []);
 
   const handleMessage = useCallback(() => {
@@ -66,14 +74,14 @@ export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
   }, [userId]);
 
   const handleMenuPress = useCallback((postId: string) => {
-    console.log('Post menu pressed:', postId);
+    console.log("Post menu pressed:", postId);
   }, []);
 
   const renderItem = useCallback(
     ({ item }: { item: ProfilePost }) => (
       <ProfilePostCard post={item} onMenuPress={handleMenuPress} />
     ),
-    [handleMenuPress]
+    [handleMenuPress],
   );
 
   const keyExtractor = useCallback((item: ProfilePost) => item.id, []);
@@ -168,7 +176,11 @@ export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
             accessibilityLabel="Thông báo"
             accessibilityRole="button"
           >
-            <Ionicons name="notifications-outline" size={22} color={colors.text} />
+            <Ionicons
+              name="notifications-outline"
+              size={22}
+              color={colors.text}
+            />
             <View style={[styles.badgeDot, { backgroundColor: colors.info }]} />
           </Pressable>
           <Pressable
@@ -192,8 +204,15 @@ export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
         ]}
         ListHeaderComponent={
           <View>
-            <PublicProfileHeader profile={profile} onMessagePress={handleMessage} />
-            <PublicProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
+            <PublicProfileHeader
+              profile={profile}
+              onMessagePress={handleMessage}
+              isOwnProfile={isOwnProfile}
+            />
+            <PublicProfileTabs
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
           </View>
         }
         ListEmptyComponent={
@@ -220,8 +239,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   appBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     height: 56,
     paddingHorizontal: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -229,19 +248,19 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 44,
     height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   appBarSpacer: {
     flex: 1,
   },
   appBarActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.xs,
   },
   badgeDot: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     right: 12,
     width: 8,
@@ -254,16 +273,16 @@ const styles = StyleSheet.create({
   },
   centerContent: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: Spacing.lg,
   },
   emptyText: {
     fontSize: Typography.sizes.md,
-    textAlign: 'center',
+    textAlign: "center",
   },
   errorText: {
     fontSize: Typography.sizes.md,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

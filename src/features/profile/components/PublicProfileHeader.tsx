@@ -1,22 +1,27 @@
 /**
  * PublicProfileHeader Component
  */
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Avatar } from '@/shared/components/ui';
-import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
-import { useColorScheme } from '@/shared/hooks';
+import { Avatar } from "@/shared/components/ui";
+import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
 
-import type { PublicProfile } from '../types';
+import type { PublicProfile } from "../types";
 
 interface PublicProfileHeaderProps {
   profile: PublicProfile;
   onMessagePress?: () => void;
+  isOwnProfile?: boolean;
 }
 
-export function PublicProfileHeader({ profile, onMessagePress }: PublicProfileHeaderProps) {
+export function PublicProfileHeader({
+  profile,
+  onMessagePress,
+  isOwnProfile,
+}: PublicProfileHeaderProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
@@ -43,19 +48,22 @@ export function PublicProfileHeader({ profile, onMessagePress }: PublicProfileHe
         </View>
       </View>
 
-      <Pressable
-        style={({ pressed }) => [
-          styles.messageButton,
-          { backgroundColor: colors.actionBlue },
-          pressed && styles.pressed,
-        ]}
-        onPress={onMessagePress}
-        accessibilityLabel="Nhắn tin"
-        accessibilityRole="button"
-      >
-        <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" />
-        <Text style={styles.messageText}>Nhắn tin</Text>
-      </Pressable>
+      {/* Hide message button when viewing own profile */}
+      {!isOwnProfile && (
+        <Pressable
+          style={({ pressed }) => [
+            styles.messageButton,
+            { backgroundColor: colors.actionBlue },
+            pressed && styles.pressed,
+          ]}
+          onPress={onMessagePress}
+          accessibilityLabel="Nhắn tin"
+          accessibilityRole="button"
+        >
+          <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" />
+          <Text style={styles.messageText}>Nhắn tin</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -67,8 +75,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   topRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: Spacing.md,
   },
   info: {
@@ -91,16 +99,16 @@ const styles = StyleSheet.create({
   },
   messageButton: {
     marginTop: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingVertical: 10,
     borderRadius: BorderRadius.lg,
     minHeight: 44,
   },
   messageText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: Typography.sizes.md,
     fontWeight: Typography.weights.semibold,
   },
