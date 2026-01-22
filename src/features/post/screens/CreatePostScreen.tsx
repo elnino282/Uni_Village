@@ -256,12 +256,19 @@ export function CreatePostScreen({ initialTab = 'post', postId }: CreatePostScre
                     locations: selectedLocations.length > 0 ? selectedLocations : undefined,
                 });
             } else if (activeTab === 'itinerary' && selectedItinerary) {
-                // Post itinerary with tourId
+                // Post itinerary as content (local trips are not on backend)
+                const stopsText = selectedItinerary.stops?.map((s: any) => `• ${s.name}`).join('\n') || '';
+                const itineraryDescription = itineraryContent || 
+                    `📅 ${selectedItinerary.title}\n\n` +
+                    `🗓️ Ngày: ${selectedItinerary.date}\n` +
+                    `⏰ Giờ: ${selectedItinerary.timeRange}\n` +
+                    `📍 ${selectedItinerary.stopsCount} điểm dừng\n\n` +
+                    (stopsText ? `Các điểm đến:\n${stopsText}` : '');
+                
                 createRealPost({
-                    content: itineraryContent || `Chia sẻ lịch trình: ${selectedItinerary.title}`,
+                    content: itineraryDescription,
                     postType: PostType.EXPERIENCE,
                     visibility: postVisibility === 'public' ? Visibility.PUBLIC : Visibility.PRIVATE,
-                    tourId: selectedItinerary.id,
                 });
             } else if (activeTab === 'channel' && selectedChannel) {
                 await createCommunityPost({

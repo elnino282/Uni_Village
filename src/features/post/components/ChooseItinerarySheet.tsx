@@ -372,13 +372,13 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     filterChipsContainer: {
+        flexDirection: 'row',
         paddingHorizontal: Spacing.screenPadding,
-        paddingVertical: Spacing.sm,
-        gap: Spacing.sm,
+        paddingVertical: Spacing.xs,
     },
     filterChip: {
         paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
+        paddingVertical: 8,
         borderRadius: BorderRadius.full,
         marginRight: Spacing.sm,
     },
