@@ -9,6 +9,7 @@
  */
 
 import { env } from '@/config/env';
+import { calculateHaversineDistance } from '@/lib/utils/haversine';
 
 // ============================================================================
 // Types
@@ -337,18 +338,29 @@ export async function searchNearby(options: NearbySearchOptions): Promise<Nearby
 
         const data = await response.json();
 
-        return (data.places || []).map((place: any) => ({
-            placeId: place.id,
-            name: place.displayName?.text || '',
-            location: {
-                latitude: place.location?.latitude || 0,
-                longitude: place.location?.longitude || 0,
-            },
-            types: place.types || [],
-            rating: place.rating,
-            userRatingCount: place.userRatingCount,
-            formattedAddress: place.formattedAddress,
-        }));
+        return (data.places || []).map((place: any) => {
+            // Calculate distance from search center to place
+            const distanceMeters = calculateHaversineDistance(
+                options.location.latitude,
+                options.location.longitude,
+                place.location?.latitude || 0,
+                place.location?.longitude || 0
+            );
+
+            return {
+                placeId: place.id,
+                name: place.displayName?.text || '',
+                location: {
+                    latitude: place.location?.latitude || 0,
+                    longitude: place.location?.longitude || 0,
+                },
+                types: place.types || [],
+                rating: place.rating,
+                userRatingCount: place.userRatingCount,
+                formattedAddress: place.formattedAddress,
+                distanceMeters,
+            };
+        });
     } catch (error) {
         console.error('Nearby search error:', error);
         return [];
