@@ -91,6 +91,22 @@ function mapMessageResponse(
   const conversationId = msg.conversationId;
   const isUnsent = msg.isActive === false;
 
+  // Handle SYSTEM messages
+  if (msg.messageType === MessageType.SYSTEM) {
+    return {
+      id: String(msg.id ?? Date.now()),
+      type: "system" as const,
+      text: msg.content ?? "",
+      sender: "system",
+      createdAt: msg.timestamp ?? new Date().toISOString(),
+      timeLabel,
+      status,
+      messageId,
+      conversationId,
+      isUnsent,
+    } satisfies SystemMessage;
+  }
+
   if (msg.messageType === MessageType.IMAGE) {
     // Support multiple data structures:
     // 1. Backend WebSocket/API: fileUrls: string[] (from FileMessageResponse)
@@ -349,8 +365,13 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
 
   const handleInfoPress = useCallback(() => {
     if (!threadId) return;
-    router.push(`/chat/${threadId}/info`);
-  }, [threadId]);
+    // For group threads (channels), navigate to channel info
+    if (isGroup) {
+      router.push(`/channel/${threadId}/info`);
+    } else {
+      router.push(`/chat/${threadId}/info`);
+    }
+  }, [threadId, isGroup]);
 
   // Group-specific handlers
   const handleNotificationPress = useCallback(() => {
@@ -447,6 +468,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
       {isGroup && groupThread && (
         <AddMemberBottomSheet
           ref={addMemberSheetRef}
+          channelId={groupThread.channelId}
           threadId={threadId}
           groupName={groupThread.name}
           onMembersAdded={handleMembersAdded}

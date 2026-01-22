@@ -16,6 +16,7 @@ import type { Message } from '../types';
 import { ImageMessageBubble } from './ImageMessageBubble';
 import { MessageBubble } from './MessageBubble';
 import { SharedCardMessage } from './SharedCardMessage';
+import { SystemMessageBubble } from './SystemMessageBubble';
 
 interface MessageListProps {
   messages: Message[];
@@ -28,6 +29,15 @@ interface MessageListProps {
  * Renders individual message item
  */
 function MessageItem({ message, isGroupChat }: { message: Message; isGroupChat: boolean }) {
+  if (message.type === 'system') {
+    return (
+      <SystemMessageBubble
+        text={message.text}
+        timeLabel={message.timeLabel}
+      />
+    );
+  }
+
   if (message.type === 'sharedCard') {
     return (
       <SharedCardMessage
