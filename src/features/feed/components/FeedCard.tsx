@@ -111,7 +111,7 @@ export function FeedCard({
         </Pressable>
         <View style={styles.halfImageContainer}>
           <View style={styles.quarterImageContainer}>
-            <Pressable onPress={() => handleImagePress(1)} style={{ flex: 1 }}>
+            <Pressable onPress={() => handleImagePress(1)} style={styles.flex1}>
               <Image
                 source={{ uri: item.imageUrls[1] }}
                 style={styles.gridImage}
@@ -121,7 +121,7 @@ export function FeedCard({
             </Pressable>
           </View>
           <View style={styles.quarterImageContainer}>
-            <Pressable onPress={() => handleImagePress(2)} style={{ flex: 1 }}>
+            <Pressable onPress={() => handleImagePress(2)} style={styles.flex1}>
               <Image
                 source={{ uri: item.imageUrls[2] }}
                 style={styles.gridImage}
@@ -290,6 +290,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   quarterImageContainer: {
+    flex: 1,
+  },
+  flex1: {
     flex: 1,
   },
   gridImage: {
