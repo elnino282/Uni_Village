@@ -1,4 +1,5 @@
 // Real API services
+export * from './firebaseChat.service';
 export * from './media.service';
 export * from './members.service';
 export * from './thread.service';

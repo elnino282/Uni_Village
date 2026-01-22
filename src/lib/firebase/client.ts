@@ -8,6 +8,7 @@ import { FirebaseApp, initializeApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Database, getDatabase } from 'firebase/database';
 import { Firestore, getFirestore } from 'firebase/firestore';
+import { FirebaseStorage, getStorage } from 'firebase/storage';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -26,7 +27,11 @@ export const firebaseApp: FirebaseApp = initializeApp(firebaseConfig);
 // Initialize Firebase services
 export const auth: Auth = getAuth(firebaseApp);
 export const firestore: Firestore = getFirestore(firebaseApp);
+<<<<<<< Updated upstream
 export const database: Database = getDatabase(firebaseApp);
+=======
+export const storage: FirebaseStorage = getStorage(firebaseApp);
+>>>>>>> Stashed changes
 
 /**
  * Helper to get current user

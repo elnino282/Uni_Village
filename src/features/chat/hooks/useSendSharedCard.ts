@@ -4,33 +4,22 @@
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { generateMessageId, getCurrentTimeLabel } from '../services';
-import type { Message, SharedCard, SharedCardMessage } from '../types';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { generateMessageId } from '../services';
+import type { ChatMessageRecord, SharedCard } from '../types';
 import { messageKeys } from './useMessages';
+import { sendSharedCardMessage, ensureDirectConversation, type ConversationParticipant } from '../services';
+import { isVirtualThreadId } from '../services';
 
 export interface SendSharedCardInput {
   threadId: string;
   card: SharedCard;
-}
-
-/**
- * Creates a new outgoing shared card message
- */
-function createOutgoingSharedCardMessage(card: SharedCard): SharedCardMessage {
-  return {
-    id: generateMessageId(),
-    type: 'sharedCard',
-    sender: 'me',
-    card,
-    createdAt: new Date().toISOString(),
-    timeLabel: getCurrentTimeLabel(),
-    status: 'sent',
-  };
+  recipient?: ConversationParticipant;
 }
 
 interface MutationContext {
-  previousMessages: Message[] | undefined;
-  optimisticMessage: SharedCardMessage;
+  previousMessages: ChatMessageRecord[] | undefined;
+  optimisticMessage: ChatMessageRecord;
 }
 
 /**
@@ -39,32 +28,57 @@ interface MutationContext {
 export function useSendSharedCard() {
   const queryClient = useQueryClient();
 
-  return useMutation<SharedCardMessage, Error, SendSharedCardInput, MutationContext>({
-    mutationFn: async ({ card }) => {
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      return createOutgoingSharedCardMessage(card);
+  return useMutation<ChatMessageRecord, Error, SendSharedCardInput, MutationContext>({
+    mutationFn: async ({ threadId, card, recipient }) => {
+      const user = useAuthStore.getState().user;
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const sender: ConversationParticipant = {
+        id: user.id,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      };
+
+      if (isVirtualThreadId(threadId) && !recipient) {
+        throw new Error('Missing recipient info for virtual thread');
+      }
+
+      const conversationId = isVirtualThreadId(threadId)
+        ? await ensureDirectConversation(user, recipient as ConversationParticipant)
+        : threadId;
+
+      return sendSharedCardMessage(conversationId, sender, card);
     },
     onMutate: async ({ threadId, card }) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: messageKeys.list(threadId) });
 
-      // Snapshot previous messages
-      const previousMessages = queryClient.getQueryData<Message[]>(
+      const previousMessages = queryClient.getQueryData<ChatMessageRecord[]>(
         messageKeys.list(threadId)
       );
 
-      // Optimistically add new message
-      const optimisticMessage = createOutgoingSharedCardMessage(card);
-      queryClient.setQueryData<Message[]>(messageKeys.list(threadId), (old) => [
-        ...(old ?? []),
+      const optimisticMessage: ChatMessageRecord = {
+        id: generateMessageId(),
+        conversationId: threadId,
+        senderId: useAuthStore.getState().user?.id ?? 0,
+        senderName: useAuthStore.getState().user?.displayName,
+        senderAvatarUrl: useAuthStore.getState().user?.avatarUrl,
+        messageType: 'sharedCard',
+        card,
+        createdAt: new Date().toISOString(),
+        isActive: true,
+        _status: 'sending',
+      };
+
+      queryClient.setQueryData<ChatMessageRecord[]>(messageKeys.list(threadId), (old) => [
         optimisticMessage,
+        ...(old ?? []),
       ]);
 
       return { previousMessages, optimisticMessage };
     },
     onError: (_err, { threadId }, context) => {
-      // Rollback on error
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(threadId),
@@ -73,8 +87,7 @@ export function useSendSharedCard() {
       }
     },
     onSuccess: (newMessage, { threadId }, context) => {
-      // Update the optimistic message with the real one
-      queryClient.setQueryData<Message[]>(messageKeys.list(threadId), (old) =>
+      queryClient.setQueryData<ChatMessageRecord[]>(messageKeys.list(threadId), (old) =>
         (old ?? []).map((msg) =>
           msg.id === context?.optimisticMessage.id ? newMessage : msg
         )

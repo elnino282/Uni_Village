@@ -1,12 +1,13 @@
-/**
+﻿/**
  * Thread Service
- * Provides thread/conversation data using the real backend API
+ * Provides thread/conversation data using Firebase
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { ChannelResponse, ConversationResponse } from '@/shared/types/backend.types';
+
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { profileApi } from '@/features/profile/api/profileApi';
-import { channelsApi, conversationsApi, friendsApi } from '../api';
 import type { ChatThread, GroupThread, ThreadInfo, ThreadResponse } from '../types';
+import { getConversation, getMediaMessages, type ConversationParticipant } from './firebaseChat.service';
 
 /**
  * Check if a thread ID is a virtual thread (user-{userId})
@@ -26,131 +27,88 @@ export function extractUserIdFromVirtualThread(threadId: string): number | null 
 
 /**
  * Check if a thread ID belongs to a group/channel
- * Channels typically use UUID format from the backend
  */
 export function isGroupThreadId(threadId: string): boolean {
-    // In the new API, we determine thread type by checking if it's a channel
-    // Channel conversation IDs are UUIDs, same as DM conversation IDs
-    // The distinction is made by the conversation type returned from the API
-    // For backwards compatibility, also check for old prefixes
     return threadId.startsWith('group-') || threadId.startsWith('channel-');
 }
 
-/**
- * Map ConversationResponse to ChatThread type for DM
- */
-function mapConversationToThread(conversation: ConversationResponse): ChatThread {
+function mapConversationToThread(
+    conversation: FirebaseConversation,
+    currentUserId?: number
+): ChatThread {
+    const fallbackPeer: ConversationParticipant = conversation.participants?.[0] ?? {
+        id: 0,
+        displayName: 'Người dùng',
+    };
+
+    const peer = conversation.participants?.find((p) => p.id !== currentUserId) ?? fallbackPeer;
+
     return {
-        id: conversation.id || '',
+        id: conversation.id,
         type: 'dm',
         peer: {
-            id: String(conversation.otherUserId || conversation.id),
-            displayName: conversation.name || 'Người dùng',
-            avatarUrl: conversation.avatarUrl,
+            id: peer.id,
+            displayName: peer.displayName || 'Người dùng',
+            avatarUrl: peer.avatarUrl,
         },
         onlineStatus: 'offline',
         onlineStatusText: 'Offline',
-        relationshipStatus: conversation.relationshipStatus,
-        participantStatus: conversation.participantStatus,
+        relationshipStatus: 'NONE',
+        participantStatus: 'INBOX',
     };
 }
 
-/**
- * Map ChannelResponse to GroupThread type for groups/channels
- */
-function mapChannelToThread(channel: ChannelResponse): GroupThread {
+function mapGroupConversationToThread(conversation: FirebaseConversation): GroupThread {
+    const memberCount = conversation.memberCount ?? conversation.participants?.length ?? 0;
+
     return {
-        id: channel.conversationId || '',
+        id: conversation.id,
         type: 'group',
-        name: channel.name || 'Kênh',
-        avatarUrl: channel.avatarUrl,
-        memberCount: channel.memberCount || 0,
-        onlineCount: 0, // Not available from API, can be updated via presence
+        name: conversation.name || 'Kênh',
+        avatarUrl: conversation.avatarUrl,
+        memberCount,
+        onlineCount: 0,
     };
 }
 
 /**
- * Fetch DM thread metadata from API
- * @param conversationId - Conversation identifier
+ * Fetch DM thread metadata from Firebase
  */
 export async function fetchThread(conversationId: string): Promise<ThreadResponse> {
     try {
-        // Get private conversations to find the specific one
-        const response = await conversationsApi.getPrivateConversations({ page: 0, size: 100 });
-        const conversations = response.result?.content || [];
-        const conversation = conversations.find(c => c.id === conversationId);
+        const conversation = await getConversation(conversationId);
+        const currentUserId = useAuthStore.getState().user?.id;
 
         if (conversation) {
-            return { thread: mapConversationToThread(conversation) };
+            if (conversation.type === 'group') {
+                return { thread: mapGroupConversationToThread(conversation) };
+            }
+            return { thread: mapConversationToThread(conversation, currentUserId) };
         }
 
-        // Fallback: return a default thread with the conversation ID
         return {
             thread: {
                 id: conversationId,
                 type: 'dm',
                 peer: {
-                    id: conversationId,
+                    id: 0,
                     displayName: 'Người dùng',
                     avatarUrl: undefined,
                 },
                 onlineStatus: 'offline',
                 onlineStatusText: 'Offline',
-            },
-        };
-    } catch (error) {
-        console.error('[Thread Service] Error fetching thread:', error);
-        // Return fallback on error
-        return {
-            thread: {
-                id: conversationId,
-                type: 'dm',
-                peer: {
-                    id: conversationId,
-                    displayName: 'Người dùng',
-                    avatarUrl: undefined,
-                },
-                onlineStatus: 'offline',
-                onlineStatusText: 'Offline',
-            },
-        };
-    }
-}
-
-/**
- * Fetch virtual thread metadata from user profile
- * @param userId - User ID
- */
-export async function fetchVirtualThread(userId: number): Promise<ThreadResponse> {
-    try {
-        const [profile, relationshipStatus] = await Promise.all([
-            profileApi.getProfile(userId),
-            friendsApi.getRelationshipStatus(userId).catch(() => ({ status: 'NONE' as const }))
-        ]);
-
-        return {
-            thread: {
-                id: `user-${userId}`,
-                type: 'dm',
-                peer: {
-                    id: String(userId),
-                    displayName: profile.displayName || profile.username || 'Người dùng',
-                    avatarUrl: profile.avatarUrl,
-                },
-                onlineStatus: 'offline',
-                onlineStatusText: 'Offline',
-                relationshipStatus: relationshipStatus.status,
+                relationshipStatus: 'NONE',
                 participantStatus: 'INBOX',
             },
         };
     } catch (error) {
-        console.error('[Thread Service] Error fetching virtual thread:', error);
+        console.error('[Thread Service] Error fetching thread:', error);
         return {
             thread: {
-                id: `user-${userId}`,
+                id: conversationId,
                 type: 'dm',
                 peer: {
-                    id: String(userId),
+                    id: 0,
                     displayName: 'Người dùng',
                     avatarUrl: undefined,
                 },
@@ -164,19 +122,56 @@ export async function fetchVirtualThread(userId: number): Promise<ThreadResponse
 }
 
 /**
- * Fetch group/channel thread metadata from API
- * @param conversationId - Conversation identifier
+ * Fetch virtual thread metadata from user profile
+ */
+export async function fetchVirtualThread(userId: number): Promise<ThreadResponse> {
+    try {
+        const profile = await profileApi.getProfile(userId);
+
+        return {
+            thread: {
+                id: `user-${userId}`,
+                type: 'dm',
+                peer: {
+                    id: userId,
+                    displayName: profile.displayName || profile.username || 'Người dùng',
+                    avatarUrl: profile.avatarUrl,
+                },
+                onlineStatus: 'offline',
+                onlineStatusText: 'Offline',
+                relationshipStatus: 'NONE',
+                participantStatus: 'INBOX',
+            },
+        };
+    } catch (error) {
+        console.error('[Thread Service] Error fetching virtual thread:', error);
+        return {
+            thread: {
+                id: `user-${userId}`,
+                type: 'dm',
+                peer: {
+                    id: userId,
+                    displayName: 'Người dùng',
+                    avatarUrl: undefined,
+                },
+                onlineStatus: 'offline',
+                onlineStatusText: 'Offline',
+                relationshipStatus: 'NONE',
+                participantStatus: 'INBOX',
+            },
+        };
+    }
+}
+
+/**
+ * Fetch group/channel thread metadata from Firebase
  */
 export async function fetchGroupThread(conversationId: string): Promise<ThreadResponse | null> {
     try {
-        // Try to get channel info by conversation ID
-        const response = await channelsApi.getChannelByConversation(conversationId);
-        const channel = response.result;
-
-        if (channel) {
-            return { thread: mapChannelToThread(channel) };
+        const conversation = await getConversation(conversationId);
+        if (conversation && conversation.type === 'group') {
+            return { thread: mapGroupConversationToThread(conversation) };
         }
-
         return null;
     } catch (error) {
         console.error('[Thread Service] Error fetching group thread:', error);
@@ -186,49 +181,50 @@ export async function fetchGroupThread(conversationId: string): Promise<ThreadRe
 
 /**
  * Fetch thread info for info sidebar
- * @param threadId - Thread identifier
  */
 export async function fetchThreadInfo(threadId: string): Promise<ThreadInfo> {
-    try {
-        // Get conversation details
-        const response = await conversationsApi.getPrivateConversations({ page: 0, size: 100 });
-        const conversations = response.result?.content || [];
-        const conversation = conversations.find(c => c.id === threadId);
-
-        if (!conversation || !conversation.otherUserId) {
-            throw new Error('Conversation not found');
+    if (isVirtualThreadId(threadId)) {
+        const userId = extractUserIdFromVirtualThread(threadId);
+        if (!userId) {
+            throw new Error('Invalid virtual thread ID');
         }
 
-        const otherUserId = conversation.otherUserId;
-
-        // Fetch user profile and media in parallel
-        const [profile, mediaResponse, muteStatus] = await Promise.all([
-            profileApi.getProfile(otherUserId),
-            conversationsApi.getConversationMedia(threadId).catch(() => ({ result: [] })),
-            getMuteStatus(threadId),
-        ]);
-
-        const mediaList = mediaResponse.result || [];
+        const profile = await profileApi.getProfile(userId);
+        const muteStatus = await getMuteStatus(threadId);
 
         return {
             threadId,
-            peerId: String(otherUserId),
+            peerId: String(userId),
             peerName: profile.displayName || profile.username || 'Người dùng',
             peerAvatarUrl: profile.avatarUrl,
             isMuted: muteStatus,
-            isBlocked: false, // TODO: Implement block status from backend
-            sentMediaCount: mediaList.length,
+            isBlocked: false,
+            sentMediaCount: 0,
         };
-    } catch (error) {
-        console.error('[Thread Service] Error fetching thread info:', error);
-        throw error;
     }
+
+    const conversation = await getConversation(threadId);
+    if (!conversation) {
+        throw new Error('Conversation not found');
+    }
+
+    const currentUserId = useAuthStore.getState().user?.id;
+    const peer = conversation.participants.find((p) => p.id !== currentUserId) ?? conversation.participants[0];
+
+    const mediaList = await getMediaMessages(threadId).catch(() => []);
+    const muteStatus = await getMuteStatus(threadId);
+
+    return {
+        threadId,
+        peerId: String(peer?.id ?? ''),
+        peerName: peer?.displayName || 'Người dùng',
+        peerAvatarUrl: peer?.avatarUrl,
+        isMuted: muteStatus,
+        isBlocked: false,
+        sentMediaCount: mediaList.length,
+    };
 }
 
-/**
- * Get mute status from local storage
- * @param threadId - Thread identifier
- */
 async function getMuteStatus(threadId: string): Promise<boolean> {
     try {
         const key = `mute_${threadId}`;
@@ -240,11 +236,6 @@ async function getMuteStatus(threadId: string): Promise<boolean> {
     }
 }
 
-/**
- * Set mute status in local storage
- * @param threadId - Thread identifier
- * @param isMuted - Mute status
- */
 async function setMuteStatus(threadId: string, isMuted: boolean): Promise<void> {
     try {
         const key = `mute_${threadId}`;
@@ -255,10 +246,6 @@ async function setMuteStatus(threadId: string, isMuted: boolean): Promise<void> 
     }
 }
 
-/**
- * Toggle thread mute status
- * @param threadId - Thread identifier
- */
 export async function toggleThreadMute(threadId: string): Promise<boolean> {
     try {
         const currentStatus = await getMuteStatus(threadId);

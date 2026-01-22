@@ -1,80 +1,92 @@
-import { queryKeys } from '@/config/queryKeys';
-import type { MarkReadRequest, MessageRequest } from '@/shared/types/backend.types';
-import { getNextPageParam } from '@/shared/types/pagination.types';
+﻿import { useEffect, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { useAuthStore } from '@/features/auth/store/authStore';
+import type { MessageRequest } from '@/shared/types/backend.types';
+import { handleApiError } from '@/shared/utils';
+import type { ChatMessageRecord } from '../types';
 import {
-    messagesApi,
-    type GetMessagesParams,
-    type MessageSearchParams,
-    type SendMessageFormData,
-} from '../api';
+    getAllMessages,
+    sendImageMessage,
+    sendTextMessage,
+    subscribeToMessages,
+    type ConversationParticipant,
+} from '../services';
 import { isVirtualThreadId } from '../services';
 
 const STALE_TIME = 10 * 1000;
 
-/**
- * Query key factory for messages - used by optimistic update hooks
- */
 export const messageKeys = {
     all: ['messages'] as const,
     list: (threadId: string) => [...messageKeys.all, threadId] as const,
 };
 
-export function useMessages(conversationId: string | undefined, params: Omit<GetMessagesParams, 'conversationId'> = {}) {
-    const isVirtual = conversationId ? isVirtualThreadId(conversationId) : false;
+interface MessagesQueryResult {
+    data: ChatMessageRecord[];
+    isLoading: boolean;
+    error?: Error;
+}
 
-    return useInfiniteQuery({
-        queryKey: queryKeys.messages.list(conversationId!, params),
-        queryFn: async ({ pageParam = 0 }) => {
-            if (isVirtual) {
-                return {
-                    content: [],
-                    pageable: {
-                        pageNumber: 0,
-                        pageSize: 20,
-                        sort: { sorted: false, unsorted: true, empty: true },
-                        offset: 0,
-                        paged: true,
-                        unpaged: false,
-                    },
-                    totalElements: 0,
-                    totalPages: 0,
-                    size: 20,
-                    number: 0,
-                    sort: { sorted: false, unsorted: true, empty: true },
-                    numberOfElements: 0,
-                    first: true,
-                    last: true,
-                    empty: true,
-                };
+export function useMessages(conversationId: string | undefined): MessagesQueryResult {
+    const queryClient = useQueryClient();
+    const [data, setData] = useState<ChatMessageRecord[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | undefined>(undefined);
+
+    useEffect(() => {
+        if (!conversationId || isVirtualThreadId(conversationId)) {
+            setData([]);
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+        const unsubscribe = subscribeToMessages(
+            conversationId,
+            (messages) => {
+                setData(messages);
+                setIsLoading(false);
+                queryClient.setQueryData(messageKeys.list(conversationId), messages);
+            },
+            (err) => {
+                setError(err);
+                setIsLoading(false);
             }
+        );
 
-            const response = await messagesApi.getMessages({
-                conversationId: conversationId!,
-                ...params,
-                page: pageParam,
-            });
-            return response.result;
-        },
-        initialPageParam: 0,
-        getNextPageParam: (lastPage) => getNextPageParam(lastPage),
-        enabled: !!conversationId,
-        staleTime: STALE_TIME,
-    });
+        return () => {
+            unsubscribe();
+        };
+    }, [conversationId, queryClient]);
+
+    return { data, isLoading, error };
 }
 
 export function useSendMessage() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: MessageRequest) => messagesApi.sendMessage(data),
+        mutationFn: async (data: MessageRequest) => {
+            const user = useAuthStore.getState().user;
+            if (!user || !user.id) {
+                throw new Error('User not authenticated');
+            }
+
+            const sender: ConversationParticipant = {
+                id: user.id,
+                displayName: user.displayName,
+                avatarUrl: user.avatarUrl,
+            };
+
+            return sendTextMessage(data.ConversationId, sender, data.content ?? '');
+        },
         onSuccess: (_, variables) => {
             if (variables.ConversationId) {
-                queryClient.invalidateQueries({
-                    queryKey: queryKeys.messages.list(variables.ConversationId, {}),
-                });
-                queryClient.invalidateQueries({ queryKey: queryKeys.conversations.all });
+                queryClient.invalidateQueries({ queryKey: messageKeys.list(variables.ConversationId) });
             }
+        },
+        onError: (error) => {
+            handleApiError(error, 'Gửi tin nhắn');
         },
     });
 }
@@ -83,74 +95,92 @@ export function useSendMessageWithFiles() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: SendMessageFormData) => messagesApi.sendMessageWithFiles(data),
+        mutationFn: async (data: { conversationId: string; content?: string; files: any[] }) => {
+            const user = useAuthStore.getState().user;
+            if (!user || !user.id) {
+                throw new Error('User not authenticated');
+            }
+
+            const sender: ConversationParticipant = {
+                id: user.id,
+                displayName: user.displayName,
+                avatarUrl: user.avatarUrl,
+            };
+
+            const [file] = data.files;
+            if (!file) {
+                throw new Error('No file selected');
+            }
+
+            return sendImageMessage(
+                data.conversationId,
+                sender,
+                {
+                    uri: file.uri,
+                    name: file.name ?? `image_${Date.now()}.jpg`,
+                    type: file.type ?? 'image/jpeg',
+                },
+                data.content
+            );
+        },
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.messages.list(variables.conversationId, {}),
-            });
-            queryClient.invalidateQueries({ queryKey: queryKeys.conversations.all });
+            queryClient.invalidateQueries({ queryKey: messageKeys.list(variables.conversationId) });
+        },
+        onError: (error) => {
+            handleApiError(error, 'Gửi hình ảnh');
         },
     });
 }
 
 export function useUpdateMessage() {
-    const queryClient = useQueryClient();
-
     return useMutation({
-        mutationFn: ({ messageId, content, conversationId }: { messageId: number; content: string; conversationId: string }) =>
-            messagesApi.updateMessage(messageId, content),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.messages.list(variables.conversationId, {}),
-            });
+        mutationFn: async () => {
+            throw new Error('Update message is not supported with Firebase yet');
         },
     });
 }
 
 export function useDeleteMessage() {
-    const queryClient = useQueryClient();
-
     return useMutation({
-        mutationFn: ({ messageId, conversationId }: { messageId: number; conversationId: string }) =>
-            messagesApi.deleteMessage(messageId),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.messages.list(variables.conversationId, {}),
-            });
-            queryClient.invalidateQueries({ queryKey: queryKeys.conversations.all });
+        mutationFn: async () => {
+            throw new Error('Delete message is handled via unsend in Firebase');
         },
     });
 }
 
 export function useMarkAsRead() {
-    const queryClient = useQueryClient();
-
     return useMutation({
-        mutationFn: (data: MarkReadRequest) => messagesApi.markAsRead(data),
-        onSuccess: (_, variables) => {
-            if (variables.conversationId) {
-                queryClient.invalidateQueries({
-                    queryKey: queryKeys.messages.list(variables.conversationId, {}),
-                });
-                queryClient.invalidateQueries({ queryKey: queryKeys.conversations.all });
-            }
+        mutationFn: async () => {
+            return;
         },
     });
 }
 
-export function useSearchMessages(params: MessageSearchParams | undefined) {
-    return useInfiniteQuery({
-        queryKey: queryKeys.messages.search(params?.conversationId || '', params?.keyword || ''),
-        queryFn: async ({ pageParam = 0 }) => {
-            const response = await messagesApi.searchMessages({
-                ...params!,
-                page: pageParam,
-            });
-            return response.result;
+interface SearchResultPage {
+    content: ChatMessageRecord[];
+}
+
+export function useSearchMessages(params: { conversationId: string; keyword: string } | undefined) {
+    const keyword = params?.keyword?.trim().toLowerCase() ?? '';
+
+    return useInfiniteQuery<SearchResultPage>({
+        queryKey: ['messageSearch', params?.conversationId ?? '', keyword],
+        queryFn: async () => {
+            if (!params?.conversationId || !keyword) {
+                return { content: [] };
+            }
+
+            const messages = await getAllMessages(params.conversationId).catch(() => []);
+            const filtered = messages.filter(
+                (msg) =>
+                    msg.isActive !== false &&
+                    (msg.content ?? '').toLowerCase().includes(keyword)
+            );
+            return { content: filtered };
         },
         initialPageParam: 0,
-        getNextPageParam: (lastPage) => getNextPageParam(lastPage),
-        enabled: !!params?.conversationId && !!params?.keyword,
+        getNextPageParam: () => undefined,
+        enabled: !!params?.conversationId && keyword.length >= 2,
         staleTime: STALE_TIME,
     });
 }

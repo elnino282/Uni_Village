@@ -1,441 +1,186 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 
-import { queryKeys } from '@/config/queryKeys';
-import { MessageType } from '@/lib/api/generated';
-import { websocketService, WebSocketService } from '@/lib/websocket';
-import type { MessageResponse } from '@/shared/types/backend.types';
-import type { Slice } from '@/shared/types/pagination.types';
-import { conversationsApi, messagesApi } from '../api';
-import { extractUserIdFromVirtualThread, isVirtualThreadId } from '../services';
-import { useChatStore } from '../store';
-
-interface InfiniteMessagesData {
-    pages: Slice<MessageResponse>[];
-    pageParams: number[];
-}
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { generateMessageId } from '../services';
+import {
+    ensureDirectConversation,
+    sendImageMessage,
+    sendSharedCardMessage,
+    sendTextMessage,
+    type ConversationParticipant,
+} from '../services';
+import type { ChatMessageRecord, SharedCard } from '../types';
+import { messageKeys } from './useMessages';
+import { isVirtualThreadId } from '../services';
 
 interface SendMessageInput {
     threadId: string;
     text: string;
-    replyToId?: number;
-    recipientId?: number;
-    senderInfo: {
-        id: number;
-        displayName: string;
-        avatarUrl?: string;
-    };
+    replyToId?: string;
+    recipient?: ConversationParticipant;
+    senderInfo: ConversationParticipant;
 }
 
-interface OptimisticMessage extends MessageResponse {
-    _clientMessageId: string;
-    _isOptimistic: boolean;
-    _status: 'sending' | 'sent' | 'error';
-    _error?: string;
-}
+const updateOptimisticStatus = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    conversationId: string,
+    clientMessageId: string,
+    status: 'sending' | 'sent' | 'error',
+    error?: string
+) => {
+    queryClient.setQueryData<ChatMessageRecord[]>(messageKeys.list(conversationId), (oldData) => {
+        if (!oldData?.length) return oldData;
+        return oldData.map((msg) =>
+            msg._clientMessageId === clientMessageId
+                ? { ...msg, _status: status, _error: error }
+                : msg
+        );
+    });
+};
 
-const ACK_TIMEOUT = 5000;
+const replaceOptimisticWithReal = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    conversationId: string,
+    clientMessageId: string,
+    realMessage: ChatMessageRecord
+) => {
+    queryClient.setQueryData<ChatMessageRecord[]>(messageKeys.list(conversationId), (oldData) => {
+        if (!oldData?.length) return [realMessage];
+        return oldData.map((msg) =>
+            msg._clientMessageId === clientMessageId ? realMessage : msg
+        );
+    });
+};
 
 export function useSendMessageHybrid() {
     const queryClient = useQueryClient();
-    const { handleAck, addPendingMessage } = useChatStore();
-    const pendingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-    useEffect(() => {
-        return () => {
-            pendingTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
-            pendingTimeoutsRef.current.clear();
-        };
-    }, []);
+    const resolveConversationId = useCallback(
+        async (threadId: string, sender: ConversationParticipant, recipient?: ConversationParticipant) => {
+            if (!isVirtualThreadId(threadId)) {
+                return threadId;
+            }
 
-    const createOptimisticMessage = useCallback(
-        (input: SendMessageInput, clientMessageId: string): OptimisticMessage => {
-            return {
-                id: -Date.now(),
-                _clientMessageId: clientMessageId,
-                _isOptimistic: true,
-                _status: 'sending',
-                senderId: input.senderInfo.id,
-                senderName: input.senderInfo.displayName,
-                senderAvatarUrl: input.senderInfo.avatarUrl,
-                content: input.text,
-                messageType: MessageType.TEXT,
-                conversationId: input.threadId,
-                timestamp: new Date().toISOString(),
-                isActive: true,
-                readBy: [],
-                replyToId: input.replyToId,
-            } as OptimisticMessage;
+            if (!recipient) {
+                throw new Error('Missing recipient info for virtual thread');
+            }
+
+            const currentUser = useAuthStore.getState().user;
+            if (!currentUser) {
+                throw new Error('User not authenticated');
+            }
+
+            return ensureDirectConversation(currentUser, recipient);
         },
         []
     );
 
-    const updateOptimisticStatus = useCallback(
-        (
-            conversationId: string,
-            clientMessageId: string,
-            status: 'sending' | 'sent' | 'error',
-            error?: string
-        ) => {
-            const queryKey = queryKeys.messages.list(conversationId, {});
-            queryClient.setQueryData<InfiniteMessagesData>(queryKey, (oldData) => {
-                if (!oldData?.pages?.length) return oldData;
+    const sendMessage = useCallback(
+        async (input: SendMessageInput) => {
+            const clientMessageId = generateMessageId();
+            const createdAt = new Date().toISOString();
 
-                const newPages = oldData.pages.map((page) => ({
-                    ...page,
-                    content: page.content.map((msg) => {
-                        const optimistic = msg as unknown as OptimisticMessage;
-                        if (optimistic._clientMessageId === clientMessageId) {
-                            return {
-                                ...msg,
-                                _status: status,
-                                _error: error,
-                            };
-                        }
-                        return msg;
-                    }),
-                }));
+            const optimisticMessage: ChatMessageRecord = {
+                id: clientMessageId,
+                conversationId: input.threadId,
+                senderId: input.senderInfo.id,
+                senderName: input.senderInfo.displayName,
+                senderAvatarUrl: input.senderInfo.avatarUrl,
+                messageType: 'text',
+                content: input.text,
+                createdAt,
+                isActive: true,
+                _clientMessageId: clientMessageId,
+                _status: 'sending',
+            };
 
-                return { ...oldData, pages: newPages };
+            queryClient.setQueryData<ChatMessageRecord[]>(messageKeys.list(input.threadId), (oldData) => {
+                return oldData ? [optimisticMessage, ...oldData] : [optimisticMessage];
             });
-        },
-        [queryClient]
-    );
-
-    const replaceOptimisticWithReal = useCallback(
-        (conversationId: string, clientMessageId: string, realMessage: MessageResponse) => {
-            const queryKey = queryKeys.messages.list(conversationId, {});
-            queryClient.setQueryData<InfiniteMessagesData>(queryKey, (oldData) => {
-                if (!oldData?.pages?.length) return oldData;
-
-                const newPages = oldData.pages.map((page) => ({
-                    ...page,
-                    content: page.content.map((msg) => {
-                        const optimistic = msg as unknown as OptimisticMessage;
-                        if (optimistic._clientMessageId === clientMessageId) {
-                            return realMessage;
-                        }
-                        return msg;
-                    }),
-                }));
-
-                return { ...oldData, pages: newPages };
-            });
-        },
-        [queryClient]
-    );
-
-    const removeOptimisticMessage = useCallback(
-        (conversationId: string, clientMessageId: string) => {
-            const queryKey = queryKeys.messages.list(conversationId, {});
-            queryClient.setQueryData<InfiniteMessagesData>(queryKey, (oldData) => {
-                if (!oldData?.pages?.length) return oldData;
-
-                const newPages = oldData.pages.map((page) => ({
-                    ...page,
-                    content: page.content.filter((msg) => {
-                        const optimistic = msg as unknown as OptimisticMessage;
-                        return optimistic._clientMessageId !== clientMessageId;
-                    }),
-                }));
-
-                return { ...oldData, pages: newPages };
-            });
-        },
-        [queryClient]
-    );
-
-    const sendViaHTTP = useCallback(
-        async (input: SendMessageInput, clientMessageId: string) => {
-            console.log('[Hybrid Send] Falling back to HTTP:', clientMessageId);
 
             try {
-                // Resolve conversation ID for virtual threads
-                let conversationId = input.threadId;
-
-                if (isVirtualThreadId(input.threadId)) {
-                    const userId = extractUserIdFromVirtualThread(input.threadId);
-                    if (!userId) {
-                        throw new Error('Invalid virtual thread ID');
-                    }
-                    console.log('[Hybrid Send] Resolving virtual thread for user:', userId);
-
-                    try {
-                        // Always fetch fresh - handles re-activation after delete
-                        const directResponse = await conversationsApi.getOrCreateDirect(userId);
-                        conversationId = directResponse.result.conversationId;
-
-                        // Update cache with fresh data
-                        queryClient.setQueryData(['directConversation', userId], directResponse.result);
-
-                        console.log('[Hybrid Send] Resolved to conversation:', conversationId);
-                    } catch (resolveError) {
-                        console.error('[Hybrid Send] Failed to resolve conversation:', resolveError);
-
-                        // Clear stale cache and retry once
-                        queryClient.removeQueries({
-                            predicate: (q) =>
-                                q.queryKey[0] === 'directConversation' ||
-                                (Array.isArray(q.queryKey) && q.queryKey.includes(input.threadId)),
-                        });
-
-                        // Retry once after clearing cache
-                        const retryResponse = await conversationsApi.getOrCreateDirect(userId);
-                        conversationId = retryResponse.result.conversationId;
-
-                        console.log('[Hybrid Send] Retry resolved to conversation:', conversationId);
-                    }
-                }
-
-                const response = await messagesApi.sendMessage({
-                    content: input.text,
-                    ConversationId: conversationId,
-                    replyToId: input.replyToId,
-                });
-
-                const realMessage = response.result;
-                replaceOptimisticWithReal(input.threadId, clientMessageId, realMessage);
-
-                queryClient.invalidateQueries({
-                    queryKey: queryKeys.conversations.all,
-                });
-
-                console.log('[Hybrid Send] HTTP success:', realMessage.id);
-                return realMessage;
-            } catch (error) {
-                console.error('[Hybrid Send] HTTP failed:', error);
-                updateOptimisticStatus(
+                const conversationId = await resolveConversationId(
                     input.threadId,
-                    clientMessageId,
-                    'error',
-                    'Failed to send message'
+                    input.senderInfo,
+                    input.recipient
                 );
+                const realMessage = await sendTextMessage(
+                    conversationId,
+                    input.senderInfo,
+                    input.text
+                );
+
+                replaceOptimisticWithReal(queryClient, input.threadId, clientMessageId, realMessage);
+                return { ...realMessage, conversationId };
+            } catch (error) {
+                updateOptimisticStatus(queryClient, input.threadId, clientMessageId, 'error', 'Failed');
                 throw error;
             }
         },
-        [queryClient, replaceOptimisticWithReal, updateOptimisticStatus]
-    );
-
-    const sendMessage = useCallback(
-        async (input: SendMessageInput) => {
-            const clientMessageId = WebSocketService.generateClientMessageId();
-            const optimisticMessage = createOptimisticMessage(input, clientMessageId);
-
-            const queryKey = queryKeys.messages.list(input.threadId, {});
-            queryClient.setQueryData<InfiniteMessagesData>(queryKey, (oldData) => {
-                if (!oldData?.pages?.length) {
-                    return oldData;
-                }
-
-                const newPages = [...oldData.pages];
-                newPages[0] = {
-                    ...newPages[0],
-                    content: [optimisticMessage as unknown as MessageResponse, ...newPages[0].content],
-                    numberOfElements: newPages[0].numberOfElements + 1,
-                };
-
-                return { ...oldData, pages: newPages };
-            });
-
-            // Add to store to track ACK
-            addPendingMessage({
-                clientMessageId,
-                recipientId: input.recipientId || 0,
-                content: input.text,
-                replyToId: input.replyToId,
-            });
-
-            const isWSConnected = websocketService.isConnected();
-
-            // Only use WebSocket if connected AND we have a valid recipientId (mostly for DMs)
-            if (!isWSConnected || !input.recipientId) {
-                console.log(
-                    !isWSConnected
-                        ? '[Hybrid Send] WebSocket not connected, using HTTP directly'
-                        : '[Hybrid Send] No recipientId provided (Group Chat?), using HTTP directly'
-                );
-                return sendViaHTTP(input, clientMessageId);
-            }
-
-            console.log('[Hybrid Send] Attempting WebSocket send:', clientMessageId);
-
-            websocketService.sendChatMessage({
-                recipientId: input.recipientId,
-                content: input.text,
-                clientMessageId,
-                replyToId: input.replyToId,
-            });
-
-            return new Promise<MessageResponse>((resolve, reject) => {
-                let resolved = false;
-
-                const timeout = setTimeout(async () => {
-                    if (resolved) return;
-                    console.log('[Hybrid Send] ACK timeout, falling back to HTTP:', clientMessageId);
-                    pendingTimeoutsRef.current.delete(clientMessageId);
-                    resolved = true;
-
-                    try {
-                        const realMessage = await sendViaHTTP(input, clientMessageId);
-                        resolve(realMessage);
-                    } catch (error) {
-                        reject(error);
-                    }
-                }, ACK_TIMEOUT);
-
-                pendingTimeoutsRef.current.set(clientMessageId, timeout);
-
-                const checkInterval = setInterval(() => {
-                    if (resolved) {
-                        clearInterval(checkInterval);
-                        return;
-                    }
-
-                    const pending = useChatStore.getState().pendingMessages.get(clientMessageId);
-
-                    if (!pending) {
-                        const timeout = pendingTimeoutsRef.current.get(clientMessageId);
-                        if (timeout) {
-                            clearTimeout(timeout);
-                            pendingTimeoutsRef.current.delete(clientMessageId);
-                        }
-                        clearInterval(checkInterval);
-                        resolved = true;
-
-                        updateOptimisticStatus(input.threadId, clientMessageId, 'sent');
-
-                        resolve(optimisticMessage as unknown as MessageResponse);
-                    } else if (pending.status === 'error') {
-                        const timeout = pendingTimeoutsRef.current.get(clientMessageId);
-                        if (timeout) {
-                            clearTimeout(timeout);
-                            pendingTimeoutsRef.current.delete(clientMessageId);
-                        }
-                        clearInterval(checkInterval);
-                        resolved = true;
-
-                        updateOptimisticStatus(
-                            input.threadId,
-                            clientMessageId,
-                            'error',
-                            pending.errorMessage || 'Failed to send'
-                        );
-
-                        sendViaHTTP(input, clientMessageId)
-                            .then(resolve)
-                            .catch(reject);
-                    }
-                }, 100);
-            });
-        },
-        [
-            createOptimisticMessage,
-            queryClient,
-            sendViaHTTP,
-            updateOptimisticStatus,
-            replaceOptimisticWithReal,
-            handleAck,
-        ]
+        [queryClient, resolveConversationId]
     );
 
     const sendImage = useCallback(
         async (
             threadId: string,
             file: { uri: string; name: string; type: string },
-            senderInfo: { id: number; displayName: string; avatarUrl?: string },
-            caption?: string
+            senderInfo: ConversationParticipant,
+            caption?: string,
+            recipient?: ConversationParticipant
         ) => {
-            const clientMessageId = WebSocketService.generateClientMessageId();
+            const clientMessageId = generateMessageId();
+            const createdAt = new Date().toISOString();
 
-            // Optimistic message
-            const optimisticMessage: OptimisticMessage = {
-                id: -Date.now(),
-                _clientMessageId: clientMessageId,
-                _isOptimistic: true,
-                _status: 'sending',
+            const optimisticMessage: ChatMessageRecord = {
+                id: clientMessageId,
+                conversationId: threadId,
                 senderId: senderInfo.id,
                 senderName: senderInfo.displayName,
                 senderAvatarUrl: senderInfo.avatarUrl,
-                content: caption || '',
-                messageType: MessageType.IMAGE,
-                conversationId: threadId,
-                timestamp: new Date().toISOString(),
+                messageType: 'image',
+                content: caption ?? '',
+                imageUrl: file.uri,
+                createdAt,
                 isActive: true,
-                readBy: [],
-                fileUrls: [file.uri], // Use local URI for display
-            } as unknown as OptimisticMessage;
+                _clientMessageId: clientMessageId,
+                _status: 'sending',
+            };
 
-            // Update cache
-            const queryKey = queryKeys.messages.list(threadId, {});
-            queryClient.setQueryData<InfiniteMessagesData>(queryKey, (oldData) => {
-                if (!oldData?.pages?.length) return oldData;
-                const newPages = [...oldData.pages];
-                newPages[0] = {
-                    ...newPages[0],
-                    content: [optimisticMessage as unknown as MessageResponse, ...newPages[0].content],
-                    numberOfElements: newPages[0].numberOfElements + 1,
-                };
-                return { ...oldData, pages: newPages };
+            queryClient.setQueryData<ChatMessageRecord[]>(messageKeys.list(threadId), (oldData) => {
+                return oldData ? [optimisticMessage, ...oldData] : [optimisticMessage];
             });
 
             try {
-                // Upload and send
-                const response = await messagesApi.sendMessageWithFiles({
-                    conversationId: threadId,
-                    content: caption,
-                    files: [file],
-                });
-
-                const realMessage = response.result;
-
-                // Replace optimistic with real
-                replaceOptimisticWithReal(threadId, clientMessageId, realMessage as MessageResponse);
-
-                queryClient.invalidateQueries({
-                    queryKey: queryKeys.conversations.all,
-                });
-
-                return realMessage;
-
+                const conversationId = await resolveConversationId(threadId, senderInfo, recipient);
+                const realMessage = await sendImageMessage(conversationId, senderInfo, file, caption);
+                replaceOptimisticWithReal(queryClient, threadId, clientMessageId, realMessage);
+                return { ...realMessage, conversationId };
             } catch (error) {
-                console.error('[Hybrid Send] Image upload failed:', error);
-                updateOptimisticStatus(
-                    threadId,
-                    clientMessageId,
-                    'error',
-                    'Failed to send image'
-                );
+                updateOptimisticStatus(queryClient, threadId, clientMessageId, 'error', 'Failed');
                 throw error;
             }
         },
-        [queryClient, replaceOptimisticWithReal, updateOptimisticStatus]
+        [queryClient, resolveConversationId]
     );
 
-    const retry = useCallback(
-        async (conversationId: string, clientMessageId: string, input: SendMessageInput) => {
-            console.log('[Hybrid Send] Retrying message:', clientMessageId);
-            updateOptimisticStatus(conversationId, clientMessageId, 'sending');
-
-            try {
-                const realMessage = await sendViaHTTP(input, clientMessageId);
-                return realMessage;
-            } catch (error) {
-                updateOptimisticStatus(
-                    conversationId,
-                    clientMessageId,
-                    'error',
-                    'Retry failed'
-                );
-                throw error;
-            }
+    const sendSharedCard = useCallback(
+        async (
+            threadId: string,
+            card: SharedCard,
+            senderInfo: ConversationParticipant,
+            recipient?: ConversationParticipant
+        ) => {
+            const conversationId = await resolveConversationId(threadId, senderInfo, recipient);
+            return sendSharedCardMessage(conversationId, senderInfo, card);
         },
-        [sendViaHTTP, updateOptimisticStatus]
+        [resolveConversationId]
     );
 
     return {
         sendMessage,
         sendImage,
-        retry,
-        canSend: websocketService.isConnected(),
+        sendSharedCard,
+        canSend: true,
     };
 }

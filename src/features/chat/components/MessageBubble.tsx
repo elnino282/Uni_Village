@@ -22,7 +22,7 @@ interface MessageBubbleProps {
   timeLabel: string;
   status?: MessageStatus;
   /** Message ID for actions like unsend */
-  messageId?: number;
+  messageId?: string;
   /** Conversation ID for cache updates */
   conversationId?: string;
   /** For group chats: sender name to display above bubble */

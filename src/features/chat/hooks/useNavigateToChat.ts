@@ -1,8 +1,9 @@
-import { useRouter } from 'expo-router';
+﻿import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import { conversationsApi } from '../api';
+import { buildDmConversationId, getConversation } from '../services';
 import type { RelationshipStatus } from '../api/friends.api';
+import { useAuthStore } from '@/features/auth/store/authStore';
 
 export function useNavigateToChat() {
     const router = useRouter();
@@ -17,17 +18,15 @@ export function useNavigateToChat() {
         try {
             setIsNavigating(true);
 
+            const currentUserId = useAuthStore.getState().user?.id;
             let threadId = `user-${userId}`;
 
-            try {
-                // Try to find existing conversation ID (even if deleted)
-                const response = await conversationsApi.getOrCreateDirect(userId);
-                if (response.result && response.result.conversationId) {
-                    threadId = response.result.conversationId;
+            if (currentUserId) {
+                const dmId = buildDmConversationId(currentUserId, userId);
+                const existing = await getConversation(dmId);
+                if (existing) {
+                    threadId = dmId;
                 }
-            } catch (apiError) {
-                // Network error or other issue - fallback to virtual thread
-                console.warn('[useNavigateToChat] Failed to resolve conversation ID:', apiError);
             }
 
             router.push(`/chat/${threadId}` as any);

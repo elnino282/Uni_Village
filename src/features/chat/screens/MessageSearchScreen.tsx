@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+﻿import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -17,8 +17,6 @@ import { LoadingScreen, EmptyState } from '@/shared/components/feedback';
 import { useSearchMessages } from '../hooks';
 import { HighlightedText } from '../components/HighlightedText';
 
-// Calculated height for each item:
-// padding (16*2) + marginBottom (4) + senderName (16) + content (20) + border (1) = 73
 const ITEM_HEIGHT = 73;
 
 export function MessageSearchScreen() {
@@ -38,7 +36,7 @@ export function MessageSearchScreen() {
 
     const results = data?.pages.flatMap((p) => p.content) ?? [];
 
-    const handleResultPress = (messageId: number) => {
+    const handleResultPress = (messageId: string) => {
         router.back();
     };
 
@@ -94,7 +92,7 @@ export function MessageSearchScreen() {
             {results.length > 0 && (
                 <FlatList
                     data={results}
-                    keyExtractor={(item) => String(item.id)}
+                    keyExtractor={(item) => item.id}
                     getItemLayout={getItemLayout}
                     renderItem={({ item }) => (
                         <Pressable
@@ -106,7 +104,7 @@ export function MessageSearchScreen() {
                                     {item.senderName}
                                 </Text>
                                 <Text style={[styles.timestamp, { color: colors.textSecondary }]}>
-                                    {new Date(item.timestamp).toLocaleDateString('vi-VN')}
+                                    {new Date(item.createdAt).toLocaleDateString('vi-VN')}
                                 </Text>
                             </View>
                             <HighlightedText

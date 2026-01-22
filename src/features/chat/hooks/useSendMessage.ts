@@ -1,69 +1,38 @@
-/**
+﻿/**
  * useSendMessage hook
- * Sends a message and handles conversation creation for virtual threads
+ * Sends a message using Firebase
  */
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useMutation } from '@tanstack/react-query';
 
-import { conversationsApi, messagesApi } from '../api';
-import { 
-  isVirtualThreadId, 
-  extractUserIdFromVirtualThread 
-} from '../services';
-import type { SendMessageInput } from '../types';
-import { queryKeys } from '@/config/queryKeys';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import type { MessageRequest } from '@/shared/types/backend.types';
+import { sendTextMessage, type ConversationParticipant } from '../services';
 
 interface SendMessageResult {
   conversationId: string;
-  messageId: number;
-  wasVirtual: boolean;
+  messageId: string;
 }
 
-/**
- * Send a new message, creating conversation if needed
- */
 export function useSendMessage() {
-  const queryClient = useQueryClient();
-  const router = useRouter();
-
-  return useMutation<SendMessageResult, Error, SendMessageInput>({
-    mutationFn: async ({ threadId, text }) => {
-      let conversationId = threadId;
-      const wasVirtual = isVirtualThreadId(threadId);
-
-      if (wasVirtual) {
-        const userId = extractUserIdFromVirtualThread(threadId);
-        if (!userId) {
-          throw new Error('Invalid virtual thread ID');
-        }
-
-        const response = await conversationsApi.getOrCreateDirect(userId);
-        conversationId = response.result.conversationId;
+  return useMutation<SendMessageResult, Error, MessageRequest>({
+    mutationFn: async ({ ConversationId, content }) => {
+      const user = useAuthStore.getState().user;
+      if (!user || !user.id) {
+        throw new Error('User not authenticated');
       }
 
-      const messageResponse = await messagesApi.sendMessage({
-        content: text,
-        ConversationId: conversationId,
-      });
+      const sender: ConversationParticipant = {
+        id: user.id,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      };
+
+      const message = await sendTextMessage(ConversationId, sender, content ?? '');
 
       return {
-        conversationId,
-        messageId: messageResponse.result.id || 0,
-        wasVirtual,
+        conversationId: ConversationId,
+        messageId: message.id,
       };
-    },
-    onSuccess: (result, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.messages.list(result.conversationId, {}),
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.conversations.all 
-      });
-
-      // If this was a virtual conversation, navigate to the real conversation
-      if (result.wasVirtual && result.conversationId !== variables.threadId) {
-        router.replace(`/chat/${result.conversationId}` as any);
-      }
     },
   });
 }

@@ -24,6 +24,26 @@ export type MessageType = 'text' | 'sharedCard' | 'image';
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
 
 /**
+ * Firestore-backed message record
+ */
+export interface ChatMessageRecord {
+  id: string;
+  conversationId: string;
+  senderId: number;
+  senderName?: string;
+  senderAvatarUrl?: string;
+  messageType: MessageType;
+  content?: string;
+  imageUrl?: string;
+  card?: SharedCard;
+  createdAt: string;
+  isActive?: boolean;
+  _clientMessageId?: string;
+  _status?: MessageStatus;
+  _error?: string;
+}
+
+/**
  * Base message interface
  */
 interface BaseMessage {
@@ -37,7 +57,7 @@ interface BaseMessage {
   senderName?: string;
   senderAvatar?: string;
   /** Backend message ID for actions like unsend */
-  messageId?: number;
+  messageId?: string;
   /** Conversation ID for cache updates */
   conversationId?: string;
   /** Whether message has been unsent/deleted */
