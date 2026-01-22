@@ -235,6 +235,24 @@ export const API_ENDPOINTS = {
     },
 
     // ============================================
+    // Friends
+    // ============================================
+    FRIENDS: {
+        STATUS: (targetId: number) => `/api/v1/friends/status/${targetId}`,
+        SEND_REQUEST: (targetId: number) => `/api/v1/friends/request/${targetId}`,
+        ACCEPT_REQUEST: (requesterId: number) => `/api/v1/friends/accept/${requesterId}`,
+        CANCEL_REQUEST: (targetId: number) => `/api/v1/friends/cancel/${targetId}`,
+        DECLINE_REQUEST: (requesterId: number) => `/api/v1/friends/decline/${requesterId}`,
+        REMOVE_FRIEND: (friendId: number) => `/api/v1/friends/${friendId}`,
+        BLOCK: (userId: number) => `/api/v1/friends/block/${userId}`,
+        UNBLOCK: (userId: number) => `/api/v1/friends/block/${userId}`,
+        LIST: '/api/v1/friends',
+        INCOMING_REQUESTS: '/api/v1/friends/requests/incoming',
+        OUTGOING_REQUESTS: '/api/v1/friends/requests/outgoing',
+        MUTUAL: (userId: number) => `/api/v1/friends/mutual/${userId}`,
+    },
+
+    // ============================================
     // Channels
     // ============================================
     CHANNELS: {
