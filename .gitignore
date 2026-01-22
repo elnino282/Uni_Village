@@ -68,6 +68,13 @@ lerna-debug.log*
 .env*.local
 
 # ===============================
+# Firebase Service Account (SENSITIVE - NEVER COMMIT)
+# ===============================
+firebase-service-account.json
+*-service-account.json
+serviceAccountKey.json
+
+# ===============================
 # Operating System
 # ===============================
 # macOS
