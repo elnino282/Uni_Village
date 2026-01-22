@@ -35,6 +35,8 @@ const getVisibilityIcon = (visibility?: string) => {
 interface ProfilePostCardProps {
   post: ProfilePost;
   onMenuPress?: (postId: string) => void;
+  onLikePress?: (postId: string) => void;
+  onCommentPress?: (postId: string) => void;
 }
 
 function formatTimeAgo(dateString: string): string {
@@ -63,7 +65,12 @@ function formatTimeAgo(dateString: string): string {
   return `${diffInYears} năm trước`;
 }
 
-export function ProfilePostCard({ post, onMenuPress }: ProfilePostCardProps) {
+export function ProfilePostCard({ 
+  post, 
+  onMenuPress,
+  onLikePress,
+  onCommentPress 
+}: ProfilePostCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
@@ -176,13 +183,23 @@ export function ProfilePostCard({ post, onMenuPress }: ProfilePostCardProps) {
       )}
 
       <View style={styles.reactions}>
-        <View style={styles.reactionItem}>
+        <Pressable 
+          style={styles.reactionItem}
+          onPress={() => onLikePress?.(post.id)}
+          accessibilityRole="button"
+          accessibilityLabel="Thích bài viết"
+        >
           <Ionicons name={likeIcon} size={18} color={likeColor} />
           <Text style={[styles.reactionText, { color: colors.textSecondary }]}>
             {post.reactions.likes}
           </Text>
-        </View>
-        <View style={styles.reactionItem}>
+        </Pressable>
+        <Pressable 
+          style={styles.reactionItem}
+          onPress={() => onCommentPress?.(post.id)}
+          accessibilityRole="button"
+          accessibilityLabel="Bình luận"
+        >
           <Ionicons
             name="chatbubble-outline"
             size={18}
@@ -191,7 +208,7 @@ export function ProfilePostCard({ post, onMenuPress }: ProfilePostCardProps) {
           <Text style={[styles.reactionText, { color: colors.textSecondary }]}>
             {post.reactions.comments}
           </Text>
-        </View>
+        </Pressable>
         {typeof post.reactions.shares === "number" && (
           <View style={styles.reactionItem}>
             <Ionicons

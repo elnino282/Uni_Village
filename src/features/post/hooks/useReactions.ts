@@ -67,6 +67,13 @@ export function useLikePost() {
                     queryClient.setQueryData(queryKeys.posts.detail(postId), nextPost);
                 }
             }
+            // Invalidate profile posts to reflect like updates
+            queryClient.invalidateQueries({
+                predicate: (query) => {
+                    const key = query.queryKey;
+                    return Array.isArray(key) && key[0] === 'myPosts';
+                },
+            });
         },
     });
 }

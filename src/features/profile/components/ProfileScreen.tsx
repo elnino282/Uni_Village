@@ -2,7 +2,7 @@ import { SaveSuccessModal } from "@/components/SaveSuccessModal";
 import { EditPrivacySheet } from "@/features/community/components/EditPrivacySheet";
 import { useSavePost } from "@/features/community/hooks";
 import type { PostVisibility } from "@/features/community/types";
-import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
+import { useDeletePost, useUpdatePost, useLikePost } from "@/features/post/hooks";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { showErrorToast } from "@/shared/utils";
@@ -63,6 +63,7 @@ export function ProfileScreen() {
   const { mutate: savePost } = useSavePost();
   const { mutate: deletePost } = useDeletePost();
   const { mutate: updatePost } = useUpdatePost();
+  const { mutate: likePost } = useLikePost();
 
   // Profile share sheet
   const shareSheet = useProfileShareSheet({
@@ -171,22 +172,22 @@ export function ProfileScreen() {
     (visibility: PostVisibility) => {
       if (!selectedPostId) return;
 
+      const backendVisibility =
+        visibility === "public"
+          ? "PUBLIC"
+          : visibility === "private"
+            ? "PRIVATE"
+            : "FRIENDS";
+
       updatePost(
         {
           postId: Number(selectedPostId),
           postType: "EXPERIENCE",
-          visibility:
-            visibility === "public"
-              ? "PUBLIC"
-              : visibility === "private"
-                ? "PRIVATE"
-                : "FRIENDS",
+          visibility: backendVisibility,
         },
         {
           onSuccess: () => {
             setIsEditPrivacyOpen(false);
-            // Refetch to get updated post with new visibility
-            refetchPosts();
           },
           onError: () => {
             showErrorToast("Không thể cập nhật quyền riêng tư");
@@ -194,7 +195,25 @@ export function ProfileScreen() {
         }
       );
     },
-    [selectedPostId, updatePost, refetchPosts]
+    [selectedPostId, updatePost]
+  );
+
+  const handleLikePost = useCallback(
+    (postId: string) => {
+      likePost(Number(postId), {
+        onError: () => {
+          showErrorToast("Không thể thích bài viết");
+        },
+      });
+    },
+    [likePost]
+  );
+
+  const handleCommentPress = useCallback(
+    (postId: string) => {
+      router.push({ pathname: "/post/detail", params: { postId } } as any);
+    },
+    []
   );
 
   const handleSharePost = useCallback((postId: string) => {
@@ -227,9 +246,14 @@ export function ProfileScreen() {
 
   const renderPostItem = useCallback(
     ({ item }: { item: ProfilePost }) => (
-      <ProfilePostCard post={item} onMenuPress={handleMenuPress} />
+      <ProfilePostCard 
+        post={item} 
+        onMenuPress={handleMenuPress}
+        onLikePress={handleLikePost}
+        onCommentPress={handleCommentPress}
+      />
     ),
-    [handleMenuPress]
+    [handleMenuPress, handleLikePost, handleCommentPress]
   );
 
   const keyExtractor = useCallback((item: ProfilePost) => item.id, []);

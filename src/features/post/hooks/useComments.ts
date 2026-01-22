@@ -209,6 +209,14 @@ export function useCreateComment() {
           queryKey: ["comments", variables.parentCommentId, "replies"],
         });
       }
+
+      // Invalidate profile posts to reflect comment count updates
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return Array.isArray(key) && key[0] === 'myPosts';
+        },
+      });
     },
   });
 }
