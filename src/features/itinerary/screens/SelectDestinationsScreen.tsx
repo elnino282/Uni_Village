@@ -105,54 +105,53 @@ export function SelectDestinationsScreen({
       !isInitialized
     ) {
       // Map existing destinations - try to find in nearbyPlaces or create from existing data
-      const mapped = existingDestinations
-        .map((dest) => {
-          // First try to find by googlePlaceId
-          let place = nearbyPlaces.find((p) => p.id === dest.googlePlaceId);
+      const mapped = existingDestinations.map((dest) => {
+        // First try to find by googlePlaceId
+        let place = nearbyPlaces.find((p) => p.id === dest.googlePlaceId);
 
-          // If not found by googlePlaceId, try by coordinates (within ~100m)
-          if (!place && dest.lat && dest.lng) {
-            place = nearbyPlaces.find((p) => {
-              const latDiff = Math.abs(p.lat - (dest.lat || 0));
-              const lngDiff = Math.abs(p.lng - (dest.lng || 0));
-              return latDiff < 0.001 && lngDiff < 0.001; // ~100m tolerance
-            });
-          }
+        // If not found by googlePlaceId, try by coordinates (within ~100m)
+        if (!place && dest.lat && dest.lng) {
+          place = nearbyPlaces.find((p) => {
+            const latDiff = Math.abs(p.lat - (dest.lat || 0));
+            const lngDiff = Math.abs(p.lng - (dest.lng || 0));
+            return latDiff < 0.001 && lngDiff < 0.001; // ~100m tolerance
+          });
+        }
 
-          // If not found, try by name
-          if (!place) {
-            place = nearbyPlaces.find(
-              (p) => p.name.toLowerCase() === dest.name.toLowerCase(),
-            );
-          }
+        // If not found, try by name
+        if (!place) {
+          place = nearbyPlaces.find(
+            (p) => p.name.toLowerCase() === dest.name.toLowerCase(),
+          );
+        }
 
-          // If still not found, create a virtual place from existing data
-          // This ensures existing destinations always show even if not in nearbyPlaces
-          if (!place) {
-            place = {
-              id: dest.googlePlaceId || dest.id,
-              name: dest.name,
-              lat: dest.lat || 0,
-              lng: dest.lng || 0,
-              address: dest.address || "",
-              thumbnail: dest.thumbnail || "",
-              category: "other" as const,
-            };
-          }
+        // If still not found, create a virtual place from existing data
+        // This ensures existing destinations always show even if not in nearbyPlaces
+        if (!place) {
+          place = {
+            id: dest.googlePlaceId || dest.id,
+            name: dest.name,
+            lat: dest.lat || 0,
+            lng: dest.lng || 0,
+            address: dest.address || "",
+            thumbnail: dest.thumbnail || "",
+            category: "other" as const,
+          };
+        }
 
-          return {
-            place,
-            order: dest.order,
-            visitTime: dest.time
-              ? (() => {
-                  const [hours, minutes] = dest.time.split(":");
-                  const date = new Date();
-                  date.setHours(parseInt(hours), parseInt(minutes));
-                  return date;
-                })()
-              : undefined,
-          } as SelectedDestination;
-        });
+        return {
+          place,
+          order: dest.order,
+          visitTime: dest.time
+            ? (() => {
+                const [hours, minutes] = dest.time.split(":");
+                const date = new Date();
+                date.setHours(parseInt(hours), parseInt(minutes));
+                return date;
+              })()
+            : undefined,
+        } as SelectedDestination;
+      });
       setSelectedDestinations(mapped);
       setIsInitialized(true);
     }
