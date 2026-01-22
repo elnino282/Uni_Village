@@ -105,6 +105,7 @@ export function PostCard({
       <PostHeader
         author={post.author}
         createdAt={post.createdAt}
+        visibility={post.visibility}
         onMenuPress={() => onMenuPress(post.id)}
         onAvatarPress={() => onAvatarPress?.(post.author.id)}
       />

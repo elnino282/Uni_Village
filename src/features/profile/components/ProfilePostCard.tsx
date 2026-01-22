@@ -18,6 +18,20 @@ import { useColorScheme } from "@/shared/hooks";
 
 import type { ProfilePost } from "../types";
 
+const getVisibilityIcon = (visibility?: string) => {
+  if (!visibility) return null;
+  switch (visibility.toUpperCase()) {
+    case "PUBLIC":
+      return { name: "earth", color: "#10b981" }; // green
+    case "PRIVATE":
+      return { name: "lock-closed", color: "#f59e0b" }; // amber
+    case "FRIENDS":
+      return { name: "people", color: "#3b82f6" }; // blue
+    default:
+      return null;
+  }
+};
+
 interface ProfilePostCardProps {
   post: ProfilePost;
   onMenuPress?: (postId: string) => void;
@@ -81,9 +95,27 @@ export function ProfilePostCard({ post, onMenuPress }: ProfilePostCardProps) {
           <Text style={[styles.authorName, { color: colors.textPrimary }]}>
             {post.author.name}
           </Text>
-          <Text style={[styles.time, { color: colors.textSecondary }]}>
-            {formatTimeAgo(post.createdAt)}
-          </Text>
+          <View style={styles.timeRow}>
+            <Text style={[styles.time, { color: colors.textSecondary }]}>
+              {formatTimeAgo(post.createdAt)}
+            </Text>
+            {post.visibility && (() => {
+              const icon = getVisibilityIcon(post.visibility);
+              return icon ? (
+                <>
+                  <Text style={[styles.dot, { color: colors.textSecondary }]}>
+                    •
+                  </Text>
+                  <Ionicons
+                    name={icon.name as any}
+                    size={12}
+                    color={icon.color}
+                    style={styles.visibilityIcon}
+                  />
+                </>
+              ) : null;
+            })()}
+          </View>
         </View>
         <Pressable
           style={styles.menuButton}
@@ -197,6 +229,11 @@ const styles = StyleSheet.create({
   headerInfo: {
     flex: 1,
   },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   authorName: {
     fontSize: Typography.sizes.base,
     fontWeight: Typography.weights.medium,
@@ -205,6 +242,13 @@ const styles = StyleSheet.create({
   time: {
     fontSize: Typography.sizes.sm,
     lineHeight: 18,
+  },
+  dot: {
+    fontSize: Typography.sizes.sm,
+    marginHorizontal: 2,
+  },
+  visibilityIcon: {
+    marginLeft: 2,
   },
   menuButton: {
     width: 40,

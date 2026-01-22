@@ -8,9 +8,24 @@ import { useColorScheme } from "@/shared/hooks";
 import type { PostAuthor } from "../types";
 import { formatTimeAgo } from "../utils/formatTime";
 
+const getVisibilityIcon = (visibility?: string) => {
+  if (!visibility) return null;
+  switch (visibility.toUpperCase()) {
+    case "PUBLIC":
+      return { name: "public", color: "#10b981" }; // green
+    case "PRIVATE":
+      return { name: "lock", color: "#f59e0b" }; // amber
+    case "FRIENDS":
+      return { name: "people", color: "#3b82f6" }; // blue
+    default:
+      return null;
+  }
+};
+
 interface PostHeaderProps {
   author: PostAuthor;
   createdAt: string;
+  visibility?: string; // PUBLIC, PRIVATE, FRIENDS
   onMenuPress: () => void;
   onAvatarPress?: () => void;
 }
@@ -21,6 +36,7 @@ interface PostHeaderProps {
 export function PostHeader({
   author,
   createdAt,
+  visibility,
   onMenuPress,
   onAvatarPress,
 }: PostHeaderProps) {
@@ -39,9 +55,27 @@ export function PostHeader({
           <Text style={[styles.name, { color: colors.text }]}>
             {author.displayName}
           </Text>
-          <Text style={[styles.timestamp, { color: colors.textSecondary }]}>
-            • {formatTimeAgo(createdAt)}
-          </Text>
+          <View style={styles.timestampRow}>
+            <Text style={[styles.timestamp, { color: colors.textSecondary }]}>
+              {formatTimeAgo(createdAt)}
+            </Text>
+            {visibility && (() => {
+              const icon = getVisibilityIcon(visibility);
+              return icon ? (
+                <>
+                  <Text style={[styles.dot, { color: colors.textSecondary }]}>
+                    •
+                  </Text>
+                  <MaterialIcons
+                    name={icon.name as any}
+                    size={14}
+                    color={icon.color}
+                    style={styles.visibilityIcon}
+                  />
+                </>
+              ) : null;
+            })()}
+          </View>
         </View>
       </TouchableOpacity>
       <TouchableOpacity
@@ -76,6 +110,11 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
   },
+  timestampRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   name: {
     fontSize: Typography.sizes.base, // 16px
     fontWeight: Typography.weights.normal,
@@ -85,6 +124,13 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.md, // 14px
     fontWeight: Typography.weights.normal,
     lineHeight: 20,
+  },
+  dot: {
+    fontSize: Typography.sizes.md,
+    marginHorizontal: 2,
+  },
+  visibilityIcon: {
+    marginLeft: 2,
   },
   menuButton: {
     width: 28,

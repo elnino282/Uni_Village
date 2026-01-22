@@ -131,9 +131,12 @@ export function ProfileScreen() {
     [savePost, refetchPosts]
   );
 
-  const handleEditPost = useCallback((postId: string) => {
-    router.push(`/post/${postId}/edit` as Href);
-  }, []);
+  const handleEditPost = useCallback(
+    (postId: string) => {
+      router.push({ pathname: "/post/edit", params: { postId } } as any);
+    },
+    [router]
+  );
 
   const handleEditPrivacy = useCallback(
     (postId: string) => {
