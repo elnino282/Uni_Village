@@ -122,17 +122,11 @@ export function PostCard({
   const hasItinerary = !!itineraryToShow;
 
   const handleCardPress = () => {
-    // Navigate to post detail when tapping on card (outside of itinerary card)
+    // Navigate to post detail when tapping on card
     if (onPress) {
       onPress(post.id);
     } else {
       onCommentPress(post.id);
-    }
-  };
-
-  const handleItineraryPress = () => {
-    if (itineraryToShow && onOpenItinerary) {
-      onOpenItinerary(itineraryToShow);
     }
   };
 
@@ -183,7 +177,7 @@ export function PostCard({
       {itineraryToShow && (
         <ItineraryShareCard
           itinerary={itineraryToShow}
-          onPress={handleItineraryPress}
+          onPress={handleCardPress}
         />
       )}
 
