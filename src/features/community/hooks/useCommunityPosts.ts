@@ -4,8 +4,8 @@ import { useFeed as useRealFeed, useLikePost as useRealLikePost, useSavePost as 
 import type { CommunityPostsResponse } from '../types';
 import { mapSliceToCommunityPostsResponse } from '../adapters/postAdapter';
 import { reportPost as reportPostAPI } from '@/lib/api';
-import { Alert } from 'react-native';
 import { ApiError } from '@/lib/errors/ApiError';
+import { showSuccessToast, showErrorToast } from '@/shared/utils';
 
 const COMMUNITY_POSTS_KEY = ['community', 'posts'];
 
@@ -85,22 +85,22 @@ export function useReportPost() {
         if (error instanceof ApiError) {
           // Handle specific backend errors
           if (error.code === 'DUPLICATE_REPORT') {
-            Alert.alert('Thông báo', 'Bạn đã báo cáo nội dung này rồi');
+            showErrorToast('Bạn đã báo cáo nội dung này rồi');
           } else if (error.code === 'SELF_REPORT') {
-            Alert.alert('Thông báo', 'Bạn không thể báo cáo nội dung của chính mình');
+            showErrorToast('Bạn không thể báo cáo nội dung của chính mình');
           } else if (error.code === 'INVALID_REPORT_TARGET') {
-            Alert.alert('Lỗi', 'Không tìm thấy nội dung cần báo cáo');
+            showErrorToast('Không tìm thấy nội dung cần báo cáo');
           } else {
-            Alert.alert('Lỗi', error.message || 'Không thể gửi báo cáo');
+            showErrorToast(error.message || 'Không thể gửi báo cáo');
           }
         } else {
-          Alert.alert('Lỗi', 'Đã xảy ra lỗi khi gửi báo cáo');
+          showErrorToast('Đã xảy ra lỗi khi gửi báo cáo');
         }
         throw error;
       }
     },
     onSuccess: () => {
-      Alert.alert('Thành công', 'Báo cáo của bạn đã được gửi thành công');
+      showSuccessToast('Báo cáo của bạn đã được gửi thành công');
     },
   });
 }
