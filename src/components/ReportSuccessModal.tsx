@@ -1,14 +1,8 @@
 import { Colors } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
-import React from "react";
-import {
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ReportSuccessModalProps {
   visible: boolean;
@@ -60,7 +54,11 @@ export function ReportSuccessModal({
               { backgroundColor: colors.success + "20" },
             ]}
           >
-            <Ionicons name="checkmark-circle" size={64} color={colors.success} />
+            <Ionicons
+              name="checkmark-circle"
+              size={64}
+              color={colors.success}
+            />
           </View>
 
           {/* Title */}
@@ -76,8 +74,12 @@ export function ReportSuccessModal({
 
           {/* Additional Info */}
           {targetType === "post" && (
-            <Text style={[styles.additionalInfo, { color: colors.textSecondary }]}>
-              {getTargetText().charAt(0).toUpperCase() + getTargetText().slice(1)} này sẽ được ẩn khỏi feed của bạn.
+            <Text
+              style={[styles.additionalInfo, { color: colors.textSecondary }]}
+            >
+              {getTargetText().charAt(0).toUpperCase() +
+                getTargetText().slice(1)}{" "}
+              này sẽ được ẩn khỏi feed của bạn.
             </Text>
           )}
 

@@ -85,7 +85,8 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [isReportSuccessModalOpen, setIsReportSuccessModalOpen] = useState(false);
+  const [isReportSuccessModalOpen, setIsReportSuccessModalOpen] =
+    useState(false);
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
   const [reportTargetType, setReportTargetType] = useState<"post" | "comment">(
     "post"

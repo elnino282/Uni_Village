@@ -2,15 +2,15 @@
  * Community feature types
  */
 
-import type { ItineraryShareData } from '@/features/itinerary/types/itinerary.types';
-import type { PostType } from '@/shared/types/backend.types';
-import type { ChannelInvite } from '@/shared/types';
+import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.types";
+import type { ChannelInvite } from "@/shared/types";
+import type { PostType } from "@/shared/types/backend.types";
 
-export type CommunityTab = 'posts' | 'messages';
-export type ContentFilterTab = 'posts' | 'itineraries' | 'channels';
+export type CommunityTab = "posts" | "messages";
+export type ContentFilterTab = "posts" | "itineraries" | "channels";
 
 /** Post visibility/privacy level */
-export type PostVisibility = 'public' | 'friends' | 'private';
+export type PostVisibility = "public" | "friends" | "private";
 
 export interface PostLocation {
   id: string | number;
@@ -50,12 +50,11 @@ export interface CommunityPost {
   tags?: string[];
 }
 
-
 export interface OverflowMenuItem {
   id: string;
   label: string;
   icon: string;
-  variant?: 'default' | 'danger';
+  variant?: "default" | "danger";
   onPress: () => void;
 }
 
