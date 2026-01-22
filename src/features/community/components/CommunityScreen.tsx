@@ -3,41 +3,41 @@ import { useMyProfile } from "@/features/profile";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    View,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
+import { ReportModal } from "@/components/ReportModal";
 import { ItineraryDetailsSheet } from "@/features/itinerary/components/ItineraryDetailsSheet";
 import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.types";
 import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
 import type { CreatePostTab } from "@/features/post/types/createPost.types";
 import {
-    EmptyState,
-    ErrorMessage,
-    LoadingScreen,
+  EmptyState,
+  ErrorMessage,
+  LoadingScreen,
 } from "@/shared/components/feedback";
 import { PostLocationDetailSheet } from "@/shared/components/post";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { PostType, Visibility } from "@/shared/types/backend.types";
-import { ReportModal } from "@/components/ReportModal";
 import {
-    useBlockPost,
-    useCommunityPosts,
-    useLikePost,
-    useReportPost,
-    useSavePost,
+  useBlockPost,
+  useCommunityPosts,
+  useLikePost,
+  useReportPost,
+  useSavePost,
 } from "../hooks";
 import type {
-    CommunityPost,
-    CommunityTab,
-    ContentFilterTab,
-    PostLocation,
-    PostVisibility,
+  CommunityPost,
+  CommunityTab,
+  ContentFilterTab,
+  PostLocation,
+  PostVisibility,
 } from "../types";
 
 import { CommunityFAB } from "./CommunityFAB";
@@ -73,7 +73,7 @@ export function CommunityScreen() {
   const [selectedItinerary, setSelectedItinerary] =
     useState<ItineraryShareData | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(
-    null,
+    null
   );
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -123,7 +123,7 @@ export function CommunityScreen() {
       }
       return false;
     },
-    [currentUserId],
+    [currentUserId]
   );
 
   const isSelectedPostOwner = useMemo(() => {
@@ -146,7 +146,7 @@ export function CommunityScreen() {
         setIsMenuOpen(true);
       }
     },
-    [data?.data, isPostOwner],
+    [data?.data, isPostOwner]
   );
 
   const handleMenuClose = useCallback(() => {
@@ -161,14 +161,14 @@ export function CommunityScreen() {
         likePost(postId);
       }
     },
-    [likePost, isLikingPost],
+    [likePost, isLikingPost]
   );
 
   const handleCommentPress = useCallback(
     (postId: string) => {
       router.push(`/post/${postId}` as any);
     },
-    [router],
+    [router]
   );
 
   const handleLocationPress = useCallback((location: PostLocation) => {
@@ -183,7 +183,7 @@ export function CommunityScreen() {
         router.push(`/profile/${authorId}` as any);
       }
     },
-    [router],
+    [router]
   );
 
   const handleCloseLocationSheet = useCallback(() => {
@@ -197,17 +197,14 @@ export function CommunityScreen() {
         savePost(postId);
       }
     },
-    [savePost, isSavingPost],
+    [savePost, isSavingPost]
   );
 
-  const handleReportPost = useCallback(
-    (postId: string) => {
-      setReportTargetId(postId);
-      setIsReportModalOpen(true);
-      setIsMenuOpen(false);
-    },
-    [],
-  );
+  const handleReportPost = useCallback((postId: string) => {
+    setReportTargetId(postId);
+    setIsReportModalOpen(true);
+    setIsMenuOpen(false);
+  }, []);
 
   const handleSubmitReport = useCallback(
     (reason: string) => {
@@ -217,7 +214,7 @@ export function CommunityScreen() {
         setReportTargetId(null);
       }
     },
-    [reportTargetId, reportPost, isReportingPost],
+    [reportTargetId, reportPost, isReportingPost]
   );
 
   const handleBlockPost = useCallback(
@@ -226,7 +223,7 @@ export function CommunityScreen() {
         blockPost(postId);
       }
     },
-    [blockPost, isBlockingPost],
+    [blockPost, isBlockingPost]
   );
 
   // Owner menu handlers
@@ -238,14 +235,14 @@ export function CommunityScreen() {
         setIsEditPrivacyOpen(true);
       }
     },
-    [data?.data],
+    [data?.data]
   );
 
   const handleEditPost = useCallback(
     (postId: string) => {
       router.push({ pathname: "/post/edit", params: { postId } } as any);
     },
-    [router],
+    [router]
   );
 
   const handleMoveToTrash = useCallback(
@@ -260,7 +257,7 @@ export function CommunityScreen() {
         },
       ]);
     },
-    [deletePost, isDeletingPost],
+    [deletePost, isDeletingPost]
   );
 
   const handleUpdateVisibility = useCallback(
@@ -277,7 +274,7 @@ export function CommunityScreen() {
         },
       });
     },
-    [data?.data, updatePost, isUpdatingPost],
+    [data?.data, updatePost, isUpdatingPost]
   );
 
   const handleCloseEditPrivacy = useCallback(() => {
@@ -303,7 +300,7 @@ export function CommunityScreen() {
       setSelectedItinerary(itinerary);
       setIsSheetVisible(true);
     },
-    [],
+    []
   );
 
   const handleOpenItinerary = useCallback((itinerary: ItineraryShareData) => {
@@ -354,7 +351,7 @@ export function CommunityScreen() {
       handleAvatarPress,
       handleViewItineraryDetails,
       handleOpenItinerary,
-    ],
+    ]
   );
 
   const keyExtractor = useCallback((item: CommunityPost) => item.id, []);
@@ -367,7 +364,7 @@ export function CommunityScreen() {
           post.author.displayName
             .toLowerCase()
             .includes(searchQuery.toLowerCase())
-        : true,
+        : true
     ) || [];
 
   // Then filter by content type based on active chip

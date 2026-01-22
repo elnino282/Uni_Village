@@ -5,6 +5,7 @@
  */
 
 import {
+  reportComment as reportCommentAPI,
   reportConversation as reportConversationAPI,
   reportUser as reportUserAPI,
 } from "@/lib/api";

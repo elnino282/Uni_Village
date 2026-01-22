@@ -3,8 +3,8 @@
  * Main screen displaying post detail with comments
  */
 
-import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useRouter } from "expo-router";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -14,14 +14,14 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAuthStore } from '@/features/auth';
-import { useMyProfile } from '@/features/profile';
-import { LoadingScreen } from '@/shared/components/feedback';
-import { Colors, Shadows, Spacing, Typography } from '@/shared/constants';
-import { useColorScheme } from '@/shared/hooks';
+import { useAuthStore } from "@/features/auth";
+import { useMyProfile } from "@/features/profile";
+import { LoadingScreen } from "@/shared/components/feedback";
+import { Colors, Shadows, Spacing, Typography } from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
 import {
   useCreateComment,
   useDeletePost,
@@ -29,26 +29,33 @@ import {
   usePostDetail,
   useReportComment,
   useUpdatePost,
-} from '../hooks';
-import { useLikeComment, useLikePost } from '../hooks/useReactions';
-import { sharePost } from '../utils';
-import type { CommentRequest, PostLocation, PostVisibility } from '../types';
+} from "../hooks";
+import { useLikeComment, useLikePost } from "../hooks/useReactions";
+import type { CommentRequest, PostLocation, PostVisibility } from "../types";
+import { sharePost } from "../utils";
 
-import { EditPrivacySheet } from '@/features/community/components/EditPrivacySheet';
-import { PostOverflowMenu } from '@/features/community/components/PostOverflowMenu';
-import { PostOwnerMenu } from '@/features/community/components/PostOwnerMenu';
-import { useBlockPost, useReportPost, useSavePost } from '@/features/community/hooks';
-import { PostActionRow, PostLocationDetailSheet } from '@/shared/components/post';
-import { PostType, Visibility } from '@/shared/types/backend.types';
-import { ReportModal } from '@/components/ReportModal';
-import { mapCommentResponseToComment } from '../adapters/commentAdapter';
-import { CommentComposer } from './CommentComposer';
-import { CommentItem } from './CommentItem';
-import { CommentListHeader } from './CommentListHeader';
-import { PostAuthorRow } from './PostAuthorRow';
-import { PostDetailHeader } from './PostDetailHeader';
-import { PostDetailMedia } from './PostDetailMedia';
-import { PostLocationChips } from './PostLocationChips';
+import { ReportModal } from "@/components/ReportModal";
+import { EditPrivacySheet } from "@/features/community/components/EditPrivacySheet";
+import { PostOverflowMenu } from "@/features/community/components/PostOverflowMenu";
+import { PostOwnerMenu } from "@/features/community/components/PostOwnerMenu";
+import {
+  useBlockPost,
+  useReportPost,
+  useSavePost,
+} from "@/features/community/hooks";
+import {
+  PostActionRow,
+  PostLocationDetailSheet,
+} from "@/shared/components/post";
+import { PostType, Visibility } from "@/shared/types/backend.types";
+import { mapCommentResponseToComment } from "../adapters/commentAdapter";
+import { CommentComposer } from "./CommentComposer";
+import { CommentItem } from "./CommentItem";
+import { CommentListHeader } from "./CommentListHeader";
+import { PostAuthorRow } from "./PostAuthorRow";
+import { PostDetailHeader } from "./PostDetailHeader";
+import { PostDetailMedia } from "./PostDetailMedia";
+import { PostLocationChips } from "./PostLocationChips";
 
 interface PostDetailScreenProps {
   postId: string;
@@ -69,24 +76,31 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
   const [isEditPrivacyOpen, setIsEditPrivacyOpen] = useState(false);
-  const [selectedPostVisibility, setSelectedPostVisibility] = useState<PostVisibility>('public');
-  const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(null);
+  const [selectedPostVisibility, setSelectedPostVisibility] =
+    useState<PostVisibility>("public");
+  const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(
+    null
+  );
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
-  const [reportTargetType, setReportTargetType] = useState<'post' | 'comment'>('post');
+  const [reportTargetType, setReportTargetType] = useState<"post" | "comment">(
+    "post"
+  );
 
   // Queries & mutations - disable all fetching when post is deleted
-  const { data: post, isLoading: isPostLoading, refetch: refetchPost } = usePostDetail(
-    isDeleted ? undefined : postId
-  );
+  const {
+    data: post,
+    isLoading: isPostLoading,
+    refetch: refetchPost,
+  } = usePostDetail(isDeleted ? undefined : postId);
   const {
     data: commentsData,
     isLoading: isCommentsLoading,
     fetchNextPage,
     hasNextPage,
-    refetch: refetchComments
+    refetch: refetchComments,
   } = usePostComments(isDeleted ? undefined : postId);
 
   const togglePostLikeMutation = useLikePost();
@@ -96,7 +110,8 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const { mutate: deletePost, isPending: isDeletingPost } = useDeletePost();
   const { mutate: savePost, isPending: isSavingPost } = useSavePost();
   const { mutate: reportPost, isPending: isReportingPost } = useReportPost();
-  const { mutate: reportComment, isPending: isReportingComment } = useReportComment();
+  const { mutate: reportComment, isPending: isReportingComment } =
+    useReportComment();
   const { mutate: blockPost, isPending: isBlockingPost } = useBlockPost();
 
   const isPostOwner = useMemo(() => {
@@ -124,7 +139,9 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const handleMenuPress = useCallback(() => {
     if (!post) return;
     if (isPostOwner) {
-      setSelectedPostVisibility(post.visibility === Visibility.PUBLIC ? 'public' : 'private');
+      setSelectedPostVisibility(
+        post.visibility === Visibility.PUBLIC ? "public" : "private"
+      );
       setIsOwnerMenuOpen(true);
     } else {
       setIsMenuOpen(true);
@@ -144,7 +161,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const handleSharePress = useCallback(() => {
     if (post) {
       sharePost(post, (error) => {
-        console.error('Share failed:', error);
+        console.error("Share failed:", error);
       });
     }
   }, [post]);
@@ -174,7 +191,8 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
 
   const handleSavePost = useCallback(
     (postIdOverride?: string) => {
-      const targetPostId = postIdOverride ?? (post?.id ? String(post.id) : undefined);
+      const targetPostId =
+        postIdOverride ?? (post?.id ? String(post.id) : undefined);
       if (!targetPostId || isSavingPost) return;
       savePost(targetPostId);
     },
@@ -183,30 +201,28 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
 
   const handleReportPost = useCallback(
     (postIdOverride?: string) => {
-      const targetPostId = postIdOverride ?? (post?.id ? String(post.id) : undefined);
+      const targetPostId =
+        postIdOverride ?? (post?.id ? String(post.id) : undefined);
       if (!targetPostId) return;
       setReportTargetId(targetPostId);
-      setReportTargetType('post');
+      setReportTargetType("post");
       setIsReportModalOpen(true);
       setIsMenuOpen(false);
     },
     [post?.id]
   );
 
-  const handleReportComment = useCallback(
-    (commentId: string) => {
-      setReportTargetId(commentId);
-      setReportTargetType('comment');
-      setIsReportModalOpen(true);
-    },
-    []
-  );
+  const handleReportComment = useCallback((commentId: string) => {
+    setReportTargetId(commentId);
+    setReportTargetType("comment");
+    setIsReportModalOpen(true);
+  }, []);
 
   const handleSubmitReport = useCallback(
     (reason: string) => {
       if (!reportTargetId) return;
-      
-      if (reportTargetType === 'post') {
+
+      if (reportTargetType === "post") {
         if (!isReportingPost) {
           reportPost({ postId: reportTargetId, reason });
           setIsReportModalOpen(false);
@@ -220,12 +236,20 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         }
       }
     },
-    [reportTargetId, reportTargetType, reportPost, reportComment, isReportingPost, isReportingComment]
+    [
+      reportTargetId,
+      reportTargetType,
+      reportPost,
+      reportComment,
+      isReportingPost,
+      isReportingComment,
+    ]
   );
 
   const handleBlockPost = useCallback(
     (postIdOverride?: string) => {
-      const targetPostId = postIdOverride ?? (post?.id ? String(post.id) : undefined);
+      const targetPostId =
+        postIdOverride ?? (post?.id ? String(post.id) : undefined);
       if (!targetPostId || isBlockingPost) return;
       blockPost(targetPostId);
     },
@@ -234,7 +258,9 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
 
   const handleEditPrivacy = useCallback(() => {
     if (!post) return;
-    setSelectedPostVisibility(post.visibility === Visibility.PUBLIC ? 'public' : 'private');
+    setSelectedPostVisibility(
+      post.visibility === Visibility.PUBLIC ? "public" : "private"
+    );
     setIsEditPrivacyOpen(true);
   }, [post]);
 
@@ -244,27 +270,35 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
 
   const handleEditPost = useCallback(() => {
     if (!post?.id) return;
-    router.push({ pathname: '/post/edit', params: { postId: String(post.id) } } as any);
+    router.push({
+      pathname: "/post/edit",
+      params: { postId: String(post.id) },
+    } as any);
   }, [post?.id, router]);
 
   const handleMoveToTrash = useCallback(() => {
     if (!post?.id || isDeletingPost) return;
-    Alert.alert('Xóa bài viết', 'Bạn có chắc muốn xóa bài viết này vĩnh viễn?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Xóa',
-        style: 'destructive',
-        onPress: () => {
-          deletePost(post.id, {
-            onSuccess: () => {
-              // Set isDeleted immediately to disable all queries and prevent 404 errors
-              setIsDeleted(true);
-              router.back();
-            },
-          });
+    Alert.alert(
+      "Xóa bài viết",
+      "Bạn có chắc muốn xóa bài viết này vĩnh viễn?",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: () => {
+            if (!post.id) return;
+            deletePost(post.id, {
+              onSuccess: () => {
+                // Set isDeleted immediately to disable all queries and prevent 404 errors
+                setIsDeleted(true);
+                router.back();
+              },
+            });
+          },
         },
-      },
-    ]);
+      ]
+    );
   }, [post?.id, deletePost, isDeletingPost, router]);
 
   const handleUpdateVisibility = useCallback(
@@ -274,7 +308,8 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         postId: post.id,
         data: {
           postType: post.postType ?? PostType.EXPERIENCE,
-          visibility: visibility === 'public' ? Visibility.PUBLIC : Visibility.PRIVATE,
+          visibility:
+            visibility === "public" ? Visibility.PUBLIC : Visibility.PRIVATE,
         },
       });
     },
@@ -290,17 +325,14 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         content,
         // Ensure parentCommentId is a number if your API expects number
         // If replyingToId is string (from UI), parse it.
-        parentCommentId: replyingToId ? parseInt(replyingToId, 10) : undefined
+        parentCommentId: replyingToId ? parseInt(replyingToId, 10) : undefined,
       };
 
-      createCommentMutation.mutate(
-        commentRequest,
-        {
-          onSuccess: () => {
-            setReplyingToId(null);
-          },
-        }
-      );
+      createCommentMutation.mutate(commentRequest, {
+        onSuccess: () => {
+          setReplyingToId(null);
+        },
+      });
     },
     [createCommentMutation, replyingToId, post?.id]
   );
@@ -322,7 +354,11 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   // Count total comments using post stats when available
   const totalComments = post.commentCount ?? flattenedComments.length;
 
-  const renderComment = ({ item }: { item: ReturnType<typeof mapCommentResponseToComment> }) => (
+  const renderComment = ({
+    item,
+  }: {
+    item: ReturnType<typeof mapCommentResponseToComment>;
+  }) => (
     <CommentItem
       comment={item}
       onLikePress={(id) => handleCommentLike(parseInt(id, 10))}
@@ -334,19 +370,28 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const ListHeader = () => (
     <>
       {/* Post Card */}
-      <View style={[styles.postCard, { backgroundColor: colors.card, ...Shadows.sm }]}>
+      <View
+        style={[
+          styles.postCard,
+          { backgroundColor: colors.card, ...Shadows.sm },
+        ]}
+      >
         {/* Author row */}
         <PostAuthorRow
           authorName={post.authorName}
           authorAvatarUrl={post.authorAvatarUrl}
           createdAt={post.createdAt}
-          visibility={post.visibility === Visibility.PUBLIC ? 'public' : 'private'}
+          visibility={
+            post.visibility === Visibility.PUBLIC ? "public" : "private"
+          }
           onMenuPress={handleMenuPress}
         />
 
         {/* Content */}
         <View style={styles.contentContainer}>
-          <Text style={[styles.content, { color: colors.text }]}>{post.content}</Text>
+          <Text style={[styles.content, { color: colors.text }]}>
+            {post.content}
+          </Text>
         </View>
 
         {/* Media */}
@@ -384,9 +429,12 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+      style={[
+        styles.container,
+        { backgroundColor: colors.backgroundSecondary },
+      ]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
     >
       {/* Header */}
       <PostDetailHeader />
@@ -425,7 +473,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
       <PostOverflowMenu
         isOpen={isMenuOpen}
         onClose={handleMenuClose}
-        postId={post?.id ? String(post.id) : ''}
+        postId={post?.id ? String(post.id) : ""}
         onSave={(postId) => handleSavePost(postId)}
         onReport={(postId) => handleReportPost(postId)}
         onBlock={(postId) => handleBlockPost(postId)}
@@ -434,7 +482,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
       <PostOwnerMenu
         isOpen={isOwnerMenuOpen}
         onClose={handleMenuClose}
-        postId={post?.id ? String(post.id) : ''}
+        postId={post?.id ? String(post.id) : ""}
         onSave={(postId) => handleSavePost(postId)}
         onEditPrivacy={() => handleEditPrivacy()}
         onEditPost={() => handleEditPost()}
@@ -444,7 +492,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
       <EditPrivacySheet
         isOpen={isEditPrivacyOpen}
         onClose={handleCloseEditPrivacy}
-        postId={post?.id ? String(post.id) : ''}
+        postId={post?.id ? String(post.id) : ""}
         currentVisibility={selectedPostVisibility}
         onSave={(_, visibility) => handleUpdateVisibility(visibility)}
       />
@@ -463,7 +511,9 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         }}
         onSubmit={handleSubmitReport}
         targetType={reportTargetType}
-        isLoading={reportTargetType === 'post' ? isReportingPost : isReportingComment}
+        isLoading={
+          reportTargetType === "post" ? isReportingPost : isReportingComment
+        }
       />
     </KeyboardAvoidingView>
   );

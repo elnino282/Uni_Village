@@ -24,9 +24,12 @@ export type {
 export type {
     CommentRequest,
     CommentResponse, LikeResponse, PostResponse,
-    PostType, SavedPostResponse, SharePostRequest,
-    SharePostResponse, Visibility
+    SavedPostResponse, SharePostRequest,
+    SharePostResponse
 } from '@/lib/api/generated';
+
+// Export PostType and Visibility as values (enums), not just types
+export { PostType, Visibility } from '@/lib/api/generated';
 
 export type {
     ConversationPrivateRequest, ConversationResponse, FileMessageResponse, FileType, MarkReadRequest,

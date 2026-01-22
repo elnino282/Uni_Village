@@ -10,7 +10,7 @@ export type CommunityTab = 'posts' | 'messages';
 export type ContentFilterTab = 'posts' | 'itineraries' | 'channels';
 
 /** Post visibility/privacy level */
-export type PostVisibility = 'public' | 'private';
+export type PostVisibility = 'public' | 'friends' | 'private';
 
 export interface PostLocation {
   id: string | number;

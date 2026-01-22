@@ -7,9 +7,8 @@
 
 import type {
   CreateReportRequest,
-  ReportResponse,
   ReportReason,
-  REPORT_REASON_TO_TYPE_ID,
+  ReportResponse,
 } from "@/shared/types/report.types";
 import { apiClient } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
@@ -44,12 +43,13 @@ export async function reportPost(
   reason: string
 ): Promise<ReportResponse> {
   // Import at runtime to avoid circular dependency
-  const { REPORT_REASON_TO_TYPE_ID, ReportReason } = await import(
-    "@/shared/types/report.types"
-  );
+  const { REPORT_REASON_TO_TYPE_ID, ReportReason } =
+    await import("@/shared/types/report.types");
 
   // Check if reason is a ReportReason enum or custom text
-  const reportTypeId = Object.values(ReportReason).includes(reason as ReportReason)
+  const reportTypeId = Object.values(ReportReason).includes(
+    reason as ReportReason
+  )
     ? REPORT_REASON_TO_TYPE_ID[reason as ReportReason]
     : REPORT_REASON_TO_TYPE_ID[ReportReason.OTHER]; // Default to OTHER for custom reasons
 
@@ -67,11 +67,12 @@ export async function reportComment(
   commentId: number,
   reason: string
 ): Promise<ReportResponse> {
-  const { REPORT_REASON_TO_TYPE_ID, ReportReason } = await import(
-    "@/shared/types/report.types"
-  );
+  const { REPORT_REASON_TO_TYPE_ID, ReportReason } =
+    await import("@/shared/types/report.types");
 
-  const reportTypeId = Object.values(ReportReason).includes(reason as ReportReason)
+  const reportTypeId = Object.values(ReportReason).includes(
+    reason as ReportReason
+  )
     ? REPORT_REASON_TO_TYPE_ID[reason as ReportReason]
     : REPORT_REASON_TO_TYPE_ID[ReportReason.OTHER];
 
@@ -89,11 +90,12 @@ export async function reportUser(
   userId: number,
   reason: string
 ): Promise<ReportResponse> {
-  const { REPORT_REASON_TO_TYPE_ID, ReportReason } = await import(
-    "@/shared/types/report.types"
-  );
+  const { REPORT_REASON_TO_TYPE_ID, ReportReason } =
+    await import("@/shared/types/report.types");
 
-  const reportTypeId = Object.values(ReportReason).includes(reason as ReportReason)
+  const reportTypeId = Object.values(ReportReason).includes(
+    reason as ReportReason
+  )
     ? REPORT_REASON_TO_TYPE_ID[reason as ReportReason]
     : REPORT_REASON_TO_TYPE_ID[ReportReason.OTHER];
 
@@ -111,11 +113,12 @@ export async function reportConversation(
   conversationId: number,
   reason: string
 ): Promise<ReportResponse> {
-  const { REPORT_REASON_TO_TYPE_ID, ReportReason } = await import(
-    "@/shared/types/report.types"
-  );
+  const { REPORT_REASON_TO_TYPE_ID, ReportReason } =
+    await import("@/shared/types/report.types");
 
-  const reportTypeId = Object.values(ReportReason).includes(reason as ReportReason)
+  const reportTypeId = Object.values(ReportReason).includes(
+    reason as ReportReason
+  )
     ? REPORT_REASON_TO_TYPE_ID[reason as ReportReason]
     : REPORT_REASON_TO_TYPE_ID[ReportReason.OTHER];
 

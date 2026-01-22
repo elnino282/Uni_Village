@@ -7,9 +7,8 @@ import type {
     SavedPostResponse as BackendSavedPostResponse,
     SharePostRequest as BackendSharePostRequest,
     SharePostResponse as BackendSharePostResponse,
-    PostType,
-    Visibility,
 } from '@/shared/types/backend.types';
+import { PostType, Visibility } from '@/shared/types/backend.types';
 
 export type PostResponse = BackendPostResponse;
 export type Post = BackendPostResponse;
@@ -20,7 +19,7 @@ export type SavedPostResponse = BackendSavedPostResponse;
 export type SharePostRequest = BackendSharePostRequest;
 export type SharePostResponse = BackendSharePostResponse;
 
-export type { PostType, Visibility };
+export { PostType, Visibility };
 
 export interface PostLocation {
     id: string | number;
