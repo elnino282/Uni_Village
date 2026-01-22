@@ -8,11 +8,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Avatar } from "@/shared/components/ui";
 import {
-    BorderRadius,
-    Colors,
-    Shadows,
-    Spacing,
-    Typography,
+  BorderRadius,
+  Colors,
+  Shadows,
+  Spacing,
+  Typography,
 } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 
@@ -65,11 +65,11 @@ function formatTimeAgo(dateString: string): string {
   return `${diffInYears} năm trước`;
 }
 
-export function ProfilePostCard({ 
-  post, 
+export function ProfilePostCard({
+  post,
   onMenuPress,
   onLikePress,
-  onCommentPress 
+  onCommentPress,
 }: ProfilePostCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
@@ -106,22 +106,23 @@ export function ProfilePostCard({
             <Text style={[styles.time, { color: colors.textSecondary }]}>
               {formatTimeAgo(post.createdAt)}
             </Text>
-            {post.visibility && (() => {
-              const icon = getVisibilityIcon(post.visibility);
-              return icon ? (
-                <>
-                  <Text style={[styles.dot, { color: colors.textSecondary }]}>
-                    •
-                  </Text>
-                  <Ionicons
-                    name={icon.name as any}
-                    size={12}
-                    color={icon.color}
-                    style={styles.visibilityIcon}
-                  />
-                </>
-              ) : null;
-            })()}
+            {post.visibility &&
+              (() => {
+                const icon = getVisibilityIcon(post.visibility);
+                return icon ? (
+                  <>
+                    <Text style={[styles.dot, { color: colors.textSecondary }]}>
+                      •
+                    </Text>
+                    <Ionicons
+                      name={icon.name as any}
+                      size={12}
+                      color={icon.color}
+                      style={styles.visibilityIcon}
+                    />
+                  </>
+                ) : null;
+              })()}
           </View>
         </View>
         <Pressable
@@ -183,7 +184,7 @@ export function ProfilePostCard({
       )}
 
       <View style={styles.reactions}>
-        <Pressable 
+        <Pressable
           style={styles.reactionItem}
           onPress={() => onLikePress?.(post.id)}
           accessibilityRole="button"
@@ -194,7 +195,7 @@ export function ProfilePostCard({
             {post.reactions.likes}
           </Text>
         </Pressable>
-        <Pressable 
+        <Pressable
           style={styles.reactionItem}
           onPress={() => onCommentPress?.(post.id)}
           accessibilityRole="button"

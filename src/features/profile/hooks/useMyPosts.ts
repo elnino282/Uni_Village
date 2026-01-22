@@ -3,9 +3,9 @@
  */
 
 import { postsApi } from "@/features/post/api";
+import { useLikePost as useRealLikePost } from "@/features/post/hooks";
 import type { PostResponse } from "@/features/post/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLikePost as useRealLikePost } from "@/features/post/hooks";
 import type { ProfileTabKey } from "../components/ProfileTabs";
 import type { ProfilePost } from "../types";
 

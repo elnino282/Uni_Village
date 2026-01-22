@@ -214,7 +214,7 @@ export function useCreateComment() {
       queryClient.invalidateQueries({
         predicate: (query) => {
           const key = query.queryKey;
-          return Array.isArray(key) && key[0] === 'myPosts';
+          return Array.isArray(key) && key[0] === "myPosts";
         },
       });
     },

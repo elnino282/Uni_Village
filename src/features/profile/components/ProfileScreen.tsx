@@ -18,7 +18,12 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { s, vs } from "react-native-size-matters";
-import { useMyPosts, useMyProfile, useProfileShareSheet, useProfileLikePost } from "../hooks";
+import {
+  useMyPosts,
+  useMyProfile,
+  useProfileLikePost,
+  useProfileShareSheet,
+} from "../hooks";
 import type { ProfilePost } from "../types";
 import { ProfileActionButtons } from "./ProfileActionButtons";
 import { ProfileEmptyPostCard } from "./ProfileEmptyPostCard";
@@ -209,12 +214,9 @@ export function ProfileScreen() {
     [likePost]
   );
 
-  const handleCommentPress = useCallback(
-    (postId: string) => {
-      router.push({ pathname: "/post/detail", params: { postId } } as any);
-    },
-    []
-  );
+  const handleCommentPress = useCallback((postId: string) => {
+    router.push({ pathname: "/post/detail", params: { postId } } as any);
+  }, []);
 
   const handleSharePost = useCallback((postId: string) => {
     // TODO: Implement share post functionality
@@ -246,8 +248,8 @@ export function ProfileScreen() {
 
   const renderPostItem = useCallback(
     ({ item }: { item: ProfilePost }) => (
-      <ProfilePostCard 
-        post={item} 
+      <ProfilePostCard
+        post={item}
         onMenuPress={handleMenuPress}
         onLikePress={handleLikePost}
         onCommentPress={handleCommentPress}

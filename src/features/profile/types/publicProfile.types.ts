@@ -2,7 +2,7 @@
  * Public Profile Types
  */
 
-import type { Profile } from './profile.types';
+import type { Profile } from "./profile.types";
 
 export interface PublicProfile extends Profile {
   threadId?: string;
@@ -37,4 +37,4 @@ export interface ProfilePost {
   reactions: ProfilePostReactions;
 }
 
-export type PublicProfileTab = 'posts' | 'saved';
+export type PublicProfileTab = "posts" | "saved";

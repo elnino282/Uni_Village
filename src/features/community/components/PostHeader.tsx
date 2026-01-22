@@ -59,22 +59,23 @@ export function PostHeader({
             <Text style={[styles.timestamp, { color: colors.textSecondary }]}>
               {formatTimeAgo(createdAt)}
             </Text>
-            {visibility && (() => {
-              const icon = getVisibilityIcon(visibility);
-              return icon ? (
-                <>
-                  <Text style={[styles.dot, { color: colors.textSecondary }]}>
-                    •
-                  </Text>
-                  <MaterialIcons
-                    name={icon.name as any}
-                    size={14}
-                    color={icon.color}
-                    style={styles.visibilityIcon}
-                  />
-                </>
-              ) : null;
-            })()}
+            {visibility &&
+              (() => {
+                const icon = getVisibilityIcon(visibility);
+                return icon ? (
+                  <>
+                    <Text style={[styles.dot, { color: colors.textSecondary }]}>
+                      •
+                    </Text>
+                    <MaterialIcons
+                      name={icon.name as any}
+                      size={14}
+                      color={icon.color}
+                      style={styles.visibilityIcon}
+                    />
+                  </>
+                ) : null;
+              })()}
           </View>
         </View>
       </TouchableOpacity>

@@ -5,11 +5,11 @@ import { ItineraryShareCard } from "@/features/itinerary/components/ItinerarySha
 import { ChannelInviteCard } from "@/shared/components/channel";
 import { PostActionRow } from "@/shared/components/post";
 import {
-    BorderRadius,
-    Colors,
-    Shadows,
-    Spacing,
-    Typography,
+  BorderRadius,
+  Colors,
+  Shadows,
+  Spacing,
+  Typography,
 } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import type { CommunityPost, PostLocation } from "../types";
