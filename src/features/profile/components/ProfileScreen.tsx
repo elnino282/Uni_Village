@@ -2,7 +2,7 @@ import { SaveSuccessModal } from "@/components/SaveSuccessModal";
 import { EditPrivacySheet } from "@/features/community/components/EditPrivacySheet";
 import { useSavePost } from "@/features/community/hooks";
 import type { PostVisibility } from "@/features/community/types";
-import { useDeletePost, useUpdatePost, useLikePost } from "@/features/post/hooks";
+import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { showErrorToast } from "@/shared/utils";
@@ -18,7 +18,7 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { s, vs } from "react-native-size-matters";
-import { useMyPosts, useMyProfile, useProfileShareSheet } from "../hooks";
+import { useMyPosts, useMyProfile, useProfileShareSheet, useProfileLikePost } from "../hooks";
 import type { ProfilePost } from "../types";
 import { ProfileActionButtons } from "./ProfileActionButtons";
 import { ProfileEmptyPostCard } from "./ProfileEmptyPostCard";
@@ -63,7 +63,7 @@ export function ProfileScreen() {
   const { mutate: savePost } = useSavePost();
   const { mutate: deletePost } = useDeletePost();
   const { mutate: updatePost } = useUpdatePost();
-  const { mutate: likePost } = useLikePost();
+  const { mutate: likePost } = useProfileLikePost();
 
   // Profile share sheet
   const shareSheet = useProfileShareSheet({

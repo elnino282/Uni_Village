@@ -1,7 +1,7 @@
 export { useFollow } from './useFollow';
 export { useImagePicker } from './useImagePicker';
 export type { ImagePickerResult, UseImagePickerOptions } from './useImagePicker';
-export { myPostsKeys, useMyPosts } from './useMyPosts';
+export { myPostsKeys, useMyPosts, useProfileLikePost } from './useMyPosts';
 export { profileKeys, useMyProfile, useProfile } from './useProfile';
 export { profilePostsKeys, useProfilePosts } from './useProfilePosts';
 export { useProfileShareSheet } from './useProfileShareSheet';

@@ -4,7 +4,8 @@
 
 import { postsApi } from "@/features/post/api";
 import type { PostResponse } from "@/features/post/types";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLikePost as useRealLikePost } from "@/features/post/hooks";
 import type { ProfileTabKey } from "../components/ProfileTabs";
 import type { ProfilePost } from "../types";
 
@@ -63,5 +64,22 @@ export function useMyPosts(tab: ProfileTabKey = "my-posts") {
       }
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}
+
+/**
+ * Wrapper for useLikePost that invalidates myPosts queries immediately
+ * This provides faster UI updates compared to waiting for optimistic updates
+ */
+export function useProfileLikePost() {
+  const queryClient = useQueryClient();
+  const realLikePost = useRealLikePost();
+
+  return useMutation({
+    mutationFn: (postId: string) => realLikePost.mutateAsync(Number(postId)),
+    onSuccess: () => {
+      // Invalidate immediately for fast UI update from cache
+      queryClient.invalidateQueries({ queryKey: myPostsKeys.all });
+    },
   });
 }
