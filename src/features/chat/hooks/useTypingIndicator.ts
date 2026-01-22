@@ -93,31 +93,65 @@ export function useTypingIndicator(conversationId: string | undefined) {
     }
   }, [conversationId]);
 
-  // Subscribe to typing events from RTDB
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const isMountedRef = useRef(true);
+
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
+    }
+
     if (!conversationId) {
       setTypingUsers([]);
       return;
     }
 
+    let isActive = true;
+
     const unsubscribe = rtdbTypingService.subscribeToTyping(
       conversationId,
       (users) => {
-        setTypingUsers(users);
+        if (isActive && isMountedRef.current) {
+          setTypingUsers(users);
+        }
       },
     );
 
+    unsubscribeRef.current = unsubscribe;
+
     return () => {
-      unsubscribe();
+      isActive = false;
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
     };
   }, [conversationId]);
 
-  // Cleanup on unmount or conversation change
   useEffect(() => {
     return () => {
-      stopTyping();
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      if (autoStopTimerRef.current) {
+        clearTimeout(autoStopTimerRef.current);
+        autoStopTimerRef.current = null;
+      }
+      if (isTypingSentRef.current && conversationId) {
+        rtdbTypingService.setTyping(conversationId, false).catch(() => {});
+        isTypingSentRef.current = false;
+      }
     };
-  }, [stopTyping]);
+  }, [conversationId]);
 
   // Convert to legacy format for UI compatibility
   const typingUsersList = typingUsers.map((user) => ({

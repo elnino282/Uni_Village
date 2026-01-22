@@ -4,8 +4,43 @@
       "$conversationId": {
         ".read": "auth != null && data.child('members').child(auth.uid).val() == true",
         ".write": "auth != null && ((!data.exists() && newData.child('members').child(auth.uid).val() == true) || data.child('members').child(auth.uid).val() == true)",
+        "type": {
+          ".validate": "newData.isString() && (newData.val() == 'dm' || newData.val() == 'group')"
+        },
         "members": {
-          ".validate": "newData.hasChildren()"
+          ".validate": "newData.hasChildren()",
+          "$uid": {
+            ".validate": "newData.isBoolean() && newData.val() == true"
+          }
+        },
+        "memberDetails": {
+          "$uid": {
+            ".validate": "newData.hasChildren() && newData.child('displayName').isString() && newData.child('displayName').val().length > 0 && newData.child('displayName').val().length <= 100 && newData.child('joinedAt').isNumber()"
+          }
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "avatarUrl": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "lastMessage": {
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "lastMessageAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "lastMessageType": {
+          ".validate": "newData.isString() && (newData.val() == 'text' || newData.val() == 'image' || newData.val() == 'sharedCard')"
+        },
+        "lastMessageSenderId": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber()"
         }
       }
     },
@@ -16,16 +51,34 @@
           ".read": "auth != null && root.child('conversations').child($conversationId).child('members').child(auth.uid).val() == true",
           ".write": "auth != null && root.child('conversations').child($conversationId).child('members').child(auth.uid).val() == true && ((!data.exists() && newData.child('senderId').val() == auth.uid) || (data.exists() && data.child('senderId').val() == auth.uid))",
           "senderId": {
-            ".validate": "newData.isString() && newData.val().length > 0"
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128"
+          },
+          "senderName": {
+            ".validate": "newData.isString() && newData.val().length <= 100"
+          },
+          "senderAvatarUrl": {
+            ".validate": "newData.isString() && newData.val().length <= 500"
           },
           "type": {
             ".validate": "newData.isString() && (newData.val() == 'text' || newData.val() == 'image' || newData.val() == 'sharedCard')"
           },
+          "text": {
+            ".validate": "newData.isString() && newData.val().length <= 10000"
+          },
+          "imageUrl": {
+            ".validate": "newData.isString() && newData.val().length <= 500"
+          },
           "createdAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "updatedAt": {
             ".validate": "newData.isNumber()"
           },
           "isActive": {
             ".validate": "newData.isBoolean()"
+          },
+          "clientMessageId": {
+            ".validate": "newData.isString() && newData.val().length <= 256"
           }
         }
       }
@@ -55,15 +108,15 @@
       "$conversationId": {
         "$uid": {
           ".read": "auth != null && root.child('conversations').child($conversationId).child('members').child(auth.uid).val() == true",
-          ".write": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid && root.child('conversations').child($conversationId).child('members').child(auth.uid).val() == true",
           "displayName": {
-            ".validate": "newData.isString()"
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
           },
           "isTyping": {
-            ".validate": "newData.isBoolean()"
+            ".validate": "newData.isBoolean() && newData.val() == true"
           },
           "timestamp": {
-            ".validate": "newData.isNumber()"
+            ".validate": "newData.isNumber() && newData.val() > 0"
           }
         }
       }

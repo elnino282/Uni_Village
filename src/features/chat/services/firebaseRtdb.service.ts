@@ -11,20 +11,20 @@
  */
 
 import {
-    get,
-    limitToLast,
-    onChildAdded,
-    onChildRemoved,
-    onDisconnect,
-    onValue,
-    orderByChild,
-    push,
-    query,
-    ref,
-    remove,
-    set,
-    update,
-    type Unsubscribe,
+  get,
+  limitToLast,
+  onChildAdded,
+  onChildRemoved,
+  onDisconnect,
+  onValue,
+  orderByChild,
+  push,
+  query,
+  ref,
+  remove,
+  set,
+  update,
+  type Unsubscribe,
 } from "firebase/database";
 
 import { auth, database } from "@/lib/firebase";
@@ -104,6 +104,109 @@ export interface ConversationParticipant {
 // Helper Functions
 // ============================================================================
 
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000;
+const MAX_RETRY_DELAY = 10000;
+
+function isRetryableError(error: any): boolean {
+  if (!error) return false;
+  const code = error.code || error.message || "";
+  const codeStr = String(code).toLowerCase();
+  return (
+    codeStr.includes("network") ||
+    codeStr.includes("unavailable") ||
+    codeStr.includes("timeout") ||
+    codeStr.includes("disconnected") ||
+    code === "unavailable" ||
+    code === "network_error"
+  );
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  maxRetries: number = MAX_RETRIES,
+): Promise<T> {
+  let lastError: any;
+  let delay = INITIAL_RETRY_DELAY;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+
+      if (attempt === maxRetries || !isRetryableError(error)) {
+        console.error(
+          `[RTDB] ${operationName} failed after ${attempt + 1} attempts:`,
+          error,
+        );
+        throw error;
+      }
+
+      console.warn(
+        `[RTDB] ${operationName} failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms:`,
+        error.message || error,
+      );
+
+      await sleep(delay);
+      delay = Math.min(delay * 2, MAX_RETRY_DELAY);
+    }
+  }
+
+  throw lastError;
+}
+
+function validateConversationId(conversationId: string): void {
+  if (!conversationId || typeof conversationId !== "string") {
+    throw new Error("Invalid conversation ID");
+  }
+  if (conversationId.length > 256) {
+    throw new Error("Conversation ID too long");
+  }
+}
+
+function validateMessageInput(input: RtdbMessageInput): void {
+  if (!input.type) {
+    throw new Error("Message type is required");
+  }
+
+  const validTypes = ["text", "image", "sharedCard"];
+  if (!validTypes.includes(input.type)) {
+    throw new Error(`Invalid message type: ${input.type}`);
+  }
+
+  if (input.type === "text") {
+    if (input.text && input.text.length > 10000) {
+      throw new Error("Message text too long (max 10000 characters)");
+    }
+  }
+
+  if (input.type === "image" && !input.imageUrl) {
+    throw new Error("Image URL is required for image messages");
+  }
+
+  if (input.type === "sharedCard" && !input.card) {
+    throw new Error("Card data is required for shared card messages");
+  }
+}
+
+function validateParticipant(participant: ConversationParticipant): void {
+  if (!participant.uid || typeof participant.uid !== "string") {
+    throw new Error("Participant UID is required");
+  }
+  if (!participant.displayName || typeof participant.displayName !== "string") {
+    throw new Error("Participant display name is required");
+  }
+  if (participant.displayName.length > 100) {
+    throw new Error("Display name too long (max 100 characters)");
+  }
+}
+
 /**
  * Get the current authenticated user's UID
  * Throws if not authenticated
@@ -140,17 +243,21 @@ export function isVirtualThreadId(threadId: string): boolean {
 export async function getConversation(
   conversationId: string,
 ): Promise<RtdbConversation | null> {
-  const conversationRef = ref(database, `conversations/${conversationId}`);
-  const snapshot = await get(conversationRef);
+  validateConversationId(conversationId);
 
-  if (!snapshot.exists()) {
-    return null;
-  }
+  return retryWithBackoff(async () => {
+    const conversationRef = ref(database, `conversations/${conversationId}`);
+    const snapshot = await get(conversationRef);
 
-  return {
-    id: conversationId,
-    ...snapshot.val(),
-  };
+    if (!snapshot.exists()) {
+      return null;
+    }
+
+    return {
+      id: conversationId,
+      ...snapshot.val(),
+    };
+  }, `getConversation(${conversationId})`);
 }
 
 /**
@@ -166,129 +273,187 @@ export async function ensureConversation(
     avatarUrl?: string;
   },
 ): Promise<void> {
-  const conversationRef = ref(database, `conversations/${conversationId}`);
-  const snapshot = await get(conversationRef);
-  const now = Date.now();
+  validateConversationId(conversationId);
 
-  const membersMap: Record<string, true> = {};
-  const memberDetails: Record<string, RtdbConversationMember> = {};
-
-  for (const member of data.members) {
-    if (!member.uid) continue;
-    membersMap[member.uid] = true;
-    memberDetails[member.uid] = {
-      displayName: member.displayName,
-      avatarUrl: member.avatarUrl,
-      legacyUserId: member.legacyUserId,
-      joinedAt: now,
-    };
+  if (!data.type || (data.type !== "dm" && data.type !== "group")) {
+    throw new Error("Invalid conversation type");
   }
 
-  const updates: Record<string, any> = {};
+  if (!data.members || data.members.length === 0) {
+    throw new Error("At least one member is required");
+  }
 
-  if (!snapshot.exists()) {
-    const conversationData: Omit<RtdbConversation, "id"> = {
-      type: data.type,
-      members: membersMap,
-      memberDetails,
-      name: data.name,
-      avatarUrl: data.avatarUrl,
-      createdAt: now,
-      updatedAt: now,
-    };
-    updates[`conversations/${conversationId}`] = conversationData;
-  } else {
-    const existing = snapshot.val() as Partial<RtdbConversation>;
-    const existingMembers = existing.members ?? {};
+  for (const member of data.members) {
+    validateParticipant(member);
+  }
+
+  if (data.name && data.name.length > 100) {
+    throw new Error("Conversation name too long (max 100 characters)");
+  }
+
+  return retryWithBackoff(async () => {
+    const conversationRef = ref(database, `conversations/${conversationId}`);
+    const snapshot = await get(conversationRef);
+    const now = Date.now();
+
+    const membersMap: Record<string, true> = {};
+    const memberDetails: Record<string, RtdbConversationMember> = {};
 
     for (const member of data.members) {
       if (!member.uid) continue;
-      if (!existingMembers[member.uid]) {
-        updates[`conversations/${conversationId}/members/${member.uid}`] = true;
-        updates[`conversations/${conversationId}/memberDetails/${member.uid}`] =
-          memberDetails[member.uid];
-      } else if (!existing.memberDetails?.[member.uid]) {
-        updates[`conversations/${conversationId}/memberDetails/${member.uid}`] =
-          memberDetails[member.uid];
+      membersMap[member.uid] = true;
+      memberDetails[member.uid] = {
+        displayName: member.displayName,
+        avatarUrl: member.avatarUrl,
+        legacyUserId: member.legacyUserId,
+        joinedAt: now,
+      };
+    }
+
+    const updates: Record<string, any> = {};
+
+    if (!snapshot.exists()) {
+      const conversationData: Omit<RtdbConversation, "id"> = {
+        type: data.type,
+        members: membersMap,
+        memberDetails,
+        name: data.name,
+        avatarUrl: data.avatarUrl,
+        createdAt: now,
+        updatedAt: now,
+      };
+      updates[`conversations/${conversationId}`] = conversationData;
+    } else {
+      const existing = snapshot.val() as Partial<RtdbConversation>;
+      const existingMembers = existing.members ?? {};
+
+      for (const member of data.members) {
+        if (!member.uid) continue;
+        if (!existingMembers[member.uid]) {
+          updates[`conversations/${conversationId}/members/${member.uid}`] = true;
+          updates[`conversations/${conversationId}/memberDetails/${member.uid}`] =
+            memberDetails[member.uid];
+        } else if (!existing.memberDetails?.[member.uid]) {
+          updates[`conversations/${conversationId}/memberDetails/${member.uid}`] =
+            memberDetails[member.uid];
+        }
+      }
+
+      if (!existing.type && data.type) {
+        updates[`conversations/${conversationId}/type`] = data.type;
+      }
+      if (!existing.name && data.name) {
+        updates[`conversations/${conversationId}/name`] = data.name;
+      }
+      if (!existing.avatarUrl && data.avatarUrl) {
+        updates[`conversations/${conversationId}/avatarUrl`] = data.avatarUrl;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        updates[`conversations/${conversationId}/updatedAt`] = now;
       }
     }
 
-    if (!existing.type && data.type) {
-      updates[`conversations/${conversationId}/type`] = data.type;
-    }
-    if (!existing.name && data.name) {
-      updates[`conversations/${conversationId}/name`] = data.name;
-    }
-    if (!existing.avatarUrl && data.avatarUrl) {
-      updates[`conversations/${conversationId}/avatarUrl`] = data.avatarUrl;
+    for (const member of data.members) {
+      if (!member.uid) continue;
+      updates[`userConversations/${member.uid}/${conversationId}`] = true;
     }
 
     if (Object.keys(updates).length > 0) {
-      updates[`conversations/${conversationId}/updatedAt`] = now;
+      try {
+        await update(ref(database), updates);
+      } catch (error: any) {
+        if (error.code === "permission-denied") {
+          const recheck = await get(conversationRef);
+          if (recheck.exists()) {
+            const existing = recheck.val() as Partial<RtdbConversation>;
+            const hasAllMembers = data.members.every(
+              (m) => m.uid && existing.members?.[m.uid],
+            );
+            if (hasAllMembers) {
+              return;
+            }
+          }
+        }
+        throw error;
+      }
     }
-  }
-
-  for (const member of data.members) {
-    if (!member.uid) continue;
-    updates[`userConversations/${member.uid}/${conversationId}`] = true;
-  }
-
-  if (Object.keys(updates).length > 0) {
-    await update(ref(database), updates);
-  }
+  }, `ensureConversation(${conversationId})`);
 }
 
 /**
  * Create or get an existing DM conversation between two users
+ * Handles race conditions by checking existence again after retry
  */
 export async function ensureDirectConversation(
   currentUser: ConversationParticipant,
   peer: ConversationParticipant,
 ): Promise<string> {
-  const conversationId = buildDmConversationId(currentUser.uid, peer.uid);
-  const conversationRef = ref(database, `conversations/${conversationId}`);
-  const snapshot = await get(conversationRef);
+  validateParticipant(currentUser);
+  validateParticipant(peer);
 
-  if (snapshot.exists()) {
-    return conversationId;
+  if (currentUser.uid === peer.uid) {
+    throw new Error("Cannot create DM conversation with yourself");
   }
 
-  const now = Date.now();
+  const conversationId = buildDmConversationId(currentUser.uid, peer.uid);
 
-  // Create new DM conversation
-  const conversationData: Omit<RtdbConversation, "id"> = {
-    type: "dm",
-    members: {
-      [currentUser.uid]: true,
-      [peer.uid]: true,
-    },
-    memberDetails: {
-      [currentUser.uid]: {
-        displayName: currentUser.displayName,
-        avatarUrl: currentUser.avatarUrl,
-        legacyUserId: currentUser.legacyUserId,
-        joinedAt: now,
-      },
-      [peer.uid]: {
-        displayName: peer.displayName,
-        avatarUrl: peer.avatarUrl,
-        legacyUserId: peer.legacyUserId,
-        joinedAt: now,
-      },
-    },
-    createdAt: now,
-    updatedAt: now,
-  };
+  try {
+    return await retryWithBackoff(async () => {
+      const conversationRef = ref(database, `conversations/${conversationId}`);
+      const snapshot = await get(conversationRef);
 
-  // Use multi-path update for atomicity
-  const updates: Record<string, any> = {};
-  updates[`conversations/${conversationId}`] = conversationData;
-  updates[`userConversations/${currentUser.uid}/${conversationId}`] = true;
-  updates[`userConversations/${peer.uid}/${conversationId}`] = true;
+      if (snapshot.exists()) {
+        const existing = snapshot.val() as Partial<RtdbConversation>;
+        if (existing.members?.[currentUser.uid] && existing.members?.[peer.uid]) {
+          return conversationId;
+        }
+      }
 
-  await update(ref(database), updates);
+      const now = Date.now();
 
-  return conversationId;
+      const conversationData: Omit<RtdbConversation, "id"> = {
+        type: "dm",
+        members: {
+          [currentUser.uid]: true,
+          [peer.uid]: true,
+        },
+        memberDetails: {
+          [currentUser.uid]: {
+            displayName: currentUser.displayName,
+            avatarUrl: currentUser.avatarUrl,
+            legacyUserId: currentUser.legacyUserId,
+            joinedAt: now,
+          },
+          [peer.uid]: {
+            displayName: peer.displayName,
+            avatarUrl: peer.avatarUrl,
+            legacyUserId: peer.legacyUserId,
+            joinedAt: now,
+          },
+        },
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const updates: Record<string, any> = {};
+      updates[`conversations/${conversationId}`] = conversationData;
+      updates[`userConversations/${currentUser.uid}/${conversationId}`] = true;
+      updates[`userConversations/${peer.uid}/${conversationId}`] = true;
+
+      await update(ref(database), updates);
+
+      return conversationId;
+    }, `ensureDirectConversation(${conversationId})`);
+  } catch (error: any) {
+    if (error.code === "permission-denied" || error.message?.includes("permission")) {
+      const existing = await getConversation(conversationId);
+      if (existing && existing.members[currentUser.uid] && existing.members[peer.uid]) {
+        return conversationId;
+      }
+    }
+    throw error;
+  }
 }
 
 /**
@@ -533,77 +698,86 @@ export async function sendMessage(
     legacyUserId?: number;
   },
 ): Promise<RtdbMessage> {
+  validateConversationId(conversationId);
+  validateMessageInput(input);
+
   const senderId = getCurrentUid();
   const user = auth.currentUser;
   const now = Date.now();
 
-  // Get conversation to verify membership and get all members
-  const conversation = await getConversation(conversationId);
-  if (!conversation) {
-    throw new Error("Conversation not found");
-  }
-
-  if (!conversation.members[senderId]) {
-    throw new Error("User is not a member of this conversation");
-  }
-
-  // Generate message ID
-  const messageRef = push(ref(database, `messages/${conversationId}`));
-  const messageId = messageRef.key!;
-
-  // Build message data
-  const messageData = {
-    senderId,
-    senderName: senderInfo?.displayName ?? user?.displayName ?? "Unknown",
-    senderAvatarUrl: senderInfo?.avatarUrl ?? user?.photoURL ?? undefined,
-    legacySenderId: senderInfo?.legacyUserId,
-    type: input.type,
-    text: input.text,
-    imageUrl: input.imageUrl,
-    card: input.card,
-    createdAt: now,
-    isActive: true,
-    clientMessageId: input.clientMessageId,
-  };
-
-  // Remove undefined values
-  Object.keys(messageData).forEach((key) => {
-    if (messageData[key as keyof typeof messageData] === undefined) {
-      delete messageData[key as keyof typeof messageData];
+  return retryWithBackoff(async () => {
+    const conversation = await getConversation(conversationId);
+    if (!conversation) {
+      throw new Error("Conversation not found");
     }
-  });
 
-  // Build last message preview
-  let lastMessagePreview = "";
-  if (input.type === "text") {
-    lastMessagePreview = input.text?.substring(0, 100) ?? "";
-  } else if (input.type === "image") {
-    lastMessagePreview = "[Image]";
-  } else if (input.type === "sharedCard") {
-    lastMessagePreview = input.card?.title ?? "[Shared Card]";
-  }
+    if (!conversation.members[senderId]) {
+      throw new Error("User is not a member of this conversation");
+    }
 
-  // Multi-path update for atomicity
-  const updates: Record<string, any> = {};
-  updates[`messages/${conversationId}/${messageId}`] = messageData;
-  updates[`conversations/${conversationId}/lastMessage`] = lastMessagePreview;
-  updates[`conversations/${conversationId}/lastMessageAt`] = now;
-  updates[`conversations/${conversationId}/lastMessageType`] = input.type;
-  updates[`conversations/${conversationId}/lastMessageSenderId`] = senderId;
-  updates[`conversations/${conversationId}/updatedAt`] = now;
+    const messageRef = push(ref(database, `messages/${conversationId}`));
+    const messageId = messageRef.key!;
 
-  // Ensure userConversations entries exist for all members
-  for (const memberUid of Object.keys(conversation.members)) {
-    updates[`userConversations/${memberUid}/${conversationId}`] = true;
-  }
+    const messageData = {
+      senderId,
+      senderName: senderInfo?.displayName ?? user?.displayName ?? "Unknown",
+      senderAvatarUrl: senderInfo?.avatarUrl ?? user?.photoURL ?? undefined,
+      legacySenderId: senderInfo?.legacyUserId,
+      type: input.type,
+      text: input.text,
+      imageUrl: input.imageUrl,
+      card: input.card,
+      createdAt: now,
+      isActive: true,
+      clientMessageId: input.clientMessageId,
+    };
 
-  await update(ref(database), updates);
+    Object.keys(messageData).forEach((key) => {
+      if (messageData[key as keyof typeof messageData] === undefined) {
+        delete messageData[key as keyof typeof messageData];
+      }
+    });
 
-  return {
-    id: messageId,
-    conversationId,
-    ...messageData,
-  } as RtdbMessage;
+    let lastMessagePreview = "";
+    if (input.type === "text") {
+      lastMessagePreview = input.text?.substring(0, 100) ?? "";
+    } else if (input.type === "image") {
+      lastMessagePreview = "[Image]";
+    } else if (input.type === "sharedCard") {
+      lastMessagePreview = input.card?.title ?? "[Shared Card]";
+    }
+
+    const updates: Record<string, any> = {};
+    updates[`messages/${conversationId}/${messageId}`] = messageData;
+    updates[`conversations/${conversationId}/lastMessage`] = lastMessagePreview;
+    updates[`conversations/${conversationId}/lastMessageAt`] = now;
+    updates[`conversations/${conversationId}/lastMessageType`] = input.type;
+    updates[`conversations/${conversationId}/lastMessageSenderId`] = senderId;
+    updates[`conversations/${conversationId}/updatedAt`] = now;
+
+    for (const memberUid of Object.keys(conversation.members)) {
+      updates[`userConversations/${memberUid}/${conversationId}`] = true;
+    }
+
+    try {
+      await update(ref(database), updates);
+    } catch (error: any) {
+      if (error.code === "permission-denied") {
+        const recheck = await getConversation(conversationId);
+        if (!recheck || !recheck.members[senderId]) {
+          throw new Error("User is not a member of this conversation");
+        }
+        throw new Error("Failed to send message: permission denied");
+      }
+      throw error;
+    }
+
+    return {
+      id: messageId,
+      conversationId,
+      ...messageData,
+    } as RtdbMessage;
+  }, `sendMessage(${conversationId})`);
 }
 
 /**
@@ -683,28 +857,35 @@ export async function unsendMessage(
   conversationId: string,
   messageId: string,
 ): Promise<void> {
+  validateConversationId(conversationId);
+
+  if (!messageId || typeof messageId !== "string") {
+    throw new Error("Invalid message ID");
+  }
+
   const senderId = getCurrentUid();
-  const messageRef = ref(database, `messages/${conversationId}/${messageId}`);
 
-  // Verify the message exists and belongs to the user
-  const snapshot = await get(messageRef);
-  if (!snapshot.exists()) {
-    throw new Error("Message not found");
-  }
+  return retryWithBackoff(async () => {
+    const messageRef = ref(database, `messages/${conversationId}/${messageId}`);
 
-  const message = snapshot.val();
-  if (message.senderId !== senderId) {
-    throw new Error("Cannot unsend a message you did not send");
-  }
+    const snapshot = await get(messageRef);
+    if (!snapshot.exists()) {
+      throw new Error("Message not found");
+    }
 
-  // Soft delete
-  await update(messageRef, {
-    isActive: false,
-    text: null,
-    imageUrl: null,
-    card: null,
-    updatedAt: Date.now(),
-  });
+    const message = snapshot.val();
+    if (message.senderId !== senderId) {
+      throw new Error("Cannot unsend a message you did not send");
+    }
+
+    await update(messageRef, {
+      isActive: false,
+      text: null,
+      imageUrl: null,
+      card: null,
+      updatedAt: Date.now(),
+    });
+  }, `unsendMessage(${conversationId}, ${messageId})`);
 }
 
 // ============================================================================
@@ -841,14 +1022,17 @@ export function subscribeToTyping(
  * Leave a conversation (remove from userConversations)
  */
 export async function leaveConversation(conversationId: string): Promise<void> {
+  validateConversationId(conversationId);
   const uid = getCurrentUid();
 
-  const updates: Record<string, any> = {};
-  updates[`userConversations/${uid}/${conversationId}`] = null;
-  updates[`conversations/${conversationId}/members/${uid}`] = null;
-  updates[`conversations/${conversationId}/memberDetails/${uid}`] = null;
+  return retryWithBackoff(async () => {
+    const updates: Record<string, any> = {};
+    updates[`userConversations/${uid}/${conversationId}`] = null;
+    updates[`conversations/${conversationId}/members/${uid}`] = null;
+    updates[`conversations/${conversationId}/memberDetails/${uid}`] = null;
 
-  await update(ref(database), updates);
+    await update(ref(database), updates);
+  }, `leaveConversation(${conversationId})`);
 }
 
 /**
@@ -858,23 +1042,35 @@ export async function addMembersToConversation(
   conversationId: string,
   members: ConversationParticipant[],
 ): Promise<void> {
-  const now = Date.now();
-  const updates: Record<string, any> = {};
+  validateConversationId(conversationId);
 
-  for (const member of members) {
-    updates[`conversations/${conversationId}/members/${member.uid}`] = true;
-    updates[`conversations/${conversationId}/memberDetails/${member.uid}`] = {
-      displayName: member.displayName,
-      avatarUrl: member.avatarUrl,
-      legacyUserId: member.legacyUserId,
-      joinedAt: now,
-    };
-    updates[`userConversations/${member.uid}/${conversationId}`] = true;
+  if (!members || members.length === 0) {
+    throw new Error("At least one member is required");
   }
 
-  updates[`conversations/${conversationId}/updatedAt`] = now;
+  for (const member of members) {
+    validateParticipant(member);
+  }
 
-  await update(ref(database), updates);
+  return retryWithBackoff(async () => {
+    const now = Date.now();
+    const updates: Record<string, any> = {};
+
+    for (const member of members) {
+      updates[`conversations/${conversationId}/members/${member.uid}`] = true;
+      updates[`conversations/${conversationId}/memberDetails/${member.uid}`] = {
+        displayName: member.displayName,
+        avatarUrl: member.avatarUrl,
+        legacyUserId: member.legacyUserId,
+        joinedAt: now,
+      };
+      updates[`userConversations/${member.uid}/${conversationId}`] = true;
+    }
+
+    updates[`conversations/${conversationId}/updatedAt`] = now;
+
+    await update(ref(database), updates);
+  }, `addMembersToConversation(${conversationId})`);
 }
 
 /**

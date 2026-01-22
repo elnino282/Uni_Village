@@ -46,43 +46,64 @@ export function useChatSubscription(conversationId: string | undefined) {
     const queryClient = useQueryClient();
     const { isConnected } = useFirebaseChat();
     const unsubscribeRef = useRef<(() => void) | null>(null);
+    const isMountedRef = useRef(true);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     const handleMessagesUpdate = useCallback(
         (rtdbMessages: RtdbMessage[]) => {
-            if (!conversationId) return;
+            if (!conversationId || !isMountedRef.current) return;
 
-            // Convert to ChatMessageRecord format, sorted by newest first for display
             const messages = rtdbMessages
                 .map(rtdbToChatRecord)
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-            // Update React Query cache
-            queryClient.setQueryData<ChatMessageRecord[]>(
-                messageKeys.list(conversationId),
-                messages
-            );
+            if (isMountedRef.current) {
+                queryClient.setQueryData<ChatMessageRecord[]>(
+                    messageKeys.list(conversationId),
+                    messages
+                );
+            }
         },
         [conversationId, queryClient]
     );
 
     useEffect(() => {
+        if (unsubscribeRef.current) {
+            unsubscribeRef.current();
+            unsubscribeRef.current = null;
+        }
+
         if (!conversationId || !isConnected) {
             return;
         }
 
-        // Subscribe to RTDB messages snapshot
+        let isActive = true;
+
         const unsubscribe = subscribeToMessagesSnapshot(
             conversationId,
-            handleMessagesUpdate,
-            (error) => {
-                console.error('[useChatSubscription] Error:', error);
+            (rtdbMessages) => {
+                if (isActive && isMountedRef.current) {
+                    handleMessagesUpdate(rtdbMessages);
+                }
             },
-            100 // Limit to last 100 messages
+            (error) => {
+                if (isActive && isMountedRef.current) {
+                    console.error('[useChatSubscription] Error:', error);
+                }
+            },
+            100
         );
 
         unsubscribeRef.current = unsubscribe;
 
         return () => {
+            isActive = false;
             if (unsubscribeRef.current) {
                 unsubscribeRef.current();
                 unsubscribeRef.current = null;

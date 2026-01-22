@@ -3,21 +3,21 @@
  * Fetches and subscribes to messages using Firebase Realtime Database
  */
 import {
-    useInfiniteQuery,
-    useMutation,
-    useQueryClient,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
 } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { auth } from "@/lib/firebase";
 import { handleApiError } from "@/shared/utils";
 import {
-    isVirtualThreadId,
-    sendImageMessage as rtdbSendImageMessage,
-    sendTextMessage as rtdbSendTextMessage,
-    subscribeToMessagesSnapshot,
-    type RtdbMessage,
+  isVirtualThreadId,
+  sendImageMessage as rtdbSendImageMessage,
+  sendTextMessage as rtdbSendTextMessage,
+  subscribeToMessagesSnapshot,
+  type RtdbMessage,
 } from "../services/firebaseRtdb.service";
 import { uploadChatImage } from "../services/media.service";
 import { useChatStore } from "../store/chatStore";
@@ -90,19 +90,39 @@ export function useMessages(
   const [error, setError] = useState<Error | undefined>(undefined);
   const user = useAuthStore((state) => state.user);
   const pendingMessages = useChatStore((state) => state.pendingMessages);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
+    }
+
     if (!conversationId || isVirtualThreadId(conversationId)) {
       setData([]);
       setIsLoading(false);
+      setError(undefined);
       return;
     }
 
     setIsLoading(true);
+    setError(undefined);
+
+    let isActive = true;
 
     const unsubscribe = subscribeToMessagesSnapshot(
       conversationId,
       (rtdbMessages) => {
+        if (!isActive || !isMountedRef.current) return;
+
         const chatRecords = rtdbMessages.map((msg) =>
           rtdbMessageToChatRecord(msg, user?.id),
         );
@@ -138,20 +158,28 @@ export function useMessages(
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         );
 
-        setData(allMessages);
-        setIsLoading(false);
-
-        queryClient.setQueryData(messageKeys.list(conversationId), allMessages);
+        if (isActive && isMountedRef.current) {
+          setData(allMessages);
+          setIsLoading(false);
+          queryClient.setQueryData(messageKeys.list(conversationId), allMessages);
+        }
       },
       (err) => {
+        if (!isActive || !isMountedRef.current) return;
         console.error("[useMessages] Error subscribing to messages:", err);
         setError(err);
         setIsLoading(false);
       },
     );
 
+    unsubscribeRef.current = unsubscribe;
+
     return () => {
-      unsubscribe();
+      isActive = false;
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
     };
   }, [conversationId, queryClient, user?.id, pendingMessages]);
 
@@ -287,7 +315,7 @@ export function useSendMessageWithFiles() {
       });
     },
     onError: (error) => {
-      handleApiError(error, "G?i hình ?nh");
+      handleApiError(error, "G?i hï¿½nh ?nh");
     },
   });
 }

@@ -55,12 +55,12 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const wasConnectedRef = useRef(false);
   const connectionUnsubscribeRef = useRef<(() => void) | null>(null);
+  const reconnectRef = useRef<(() => void) | null>(null);
 
   /**
    * Initialize Firebase RTDB connection monitoring
    */
   const initializeConnection = useCallback(() => {
-    // Listen to .info/connected for connection state
     const connectedRef = ref(database, ".info/connected");
 
     const unsubscribe = onValue(
@@ -78,12 +78,21 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
         setIsConnecting(false);
 
         if (connected && !wasConnectedRef.current) {
-          // First connection or reconnection
           console.log("[FirebaseChatProvider] Connected to Firebase RTDB");
           wasConnectedRef.current = true;
+
+          if (firebaseUser) {
+            rtdbPresenceService.initialize();
+
+            setTimeout(() => {
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.conversations.all,
+              });
+            }, 500);
+          }
         } else if (!connected && wasConnectedRef.current) {
-          // Lost connection
           console.log("[FirebaseChatProvider] Disconnected from Firebase RTDB");
+          wasConnectedRef.current = false;
         }
       },
       (err) => {
@@ -91,13 +100,14 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
         setError(err as Error);
         setIsConnecting(false);
         setIsConnected(false);
+        wasConnectedRef.current = false;
       },
     );
 
     connectionUnsubscribeRef.current = unsubscribe;
 
     return unsubscribe;
-  }, []);
+  }, [firebaseUser, queryClient]);
 
   /**
    * Initialize presence when authenticated
@@ -113,6 +123,50 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
   }, [firebaseUser, isConnected]);
 
   /**
+   * Reconnect manually with retry logic
+   */
+  const reconnect = useCallback(() => {
+    console.log("[FirebaseChatProvider] Manual reconnect triggered");
+
+    if (connectionUnsubscribeRef.current) {
+      connectionUnsubscribeRef.current();
+      connectionUnsubscribeRef.current = null;
+    }
+
+    setIsConnecting(true);
+    setError(null);
+    wasConnectedRef.current = false;
+
+    const attemptReconnect = () => {
+      try {
+        initializeConnection();
+
+        if (firebaseUser) {
+          setTimeout(() => {
+            rtdbPresenceService.initialize();
+          }, 500);
+        }
+      } catch (err) {
+        console.error("[FirebaseChatProvider] Reconnect error:", err);
+        setError(err as Error);
+        setIsConnecting(false);
+
+        setTimeout(() => {
+          if (!isConnected) {
+            attemptReconnect();
+          }
+        }, 2000);
+      }
+    };
+
+    attemptReconnect();
+  }, [initializeConnection, firebaseUser, isConnected]);
+
+  useEffect(() => {
+    reconnectRef.current = reconnect;
+  }, [reconnect]);
+
+  /**
    * Handle app state changes (background/foreground)
    */
   const handleAppStateChange = useCallback(
@@ -124,11 +178,9 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
         previousState.match(/inactive|background/) &&
         nextAppState === "active"
       ) {
-        // App came to foreground
         console.log("[FirebaseChatProvider] App came to foreground");
 
         if (firebaseUser) {
-          // Re-initialize presence
           rtdbPresenceService.setStatus("online").catch((err) => {
             console.error(
               "[FirebaseChatProvider] Error setting online status:",
@@ -136,8 +188,7 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
             );
           });
 
-          // Sync conversations
-          if (wasConnectedRef.current) {
+          if (wasConnectedRef.current || isConnected) {
             console.log(
               "[FirebaseChatProvider] Syncing conversations after foreground",
             );
@@ -145,18 +196,18 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
               queryClient.invalidateQueries({
                 queryKey: queryKeys.conversations.all,
               });
-            }, 1000);
+            }, 500);
+          } else {
+            reconnectRef.current?.();
           }
         }
       } else if (
         nextAppState.match(/inactive|background/) &&
         previousState === "active"
       ) {
-        // App going to background
         console.log("[FirebaseChatProvider] App going to background");
 
         if (firebaseUser) {
-          // Set offline status (onDisconnect will handle if connection is lost)
           rtdbPresenceService.setStatus("offline").catch((err) => {
             console.error(
               "[FirebaseChatProvider] Error setting offline status:",
@@ -166,28 +217,8 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
         }
       }
     },
-    [firebaseUser, queryClient],
+    [firebaseUser, queryClient, isConnected],
   );
-
-  /**
-   * Reconnect manually
-   */
-  const reconnect = useCallback(() => {
-    console.log("[FirebaseChatProvider] Manual reconnect triggered");
-
-    if (connectionUnsubscribeRef.current) {
-      connectionUnsubscribeRef.current();
-    }
-
-    setIsConnecting(true);
-    setError(null);
-
-    initializeConnection();
-
-    if (firebaseUser) {
-      rtdbPresenceService.initialize();
-    }
-  }, [initializeConnection, firebaseUser]);
 
   // Listen to Firebase Auth state
   useEffect(() => {
