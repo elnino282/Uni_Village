@@ -4,6 +4,7 @@
  */
 
 import { Image } from "expo-image";
+import { useCallback } from "react";
 import {
     ImageStyle,
     Pressable,
@@ -89,6 +90,13 @@ export function Avatar({
   const dimension = SIZE_MAP[size];
   const fontSize = FONT_SIZE_MAP[size];
 
+  const getPressableStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [
+      pressed && styles.pressed,
+    ],
+    []
+  );
+
   const avatarContent = source ? (
     <Image
       source={{ uri: source }}
@@ -127,7 +135,7 @@ export function Avatar({
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={`View ${name || "user"}'s profile`}
-        style={({ pressed }) => [pressed && styles.pressed]}
+        style={getPressableStyle}
       >
         {avatarContent}
       </Pressable>

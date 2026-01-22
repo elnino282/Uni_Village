@@ -6,7 +6,7 @@
 
 import { Colors } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, View, ViewProps, ViewStyle } from 'react-native';
 
 export type CardVariant = 'elevated' | 'outlined' | 'filled';
@@ -50,17 +50,21 @@ export function Card({
         },
     };
 
-    const cardStyle: ViewStyle[] = [
-        styles.base,
-        variantStyles[variant],
-        styles[`padding_${padding}` as keyof typeof styles] as ViewStyle,
-        style as ViewStyle,
-    ].filter(Boolean) as ViewStyle[];
+    const getPressableStyle = useCallback(
+        ({ pressed }: { pressed: boolean }) => [
+            styles.base,
+            variantStyles[variant],
+            styles[`padding_${padding}` as keyof typeof styles] as ViewStyle,
+            style,
+            pressed && styles.pressed,
+        ].filter(Boolean),
+        [variant, padding, style, colorScheme]
+    );
 
     if (onPress) {
         return (
             <Pressable
-                style={({ pressed }) => [...cardStyle, pressed && styles.pressed]}
+                style={getPressableStyle}
                 onPress={onPress}
                 {...viewProps}
             >
@@ -70,7 +74,7 @@ export function Card({
     }
 
     return (
-        <View style={cardStyle} {...viewProps}>
+        <View style={getPressableStyle({ pressed: false })} {...viewProps}>
             {children}
         </View>
     );
