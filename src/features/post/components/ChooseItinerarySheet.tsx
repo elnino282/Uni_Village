@@ -3,22 +3,20 @@
  * Bottom sheet for selecting an Itinerary when creating a post
  */
 
-import { fetchItineraries } from "@/features/itinerary/services/itineraryService";
-import type { Itinerary } from "@/features/itinerary/types/itinerary.types";
 import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import BottomSheet, {
-  BottomSheetBackdrop,
-  BottomSheetFlatList,
-  BottomSheetTextInput,
+    BottomSheetBackdrop,
+    BottomSheetFlatList,
+    BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import React, {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
+    forwardRef,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
 } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -74,39 +72,51 @@ export const ChooseItinerarySheet = forwardRef<
   );
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load trips from API
+  // Load trips from AsyncStorage
   const loadTrips = useCallback(async () => {
     setIsLoading(true);
     try {
-      const itineraries = await fetchItineraries();
-      const mappedItineraries: ItineraryWithStatus[] = itineraries.map(
-        (itinerary: Itinerary) => {
-          const startDate = new Date(itinerary.startDate);
-          const formattedDate = `${String(startDate.getDate()).padStart(2, "0")}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${startDate.getFullYear()}`;
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const tripsJson = await AsyncStorage.getItem('@trips');
+      
+      if (tripsJson) {
+        const trips = JSON.parse(tripsJson);
+        const mappedItineraries: ItineraryWithStatus[] = trips.map(
+          (trip: any) => {
+            const startDate = new Date(trip.startDate);
+            const formattedDate = `${String(startDate.getDate()).padStart(2, "0")}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${startDate.getFullYear()}`;
+            const startTime = new Date(trip.startTime);
+            const formattedTime = `${String(startTime.getHours()).padStart(2, "0")}:${String(startTime.getMinutes()).padStart(2, "0")}`;
 
-          const status = itinerary.status || "upcoming";
-          const badgeStyle = getStatusBadgeStyle(status);
+            // Use actual status from trip data
+            const status = trip.status || "upcoming";
+            const badgeStyle = getStatusBadgeStyle(status);
 
-          return {
-            id: itinerary.id,
-            title: itinerary.title,
-            date: formattedDate,
-            timeRange: "",
-            area: itinerary.locations?.[0] || "Việt Nam",
-            stopsCount: itinerary.stops?.length || 0,
-            tags: [badgeStyle.label],
-            stops: (itinerary.stops || []).slice(0, 3).map((stop) => ({
-              id: stop.id,
-              time: "",
-              name: stop.name,
-              thumbnail: stop.imageUrl,
-            })),
-            isSaved: false,
-            status: status,
-          };
-        },
-      );
-      setAllItineraries(mappedItineraries);
+            return {
+              id: trip.id,
+              title: trip.tripName,
+              date: formattedDate,
+              timeRange: formattedTime,
+              area: "TP.HCM",
+              stopsCount: trip.destinations?.length || 0,
+              tags: [badgeStyle.label],
+              stops: (trip.destinations || []).slice(0, 3).map((dest: any) => ({
+                id: dest.id,
+                time: dest.time || "",
+                name: dest.name,
+                thumbnail: dest.thumbnail || dest.placeImageUrl || dest.imageUrl,
+              })),
+              isSaved: false,
+              status: status,
+              // Store original trip data for posting
+              originalTripData: trip,
+            };
+          },
+        );
+        setAllItineraries(mappedItineraries);
+      } else {
+        setAllItineraries([]);
+      }
     } catch (error) {
       console.error("Failed to load trips:", error);
       setAllItineraries([]);

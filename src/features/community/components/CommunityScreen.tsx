@@ -405,16 +405,25 @@ export function CommunityScreen() {
         : true
     ) || [];
 
+  // Helper function to check if content has embedded itinerary
+  const hasEmbeddedItinerary = (content: string): boolean => {
+    return content.includes('[ITINERARY_SHARE]');
+  };
+
   // Then filter by content type based on active chip
   const filteredPosts = searchFilteredPosts.filter((post) => {
+    // Check for embedded itinerary in content
+    const hasEmbedded = hasEmbeddedItinerary(post.content || '');
+    
     switch (contentFilterTab) {
       case "itineraries":
-        return !!post.itineraryShare;
+        // Show posts with itineraryShare OR embedded itinerary in content
+        return !!post.itineraryShare || hasEmbedded;
       case "channels":
         return !!post.channelInvite;
       default:
-        // 'posts' = only pure posts (no itinerary, no channel)
-        return !post.itineraryShare && !post.channelInvite;
+        // 'posts' = show all posts
+        return true;
     }
   });
 
