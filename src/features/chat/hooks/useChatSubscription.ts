@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef } from "react";
 
 import { queryKeys } from "@/config/queryKeys";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import type { MessageEvent, WebSocketMessage } from "@/lib/websocket";
+import type { ChatMessageWsEvent, SeenEventData } from "@/lib/websocket";
 import { websocketService } from "@/lib/websocket";
 import type { MessageResponse } from "@/shared/types/backend.types";
 import type { Slice } from "@/shared/types/pagination.types";
@@ -28,7 +28,9 @@ type OptimisticMessage = MessageResponse & {
 
 const ACK_MATCH_WINDOW_MS = 20000;
 
-function getClientMessageIdFromMessage(message: MessageResponse): string | undefined {
+function getClientMessageIdFromMessage(
+  message: MessageResponse,
+): string | undefined {
   const payload = message as MessageResponse & {
     clientMessageId?: string;
     _clientMessageId?: string;
@@ -46,15 +48,21 @@ function findPendingMatchByContent(
     return undefined;
   }
 
-  const messageTimestamp = Date.parse(message.timestamp);
+  const messageTimestamp = message.timestamp
+    ? Date.parse(message.timestamp)
+    : NaN;
   if (!Number.isFinite(messageTimestamp)) {
     return undefined;
   }
 
-  let bestMatch: { clientMessageId: string; delta: number } | null = null;
+  type MatchResult = { clientMessageId: string; delta: number };
+  let bestMatch: MatchResult | undefined;
 
   pendingMessages.forEach((pending) => {
-    if (pending.conversationId && pending.conversationId !== message.conversationId) {
+    if (
+      pending.conversationId &&
+      pending.conversationId !== message.conversationId
+    ) {
       return;
     }
 
@@ -148,7 +156,7 @@ export function useChatSubscription(conversationId: string | undefined) {
   const isConnected = socketStatus === "connected";
 
   const handleMessageEvent = useCallback(
-    (wsMessage: WebSocketMessage<MessageEvent>) => {
+    (wsMessage: ChatMessageWsEvent) => {
       if (!conversationId) return;
 
       const queryKey = queryKeys.messages.list(conversationId, {});
@@ -156,12 +164,21 @@ export function useChatSubscription(conversationId: string | undefined) {
       switch (wsMessage.eventType) {
         case "SEND": {
           // Prepend new message to the first page
-          const newMessage = wsMessage.data.message;
-          if (!newMessage) return;
+          // Backend sends MessageResponse directly in data (not wrapped in .message)
+          const newMessage = wsMessage.data as MessageResponse;
+          if (!newMessage || !newMessage.id) return;
+
+          // Skip if not for this conversation
+          if (
+            newMessage.conversationId &&
+            newMessage.conversationId !== conversationId
+          )
+            return;
 
           const pendingMessages = useChatStore.getState().pendingMessages;
           const currentUserId = useAuthStore.getState().user?.id;
-          const payloadClientMessageId = getClientMessageIdFromMessage(newMessage);
+          const payloadClientMessageId =
+            getClientMessageIdFromMessage(newMessage);
           const matchedClientMessageId =
             (payloadClientMessageId &&
               pendingMessages.has(payloadClientMessageId) &&
@@ -239,8 +256,9 @@ export function useChatSubscription(conversationId: string | undefined) {
 
         case "EDIT": {
           // Update edited message in cache
-          const editedMessage = wsMessage.data.message;
-          if (!editedMessage) return;
+          // Backend sends MessageResponse directly in data
+          const editedMessage = wsMessage.data as MessageResponse;
+          if (!editedMessage || !editedMessage.id) return;
 
           queryClient.setQueryData<InfiniteMessagesData>(
             queryKey,
@@ -262,8 +280,9 @@ export function useChatSubscription(conversationId: string | undefined) {
 
         case "UNSEND": {
           // Mark message as inactive or remove from cache
-          const unsendMessage = wsMessage.data.message;
-          if (!unsendMessage) return;
+          // Backend sends MessageResponse directly in data
+          const unsendMessage = wsMessage.data as MessageResponse;
+          if (!unsendMessage || !unsendMessage.id) return;
 
           queryClient.setQueryData<InfiniteMessagesData>(
             queryKey,
@@ -286,19 +305,37 @@ export function useChatSubscription(conversationId: string | undefined) {
         }
 
         case "SEEN": {
-          const seenMessage = wsMessage.data?.message;
-          if (!seenMessage) return;
+          // Backend sends { userId, lastReadMessageId } directly in data
+          const seenData = wsMessage.data as SeenEventData;
+          if (!seenData?.userId || !seenData?.lastReadMessageId) return;
+
+          const { userId, lastReadMessageId } = seenData;
 
           queryClient.setQueryData<InfiniteMessagesData>(
             queryKey,
             (oldData) => {
               if (!oldData?.pages?.length) return oldData;
 
+              // Update readBy array for messages with id <= lastReadMessageId
               const newPages = oldData.pages.map((page) => ({
                 ...page,
-                content: page.content.map((msg) =>
-                  msg.id === seenMessage.id ? seenMessage : msg,
-                ),
+                content: page.content.map((msg) => {
+                  // Only update messages up to and including lastReadMessageId
+                  if (msg.id && msg.id <= lastReadMessageId) {
+                    const currentReadBy = msg.readBy ?? [];
+                    // Check if user already in readBy
+                    const alreadyRead = currentReadBy.some(
+                      (r) => r.userId === userId,
+                    );
+                    if (!alreadyRead) {
+                      return {
+                        ...msg,
+                        readBy: [...currentReadBy, { userId }],
+                      };
+                    }
+                  }
+                  return msg;
+                }),
               }));
 
               return { ...oldData, pages: newPages };
