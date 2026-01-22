@@ -24,9 +24,15 @@ export function useCommunityPosts(page = 1, limit = 20) {
     const firstPage = feedQuery.data?.pages[0];
     if (firstPage) {
       const mappedData = mapSliceToCommunityPostsResponse(firstPage, page, limit);
-      // Filter out reported posts
+      // Filter out reported posts and private posts
       const filteredPosts = mappedData.data.filter(
-        (post) => !reportedPostIds.has(post.id)
+        (post) => {
+          // Exclude reported posts
+          if (reportedPostIds.has(post.id)) return false;
+          // Exclude private posts (they should only be visible in owner's profile)
+          if (post.visibility === "private") return false;
+          return true;
+        }
       );
       return {
         ...mappedData,
