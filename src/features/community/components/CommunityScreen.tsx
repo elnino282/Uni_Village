@@ -24,6 +24,7 @@ import { PostLocationDetailSheet } from "@/shared/components/post";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { PostType, Visibility } from "@/shared/types/backend.types";
+import { ReportModal } from "@/components/ReportModal";
 import {
     useBlockPost,
     useCommunityPosts,
@@ -75,6 +76,8 @@ export function CommunityScreen() {
     null,
   );
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
 
   // Dynamic search placeholder based on content filter tab
   const getSearchPlaceholder = () => {
@@ -199,11 +202,22 @@ export function CommunityScreen() {
 
   const handleReportPost = useCallback(
     (postId: string) => {
-      if (!isReportingPost) {
-        reportPost({ postId, reason: "Inappropriate content" });
+      setReportTargetId(postId);
+      setIsReportModalOpen(true);
+      setIsMenuOpen(false);
+    },
+    [],
+  );
+
+  const handleSubmitReport = useCallback(
+    (reason: string) => {
+      if (reportTargetId && !isReportingPost) {
+        reportPost({ postId: reportTargetId, reason });
+        setIsReportModalOpen(false);
+        setReportTargetId(null);
       }
     },
-    [reportPost, isReportingPost],
+    [reportTargetId, reportPost, isReportingPost],
   );
 
   const handleBlockPost = useCallback(
@@ -486,6 +500,17 @@ export function CommunityScreen() {
               isOpen={isLocationSheetOpen}
               location={selectedLocation}
               onClose={handleCloseLocationSheet}
+            />
+
+            <ReportModal
+              visible={isReportModalOpen}
+              onClose={() => {
+                setIsReportModalOpen(false);
+                setReportTargetId(null);
+              }}
+              onSubmit={handleSubmitReport}
+              targetType="post"
+              isLoading={isReportingPost}
             />
           </>
         ) : (

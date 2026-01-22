@@ -280,5 +280,12 @@ export const API_ENDPOINTS = {
     // Place Types (Categories)
     // ============================================
     PLACE_TYPES: '/api/v1/place-types',
+
+    // ============================================
+    // Reports
+    // ============================================
+    REPORTS: {
+        CREATE: '/api/v1/reports',
+    },
 } as const;
 

@@ -17,6 +17,7 @@ export {
 
 export * from './channel';
 export * from './enums.types';
+export * from './report.types';
 
 // Legacy common types (excluding conflicting names)
 export {

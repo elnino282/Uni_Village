@@ -3,6 +3,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFeed as useRealFeed, useLikePost as useRealLikePost, useSavePost as useRealSavePost } from '@/features/post/hooks';
 import type { CommunityPostsResponse } from '../types';
 import { mapSliceToCommunityPostsResponse } from '../adapters/postAdapter';
+import { reportPost as reportPostAPI } from '@/lib/api';
+import { Alert } from 'react-native';
+import { ApiError } from '@/lib/errors/ApiError';
 
 const COMMUNITY_POSTS_KEY = ['community', 'posts'];
 
@@ -75,10 +78,29 @@ export function useSavePost() {
 export function useReportPost() {
   return useMutation({
     mutationFn: async ({ postId, reason }: { postId: string; reason: string }) => {
-      // TODO: Integrate with backend API
-      return { success: true };
+      try {
+        const response = await reportPostAPI(Number(postId), reason);
+        return response;
+      } catch (error) {
+        if (error instanceof ApiError) {
+          // Handle specific backend errors
+          if (error.code === 'DUPLICATE_REPORT') {
+            Alert.alert('Thông báo', 'Bạn đã báo cáo nội dung này rồi');
+          } else if (error.code === 'SELF_REPORT') {
+            Alert.alert('Thông báo', 'Bạn không thể báo cáo nội dung của chính mình');
+          } else if (error.code === 'INVALID_REPORT_TARGET') {
+            Alert.alert('Lỗi', 'Không tìm thấy nội dung cần báo cáo');
+          } else {
+            Alert.alert('Lỗi', error.message || 'Không thể gửi báo cáo');
+          }
+        } else {
+          Alert.alert('Lỗi', 'Đã xảy ra lỗi khi gửi báo cáo');
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
+      Alert.alert('Thành công', 'Báo cáo của bạn đã được gửi thành công');
     },
   });
 }

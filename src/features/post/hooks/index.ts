@@ -7,4 +7,5 @@ export {
 } from './usePostDetail';
 export * from './usePosts';
 export * from './useReactions';
+export * from './useReports';
 

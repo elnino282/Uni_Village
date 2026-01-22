@@ -208,10 +208,35 @@ export function useDeleteComment() {
 export function useReportComment() {
     return useMutation({
         mutationFn: async ({ commentId, reason }: { commentId: number; reason: string }) => {
-            // TODO: Integrate with backend API
-            return { success: true };
+            const { reportComment } = await import('@/lib/api');
+            const { ApiError } = await import('@/lib/errors/ApiError');
+            const { Alert } = await import('react-native');
+            
+            try {
+                const response = await reportComment(commentId, reason);
+                return response;
+            } catch (error) {
+                if (error instanceof ApiError) {
+                    // Handle specific backend errors
+                    if (error.code === 'DUPLICATE_REPORT') {
+                        Alert.alert('Thông báo', 'Bạn đã báo cáo nội dung này rồi');
+                    } else if (error.code === 'SELF_REPORT') {
+                        Alert.alert('Thông báo', 'Bạn không thể báo cáo nội dung của chính mình');
+                    } else if (error.code === 'INVALID_REPORT_TARGET') {
+                        Alert.alert('Lỗi', 'Không tìm thấy nội dung cần báo cáo');
+                    } else {
+                        Alert.alert('Lỗi', error.message || 'Không thể gửi báo cáo');
+                    }
+                } else {
+                    Alert.alert('Lỗi', 'Đã xảy ra lỗi khi gửi báo cáo');
+                }
+                throw error;
+            }
         },
         onSuccess: () => {
+            const { Alert } = require('react-native');
+            Alert.alert('Thành công', 'Báo cáo của bạn đã được gửi thành công');
         },
     });
 }
+

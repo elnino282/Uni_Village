@@ -40,6 +40,7 @@ import { PostOwnerMenu } from '@/features/community/components/PostOwnerMenu';
 import { useBlockPost, useReportPost, useSavePost } from '@/features/community/hooks';
 import { PostActionRow, PostLocationDetailSheet } from '@/shared/components/post';
 import { PostType, Visibility } from '@/shared/types/backend.types';
+import { ReportModal } from '@/components/ReportModal';
 import { mapCommentResponseToComment } from '../adapters/commentAdapter';
 import { CommentComposer } from './CommentComposer';
 import { CommentItem } from './CommentItem';
@@ -72,6 +73,9 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(null);
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
+  const [reportTargetType, setReportTargetType] = useState<'post' | 'comment'>('post');
 
   // Queries & mutations - disable all fetching when post is deleted
   const { data: post, isLoading: isPostLoading, refetch: refetchPost } = usePostDetail(
@@ -205,10 +209,43 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const handleReportPost = useCallback(
     (postIdOverride?: string) => {
       const targetPostId = postIdOverride ?? (post?.id ? String(post.id) : undefined);
-      if (!targetPostId || isReportingPost) return;
-      reportPost({ postId: targetPostId, reason: 'Inappropriate content' });
+      if (!targetPostId) return;
+      setReportTargetId(targetPostId);
+      setReportTargetType('post');
+      setIsReportModalOpen(true);
+      setIsMenuOpen(false);
     },
-    [post?.id, reportPost, isReportingPost]
+    [post?.id]
+  );
+
+  const handleReportComment = useCallback(
+    (commentId: string) => {
+      setReportTargetId(commentId);
+      setReportTargetType('comment');
+      setIsReportModalOpen(true);
+    },
+    []
+  );
+
+  const handleSubmitReport = useCallback(
+    (reason: string) => {
+      if (!reportTargetId) return;
+      
+      if (reportTargetType === 'post') {
+        if (!isReportingPost) {
+          reportPost({ postId: reportTargetId, reason });
+          setIsReportModalOpen(false);
+          setReportTargetId(null);
+        }
+      } else {
+        if (!isReportingComment) {
+          reportComment({ commentId: Number(reportTargetId), reason });
+          setIsReportModalOpen(false);
+          setReportTargetId(null);
+        }
+      }
+    },
+    [reportTargetId, reportTargetType, reportPost, reportComment, isReportingPost, isReportingComment]
   );
 
   const handleBlockPost = useCallback(
@@ -441,6 +478,17 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         isOpen={isLocationSheetOpen}
         location={selectedLocation}
         onClose={handleCloseLocationSheet}
+      />
+
+      <ReportModal
+        visible={isReportModalOpen}
+        onClose={() => {
+          setIsReportModalOpen(false);
+          setReportTargetId(null);
+        }}
+        onSubmit={handleSubmitReport}
+        targetType={reportTargetType}
+        isLoading={reportTargetType === 'post' ? isReportingPost : isReportingComment}
       />
     </KeyboardAvoidingView>
   );
