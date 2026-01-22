@@ -46,7 +46,6 @@ import type {
 } from "../types";
 import { isGroupThread } from "../types";
 import { AcceptMessageRequestBanner } from "./AcceptMessageRequestBanner";
-import { AddFriendBanner } from "./AddFriendBanner";
 import {
   AddMemberBottomSheet,
   type AddMemberBottomSheetRef,
@@ -209,14 +208,6 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   // Determine which banner to show
   const shouldShowMessageRequestBanner =
     !isGroup && dmThread && participantStatus === "REQUEST";
-
-  const shouldShowAddFriendBanner =
-    !isGroup &&
-    dmThread &&
-    participantStatus === "INBOX" &&
-    relationshipStatus &&
-    relationshipStatus !== "ACCEPTED" &&
-    relationshipStatus !== "FRIEND"; // Check both status types
 
   // Handlers
   const handleSend = useCallback(
@@ -405,19 +396,6 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
         <AcceptMessageRequestBanner
           conversationId={threadId}
           senderName={dmThread!.peer.displayName}
-        />
-      )}
-
-      {/* Add Friend Banner - for INBOX conversations with non-friends */}
-      {shouldShowAddFriendBanner && otherUserId && (
-        <AddFriendBanner
-          otherUserId={otherUserId}
-          otherUserName={dmThread!.peer.displayName}
-          relationshipStatus={relationshipStatus}
-          onStatusChange={(newStatus) => {
-            // Update local state optimistically
-            // The thread will refresh on next navigation or refetch
-          }}
         />
       )}
 
