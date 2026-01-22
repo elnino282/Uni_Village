@@ -1,9 +1,14 @@
-import { Client, IMessage, StompConfig, type StompHeaders } from "@stomp/stompjs";
+import {
+  Client,
+  IMessage,
+  StompConfig,
+  type StompHeaders,
+} from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import type {
-    StompSubscription,
-    WebSocketConfig,
-    WebSocketMessage,
+  StompSubscription,
+  WebSocketConfig,
+  WebSocketMessage,
 } from "./types";
 
 /**
@@ -255,7 +260,10 @@ class StompClientService {
       };
     }
 
-    const handlers = new Map<string, (message: WebSocketMessage<unknown>) => void>();
+    const handlers = new Map<
+      string,
+      (message: WebSocketMessage<unknown>) => void
+    >();
     handlers.set(
       handlerId,
       callback as (message: WebSocketMessage<unknown>) => void,
@@ -264,6 +272,13 @@ class StompClientService {
     const subscription = this.client.subscribe(
       destination,
       (message: IMessage) => {
+        // 👇 ADD: log raw nội dung server gửi về
+        try {
+          console.log("[WS RAW BODY]", destination, message.body);
+        } catch {
+          // ignore
+        }
+
         let parsedMessage: WebSocketMessage<unknown> | null = null;
         try {
           parsedMessage = JSON.parse(message.body) as WebSocketMessage<unknown>;

@@ -1,13 +1,15 @@
-export { stompClient } from './stompClient';
+export { stompClient } from "./stompClient";
 export type {
     AckEvent,
     AckStatus,
     ChatMessageEvent,
+    ChatMessageWsEvent,
     ChatSendPayload,
     ConversationUpgradedEvent,
     MessageEvent,
     ParticipantStatus,
     ReadReceiptEvent,
+    SeenEventData,
     StompSubscription,
     TypingEvent,
     UpgradeReason,
@@ -15,7 +17,6 @@ export type {
     WebSocketEventType,
     WebSocketMessage,
     WebSocketTopic
-} from './types';
-export { websocketService, WebSocketService } from './websocketService';
-
+} from "./types";
+export { websocketService, WebSocketService } from "./websocketService";
 
