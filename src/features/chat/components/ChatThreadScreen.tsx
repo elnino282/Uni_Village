@@ -6,9 +6,15 @@
 import BottomSheet from "@gorhom/bottom-sheet";
 import * as ImagePicker from "expo-image-picker";
 import { router, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
+} from "react-native";
 
 import type { Itinerary } from "@/features/itinerary/types/itinerary.types";
 import { getItineraryCoverImage } from "@/features/itinerary/types/itinerary.types";
@@ -19,25 +25,32 @@ import { useColorScheme } from "@/shared/hooks";
 // Import i18n config
 import "@/lib/i18n";
 
-import { queryKeys } from "@/config/queryKeys";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { websocketService } from "@/lib/websocket";
 import type { MessageResponse } from "@/shared/types/backend.types";
 import { MessageType } from "@/shared/types/backend.types";
-import type { Slice } from "@/shared/types/pagination.types";
-import { useQueryClient } from "@tanstack/react-query";
 import {
+  useChatSubscription,
   useMessages,
   useSendMessageHybrid,
   useSendSharedCard,
   useThread,
 } from "../hooks";
 import { isVirtualThreadId } from "../services";
-import type { ChatThread, GroupThread, ImageMessage, Message, TextMessage, UserPreview } from "../types";
+import type {
+  ChatThread,
+  GroupThread,
+  ImageMessage,
+  Message,
+  TextMessage,
+  UserPreview,
+} from "../types";
 import { isGroupThread } from "../types";
 import { AcceptMessageRequestBanner } from "./AcceptMessageRequestBanner";
 import { AddFriendBanner } from "./AddFriendBanner";
-import { AddMemberBottomSheet, type AddMemberBottomSheetRef } from "./AddMemberBottomSheet";
+import {
+  AddMemberBottomSheet,
+  type AddMemberBottomSheetRef,
+} from "./AddMemberBottomSheet";
 import { ChatComposer } from "./ChatComposer";
 import { ChatHeader } from "./ChatHeader";
 import { GroupChatHeader } from "./GroupChatHeader";
@@ -61,31 +74,40 @@ interface AttachmentResponse {
 /**
  * Map API MessageResponse to local Message type
  */
-function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Message {
+function mapMessageResponse(
+  msg: MessageResponse,
+  currentUserId?: number,
+): Message {
   const isSentByMe = currentUserId ? msg.senderId === currentUserId : false;
   const time = msg.timestamp ? new Date(msg.timestamp) : new Date();
-  const timeLabel = time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  const timeLabel = time.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   const optimisticMsg = msg as any;
-  const status = optimisticMsg._status || 'sent';
+  const status = optimisticMsg._status || "sent";
 
-  const messageId = typeof msg.id === 'number' ? msg.id : undefined;
+  const messageId = typeof msg.id === "number" ? msg.id : undefined;
   const conversationId = msg.conversationId;
   const isUnsent = msg.isActive === false;
 
   if (msg.messageType === MessageType.IMAGE) {
     // Read from attachments array (backend MediaAttachmentResponse structure)
-    const attachments = (msg as { attachments?: AttachmentResponse[] }).attachments;
+    const attachments = (msg as { attachments?: AttachmentResponse[] })
+      .attachments;
     const imageUrl = attachments?.[0]?.fileUrl;
 
     // Graceful fallback when image URL missing
     if (!imageUrl) {
-      console.warn(`[Chat] Message ${msg.id} has IMAGE type but missing fileUrl`);
+      console.warn(
+        `[Chat] Message ${msg.id} has IMAGE type but missing fileUrl`,
+      );
       return {
         id: String(msg.id ?? Date.now()),
-        type: 'text' as const,
-        text: '📷 [Image unavailable]',
-        sender: isSentByMe ? 'me' : 'other',
+        type: "text" as const,
+        text: "📷 [Image unavailable]",
+        sender: isSentByMe ? "me" : "other",
         createdAt: msg.timestamp ?? new Date().toISOString(),
         timeLabel,
         status,
@@ -99,10 +121,10 @@ function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Messa
 
     return {
       id: String(msg.id ?? Date.now()),
-      type: 'image' as const,
+      type: "image" as const,
       imageUrl,
       caption: msg.content,
-      sender: isSentByMe ? 'me' : 'other',
+      sender: isSentByMe ? "me" : "other",
       createdAt: msg.timestamp ?? new Date().toISOString(),
       timeLabel,
       status,
@@ -116,9 +138,9 @@ function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Messa
 
   return {
     id: String(msg.id ?? Date.now()),
-    type: 'text' as const,
-    text: isUnsent ? 'Tin nhắn đã bị thu hồi' : (msg.content ?? ''),
-    sender: isSentByMe ? 'me' : 'other',
+    type: "text" as const,
+    text: isUnsent ? "Tin nhắn đã bị thu hồi" : (msg.content ?? ""),
+    sender: isSentByMe ? "me" : "other",
     createdAt: msg.timestamp ?? new Date().toISOString(),
     timeLabel,
     status,
@@ -145,24 +167,33 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const routerInstance = useRouter();
 
   // State for attachments
-  const [attachments, setAttachments] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [attachments, setAttachments] = useState<
+    ImagePicker.ImagePickerAsset[]
+  >([]);
 
   // Bottom sheet refs
   const itinerarySheetRef = useRef<BottomSheet>(null);
   const addMemberSheetRef = useRef<AddMemberBottomSheetRef>(null);
 
   // Auth for current user ID
-  const currentUserId = useAuthStore(state => state.user?.id);
+  const currentUserId = useAuthStore((state) => state.user?.id);
 
   // Data fetching
   const { data: thread, isLoading: isLoadingThread } = useThread(threadId);
   const messagesQuery = useMessages(threadId);
-  const { sendMessage: sendMessageHybrid, sendImage, canSend } = useSendMessageHybrid();
+  const {
+    sendMessage: sendMessageHybrid,
+    sendImage,
+    // canSend - available but not used currently
+  } = useSendMessageHybrid();
   const { mutate: sendSharedCard } = useSendSharedCard();
 
   // Flatten and map messages from paginated response
-  const rawMessages = messagesQuery.data?.pages?.flatMap(page => page?.content || []) || [];
-  const messages: Message[] = rawMessages.map(msg => mapMessageResponse(msg, currentUserId));
+  const rawMessages =
+    messagesQuery.data?.pages?.flatMap((page) => page?.content || []) || [];
+  const messages: Message[] = rawMessages.map((msg) =>
+    mapMessageResponse(msg, currentUserId),
+  );
   const isLoadingMessages = messagesQuery.isLoading;
 
   // Determine if group chat
@@ -172,22 +203,20 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
 
   // Conversation context for DM chats - get from thread metadata
   const otherUserId = dmThread?.peer ? Number(dmThread.peer.id) : null;
-  const relationshipStatus = dmThread?.relationshipStatus || 'NONE';
-  const participantStatus = dmThread?.participantStatus || 'INBOX';
+  const relationshipStatus = dmThread?.relationshipStatus || "NONE";
+  const participantStatus = dmThread?.participantStatus || "INBOX";
 
   // Determine which banner to show
   const shouldShowMessageRequestBanner =
-    !isGroup &&
-    dmThread &&
-    participantStatus === 'REQUEST';
+    !isGroup && dmThread && participantStatus === "REQUEST";
 
   const shouldShowAddFriendBanner =
     !isGroup &&
     dmThread &&
-    participantStatus === 'INBOX' &&
+    participantStatus === "INBOX" &&
     relationshipStatus &&
-    relationshipStatus !== 'ACCEPTED' &&
-    relationshipStatus !== 'FRIEND'; // Check both status types
+    relationshipStatus !== "ACCEPTED" &&
+    relationshipStatus !== "FRIEND"; // Check both status types
 
   // Handlers
   const handleSend = useCallback(
@@ -195,23 +224,21 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
       const user = useAuthStore.getState().user;
 
       if (!user || !user.id) {
-        console.error('[ChatThread] Cannot send message: User not initialized');
-        console.error('[ChatThread] Please log out and log in again');
+        console.error("[ChatThread] Cannot send message: User not initialized");
+        console.error("[ChatThread] Please log out and log in again");
 
-        Alert.alert(
-          'Error',
-          'User session expired. Please log in again.',
-          [{ text: 'OK', onPress: () => router.replace('/login') }]
-        );
+        Alert.alert("Error", "User session expired. Please log in again.", [
+          { text: "OK", onPress: () => router.replace("/login") },
+        ]);
         return;
       }
 
       // Handle sending attachments
       if (attachments.length > 0) {
         // Create a promise array for all image uploads
-        const uploadPromises = attachments.map(asset => {
+        const uploadPromises = attachments.map((asset) => {
           const fileName = asset.fileName || `image_${Date.now()}.jpg`;
-          const fileType = asset.mimeType || 'image/jpeg';
+          const fileType = asset.mimeType || "image/jpeg";
 
           return sendImage(
             threadId,
@@ -234,7 +261,10 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
           await Promise.all(uploadPromises);
           setAttachments([]); // Clear attachments after sending
         } catch (error) {
-          console.error('[ChatThread] Failed to send one or more images:', error);
+          console.error(
+            "[ChatThread] Failed to send one or more images:",
+            error,
+          );
           Alert.alert("Error", "Failed to send one or more images");
         }
       } else {
@@ -253,16 +283,29 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
 
           // If we were on a virtual thread and created a real conversation, redirect to it
           // This ensures WebSocket events (which use the real ID) are received correctly
-          if (isVirtualThreadId(threadId) && message.conversationId && message.conversationId !== threadId) {
-            console.log(`[ChatThread] Redirecting from virtual thread ${threadId} to ${message.conversationId}`);
+          if (
+            isVirtualThreadId(threadId) &&
+            message.conversationId &&
+            message.conversationId !== threadId
+          ) {
+            console.log(
+              `[ChatThread] Redirecting from virtual thread ${threadId} to ${message.conversationId}`,
+            );
             routerInstance.replace(`/chat/${message.conversationId}`);
           }
         } catch (error) {
-          console.error('[ChatThread] Failed to send message:', error);
+          console.error("[ChatThread] Failed to send message:", error);
         }
       }
     },
-    [sendMessageHybrid, threadId, attachments, sendImage]
+    [
+      sendMessageHybrid,
+      threadId,
+      attachments,
+      sendImage,
+      otherUserId,
+      routerInstance,
+    ],
   );
 
   const handleImagePress = useCallback(async () => {
@@ -274,7 +317,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
       });
 
       if (!result.canceled && result.assets) {
-        setAttachments(prev => [...prev, ...result.assets]);
+        setAttachments((prev) => [...prev, ...result.assets]);
       }
     } catch (error) {
       console.error("Failed to pick image:", error);
@@ -283,7 +326,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   }, []);
 
   const handleRemoveAttachment = useCallback((uri: string) => {
-    setAttachments(prev => prev.filter(a => a.uri !== uri));
+    setAttachments((prev) => prev.filter((a) => a.uri !== uri));
   }, []);
 
   const handleCalendarPress = useCallback(() => {
@@ -304,7 +347,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
         },
       });
     },
-    [sendSharedCard, threadId, t]
+    [sendSharedCard, threadId, t],
   );
 
   const handleInfoPress = useCallback(() => {
@@ -329,87 +372,10 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
     console.log("Pinned message dismissed");
   }, []);
 
-  // Subscribe to conversation-specific WebSocket events
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    if (!threadId || isVirtualThreadId(threadId)) return;
-
-    const subscription = websocketService.subscribeToMessages(
-      threadId,
-      (message) => {
-        console.log('[ChatThread] WS event:', message.eventType);
-        const eventData = message.data as any;
-
-        if (message.eventType === 'SEND') {
-          // New message received
-          const newMessage = eventData.message as MessageResponse;
-          if (!newMessage) return;
-
-          const queryKey = queryKeys.messages.list(threadId, {});
-          queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
-            if (!oldData?.pages?.length) return oldData;
-
-            // Avoid duplicates (if we already have it from global subscription or optimistic)
-            const exists = oldData.pages[0]?.content.some(msg => msg.id === newMessage.id);
-            if (exists) return oldData;
-
-            const newPages = [...oldData.pages];
-            newPages[0] = {
-              ...newPages[0],
-              content: [newMessage, ...newPages[0].content],
-              numberOfElements: newPages[0].numberOfElements + 1,
-            };
-
-            return { ...oldData, pages: newPages };
-          });
-
-        } else if (message.eventType === 'EDIT') {
-          // Update edited message in cache
-          const queryKey = queryKeys.messages.list(threadId, {});
-          queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
-            if (!oldData?.pages?.length) return oldData;
-
-            const editedMessage = eventData.message as MessageResponse;
-            if (!editedMessage) return oldData;
-
-            const newPages = oldData.pages.map((page) => ({
-              ...page,
-              content: page.content.map((msg) =>
-                msg.id === editedMessage.id ? editedMessage : msg
-              ),
-            }));
-
-            return { ...oldData, pages: newPages };
-          });
-        } else if (message.eventType === 'UNSEND') {
-          // Mark message as deleted in cache
-          const queryKey = queryKeys.messages.list(threadId, {});
-          queryClient.setQueryData<{ pages: Slice<MessageResponse>[] }>(queryKey, (oldData) => {
-            if (!oldData?.pages?.length) return oldData;
-
-            // UNSEND event might have message object or just messageId
-            // Check structure based on types.ts, but fallback to any
-            const messageId = eventData.message?.id || eventData.messageId;
-
-            if (!messageId) return oldData;
-
-            const newPages = oldData.pages.map((page) => ({
-              ...page,
-              content: page.content.map((msg) =>
-                msg.id === messageId ? { ...msg, isActive: false, content: 'Tin nhắn đã bị thu hồi' } : msg
-              ),
-            }));
-
-            return { ...oldData, pages: newPages };
-          });
-        }
-      }
-    );
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [threadId, queryClient]);
+  // Subscribe to conversation-specific WebSocket events using the dedicated hook
+  // This properly handles re-subscription when WebSocket connects/reconnects
+  const isVirtual = isVirtualThreadId(threadId);
+  useChatSubscription(isVirtual ? undefined : threadId);
 
   // Loading state for thread
   if (isLoadingThread || !thread) {
