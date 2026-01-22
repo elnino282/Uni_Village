@@ -4,15 +4,16 @@ import { useChatStore } from "@/features/chat/store/chatStore";
 import { AppState, AppStateStatus } from "react-native";
 import { stompClient } from "./stompClient";
 import type {
-    AckEvent,
-    ChatMessageEvent,
-    ChatMessageWsEvent,
-    ChatSendPayload,
-    ConversationUpgradedEvent,
-    MessageEvent,
-    StompSubscription,
-    TypingEvent,
-    WebSocketMessage,
+  AckEvent,
+  ChatMessageEvent,
+  ChatMessageWsEvent,
+  ChatSendPayload,
+  ConversationUpgradedEvent,
+  ForceLogoutEvent,
+  MessageEvent,
+  StompSubscription,
+  TypingEvent,
+  WebSocketMessage
 } from "./types";
 
 class WebSocketService {
@@ -397,7 +398,7 @@ class WebSocketService {
    * Unsubscribe from all user queues
    */
   unsubscribeFromUserQueues(): void {
-    const keys = ["user-ack", "user-messages", "user-events", "user-queue"];
+    const keys = ["user-ack", "user-messages", "user-events", "user-queue", "force-logout"];
 
     keys.forEach((key) => {
       const subscription = this.activeSubscriptions.get(key);
@@ -406,6 +407,60 @@ class WebSocketService {
         this.activeSubscriptions.delete(key);
       }
     });
+  }
+
+  // ========== Force Logout (Admin Account Lock) ==========
+
+  /**
+   * Subscribe to force logout events from admin
+   * Destination: /user/queue/force-logout
+   * 
+   * When admin locks a user account, this event is sent to force immediate logout.
+   * The handler should clear auth state and redirect to login screen.
+   */
+  subscribeToForceLogout(
+    onForceLogout: (event: ForceLogoutEvent) => void,
+  ): StompSubscription | null {
+    if (!this.isConnected()) {
+      console.warn("[WebSocket] Cannot subscribe to force-logout: not connected");
+      return null;
+    }
+
+    const destination = "/user/queue/force-logout";
+    const subscriptionKey = "force-logout";
+
+    // Don't re-subscribe if already subscribed
+    if (this.activeSubscriptions.has(subscriptionKey)) {
+      console.log("[WebSocket] Already subscribed to force-logout");
+      return this.activeSubscriptions.get(subscriptionKey) || null;
+    }
+
+    const subscription = stompClient.subscribe<ForceLogoutEvent>(
+      destination,
+      (message) => {
+        console.log("[WebSocket] Force logout event received:", message.data);
+        onForceLogout(message.data);
+      },
+    );
+
+    if (subscription) {
+      this.activeSubscriptions.set(subscriptionKey, subscription);
+      console.log("[WebSocket] Subscribed to force-logout events");
+    }
+
+    return subscription;
+  }
+
+  /**
+   * Unsubscribe from force logout events
+   */
+  unsubscribeFromForceLogout(): void {
+    const subscription = this.activeSubscriptions.get("force-logout");
+    if (subscription) {
+      subscription.unsubscribe();
+      this.activeSubscriptions.delete("force-logout");
+      console.log("[WebSocket] Unsubscribed from force-logout events");
+    }
   }
 
   // ========== Chat Message Sending ==========
@@ -536,3 +591,4 @@ class WebSocketService {
 
 export const websocketService = new WebSocketService();
 export { WebSocketService };
+
