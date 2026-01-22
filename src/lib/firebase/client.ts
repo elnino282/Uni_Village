@@ -28,7 +28,11 @@ export const firebaseApp: FirebaseApp = initializeApp(firebaseConfig);
 export const auth: Auth = getAuth(firebaseApp);
 export const firestore: Firestore = getFirestore(firebaseApp);
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 export const database: Database = getDatabase(firebaseApp);
+=======
+export const storage: FirebaseStorage = getStorage(firebaseApp);
+>>>>>>> Stashed changes
 =======
 export const storage: FirebaseStorage = getStorage(firebaseApp);
 >>>>>>> Stashed changes

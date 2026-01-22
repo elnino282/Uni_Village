@@ -9,6 +9,7 @@ export const env = {
     FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
     FIREBASE_AUTH_DOMAIN: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     FIREBASE_DATABASE_URL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL || 'https://fluent-anagram-479106-v2-default-rtdb.asia-southeast1.firebasedatabase.app/',
 =======
 >>>>>>> Stashed changes
@@ -45,8 +46,11 @@ export function validateEnv(): void {
     }
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     const firebaseRequired = ['FIREBASE_PROJECT_ID', 'FIREBASE_APP_ID', 'FIREBASE_DATABASE_URL'];
 =======
+=======
+>>>>>>> Stashed changes
     const firebaseRequired = [
         'FIREBASE_API_KEY',
         'FIREBASE_AUTH_DOMAIN',
