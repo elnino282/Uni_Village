@@ -416,7 +416,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
     if (!post?.id || isDeletingPost) return;
     Alert.alert(
       "Xóa bài viết",
-      "Bạn có chắc muốn xóa bài viết này vĩnh viễn?",
+      "Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.",
       [
         { text: "Hủy", style: "cancel" },
         {

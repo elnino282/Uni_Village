@@ -325,7 +325,10 @@ export function ProfileScreen() {
 
   const handleMoveToTrash = useCallback(
     (postId: string) => {
-      Alert.alert("Xóa bài viết", "Bạn có chắc chắn muốn xóa bài viết này?", [
+      Alert.alert(
+        "Xóa bài viết",
+        "Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.",
+        [
         { text: "Hủy", style: "cancel" },
         {
           text: "Xóa",
