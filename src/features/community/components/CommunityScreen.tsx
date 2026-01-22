@@ -255,7 +255,12 @@ export function CommunityScreen() {
       const post = data?.data.find((p) => p.id === postId);
       if (post) {
         setSelectedPostVisibility(post.visibility || "public");
-        setIsEditPrivacyOpen(true);
+        // Close owner menu first, then open edit privacy sheet after a short delay
+        // to avoid race condition between two bottom sheets
+        setIsOwnerMenuOpen(false);
+        setTimeout(() => {
+          setIsEditPrivacyOpen(true);
+        }, 150);
       }
     },
     [data?.data]
