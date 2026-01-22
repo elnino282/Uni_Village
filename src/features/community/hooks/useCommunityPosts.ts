@@ -1,8 +1,8 @@
 import {
-  removePostFromCollections,
-  useFeed as useRealFeed,
-  useLikePost as useRealLikePost,
-  useSavePost as useRealSavePost,
+    removePostFromCollections,
+    useFeed as useRealFeed,
+    useLikePost as useRealLikePost,
+    useSavePost as useRealSavePost,
 } from "@/features/post/hooks";
 import { reportPost as reportPostAPI } from "@/lib/api";
 import { ApiError } from "@/lib/errors/ApiError";
@@ -10,17 +10,31 @@ import { showErrorToast } from "@/shared/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { mapSliceToCommunityPostsResponse } from "../adapters/postAdapter";
+import { useReportedPostsStore } from "../services/reportedPostsStore";
 import type { CommunityPostsResponse } from "../types";
 
 const COMMUNITY_POSTS_KEY = ["community", "posts"];
 
 export function useCommunityPosts(page = 1, limit = 20) {
   const feedQuery = useRealFeed({ page: page - 1, size: limit });
+  const reportedPostIds = useReportedPostsStore((state) => state.reportedPostIds);
 
   const data = useMemo<CommunityPostsResponse>(() => {
     const firstPage = feedQuery.data?.pages[0];
     if (firstPage) {
-      return mapSliceToCommunityPostsResponse(firstPage, page, limit);
+      const mappedData = mapSliceToCommunityPostsResponse(firstPage, page, limit);
+      // Filter out reported posts
+      const filteredPosts = mappedData.data.filter(
+        (post) => !reportedPostIds.has(post.id)
+      );
+      return {
+        ...mappedData,
+        data: filteredPosts,
+        pagination: {
+          ...mappedData.pagination,
+          total: filteredPosts.length,
+        },
+      };
     }
     return {
       data: [],
@@ -32,7 +46,7 @@ export function useCommunityPosts(page = 1, limit = 20) {
         hasMore: false,
       },
     };
-  }, [feedQuery.data, page, limit]);
+  }, [feedQuery.data, page, limit, reportedPostIds]);
 
   return {
     data,
@@ -81,6 +95,7 @@ export function useSavePost() {
 
 export function useReportPost() {
   const queryClient = useQueryClient();
+  const addReportedPost = useReportedPostsStore((state) => state.addReportedPost);
 
   return useMutation({
     mutationFn: async ({
@@ -112,11 +127,11 @@ export function useReportPost() {
       }
     },
     onSuccess: ({ postId }) => {
-      // Remove the reported post from all post collections immediately
-      // This ensures the post disappears for the user who reported it
+      // Add the reported post to the store to persist the hidden state
+      addReportedPost(postId);
+      // Remove the post from cache for immediate effect
       removePostFromCollections(queryClient, Number(postId));
-      // Also invalidate queries to ensure fresh data on next fetch
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      // Note: We don't call invalidateQueries to avoid refetching and showing the post again
       return postId;
     },
   });
