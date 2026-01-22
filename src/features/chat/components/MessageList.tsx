@@ -4,8 +4,9 @@
  * Supports both DM and Group chat layouts
  * Matches Figma node 317:2269 (DM) and 317:2919 (Group)
  */
-import React, { useCallback, useRef } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { Spinner } from '@/shared/components/ui';
 import { Colors, Spacing } from '@/shared/constants';
@@ -74,7 +75,11 @@ function MessageItem({ message, isGroupChat }: { message: Message; isGroupChat: 
 export function MessageList({ messages, isLoading, isGroupChat = false }: MessageListProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
-  const flatListRef = useRef<FlatList<Message>>(null);
+  const flatListRef = useRef<FlashListRef<Message>>(null);
+
+  // FlashList v2 recommends using maintainVisibleContentPosition instead of inverted
+  // We reverse the messages to display them in chronological order (oldest at top, newest at bottom)
+  const reversedMessages = useMemo(() => [...messages].reverse(), [messages]);
 
   const renderItem = useCallback(({ item }: { item: Message }) => {
     return <MessageItem message={item} isGroupChat={isGroupChat} />;
@@ -91,22 +96,18 @@ export function MessageList({ messages, isLoading, isGroupChat = false }: Messag
   }
 
   return (
-    <FlatList
+    <FlashList
       ref={flatListRef}
-      data={messages}
+      data={reversedMessages}
       renderItem={renderItem}
+      // estimatedItemSize is deprecated in v2 and handled automatically
       keyExtractor={keyExtractor}
-      style={[styles.list, { backgroundColor: colors.background }]}
+      style={StyleSheet.flatten([styles.list, { backgroundColor: colors.background }])}
       contentContainerStyle={styles.contentContainer}
-      inverted={true}
+      maintainVisibleContentPosition={{ startRenderingFromBottom: true }}
       showsVerticalScrollIndicator={false}
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
-      // Performance optimizations
-      removeClippedSubviews={true}
-      maxToRenderPerBatch={10}
-      windowSize={10}
-      initialNumToRender={15}
     />
   );
 }
@@ -117,8 +118,8 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   loadingContainer: {
     flex: 1,
