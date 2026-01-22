@@ -4,7 +4,7 @@
  */
 
 import { Colors } from '@/shared/constants/theme';
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
     Pressable,
@@ -47,17 +47,22 @@ export function Button({
 }: ButtonProps) {
     const isDisabled = disabled || loading;
 
+    const getPressableStyle = useCallback(
+        ({ pressed }: { pressed: boolean }) => [
+            styles.base,
+            styles[variant],
+            styles[`size_${size}`],
+            fullWidth && styles.fullWidth,
+            pressed && styles.pressed,
+            isDisabled && styles.disabled,
+            style,
+        ],
+        [variant, size, fullWidth, isDisabled, style]
+    );
+
     return (
         <Pressable
-            style={({ pressed }) => [
-                styles.base,
-                styles[variant],
-                styles[`size_${size}`],
-                fullWidth && styles.fullWidth,
-                pressed && styles.pressed,
-                isDisabled && styles.disabled,
-                style,
-            ]}
+            style={getPressableStyle}
             disabled={isDisabled}
             onPress={onPress}
             {...pressableProps}
