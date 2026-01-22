@@ -12,6 +12,8 @@ export const env = {
     FIREBASE_DATABASE_URL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL || 'https://fluent-anagram-479106-v2-default-rtdb.asia-southeast1.firebasedatabase.app/',
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     FIREBASE_STORAGE_BUCKET: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
     FIREBASE_MESSAGING_SENDER_ID: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
     FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
@@ -51,6 +53,9 @@ export function validateEnv(): void {
         'FIREBASE_PROJECT_ID',
         'FIREBASE_APP_ID',
     ];
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     const missingFirebase = firebaseRequired.filter((key) => !env[key as keyof typeof env]);
     
