@@ -7,7 +7,7 @@ import {
 import { myPostsKeys } from "@/features/profile/hooks/useMyPosts";
 import { reportPost as reportPostAPI } from "@/lib/api";
 import { ApiError } from "@/lib/errors/ApiError";
-import { showErrorToast, showSuccessToast } from "@/shared/utils";
+import { showErrorToast } from "@/shared/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { mapSliceToCommunityPostsResponse } from "../adapters/postAdapter";
@@ -91,13 +91,7 @@ export function useSavePost() {
 
   return useMutation({
     mutationFn: (postId: string) => realSavePost.mutateAsync(Number(postId)),
-    onSuccess: (response) => {
-      const isSaved = response?.result?.isSaved;
-      if (isSaved) {
-        showSuccessToast("Đã lưu bài viết");
-      } else {
-        showSuccessToast("Đã bỏ lưu bài viết");
-      }
+    onSuccess: () => {
       // Invalidate myPosts queries to refresh saved posts in profile
       queryClient.invalidateQueries({ queryKey: myPostsKeys.all });
     },

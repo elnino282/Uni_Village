@@ -3,42 +3,43 @@ import { useMyProfile } from "@/features/profile";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { ReportModal } from "@/components/ReportModal";
 import { ReportSuccessModal } from "@/components/ReportSuccessModal";
+import { SaveSuccessModal } from "@/components/SaveSuccessModal";
 import { ItineraryDetailsSheet } from "@/features/itinerary/components/ItineraryDetailsSheet";
 import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.types";
 import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
 import type { CreatePostTab } from "@/features/post/types/createPost.types";
 import {
-  EmptyState,
-  ErrorMessage,
-  LoadingScreen,
+    EmptyState,
+    ErrorMessage,
+    LoadingScreen,
 } from "@/shared/components/feedback";
 import { PostLocationDetailSheet } from "@/shared/components/post";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { PostType, Visibility } from "@/shared/types/backend.types";
 import {
-  useBlockPost,
-  useCommunityPosts,
-  useLikePost,
-  useReportPost,
-  useSavePost,
+    useBlockPost,
+    useCommunityPosts,
+    useLikePost,
+    useReportPost,
+    useSavePost,
 } from "../hooks";
 import type {
-  CommunityPost,
-  CommunityTab,
-  ContentFilterTab,
-  PostLocation,
-  PostVisibility,
+    CommunityPost,
+    CommunityTab,
+    ContentFilterTab,
+    PostLocation,
+    PostVisibility,
 } from "../types";
 
 import { CommunityFAB } from "./CommunityFAB";
@@ -80,6 +81,8 @@ export function CommunityScreen() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isReportSuccessModalOpen, setIsReportSuccessModalOpen] = useState(false);
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
+  const [isSaveSuccessModalOpen, setIsSaveSuccessModalOpen] = useState(false);
+  const [lastSaveResult, setLastSaveResult] = useState<boolean>(true);
 
   // Dynamic search placeholder based on content filter tab
   const getSearchPlaceholder = () => {
@@ -196,7 +199,13 @@ export function CommunityScreen() {
   const handleSavePost = useCallback(
     (postId: string) => {
       if (!isSavingPost) {
-        savePost(postId);
+        savePost(postId, {
+          onSuccess: (response) => {
+            const isSaved = response?.result?.isSaved ?? true;
+            setLastSaveResult(isSaved);
+            setIsSaveSuccessModalOpen(true);
+          },
+        });
       }
     },
     [savePost, isSavingPost]
@@ -531,6 +540,12 @@ export function CommunityScreen() {
                 setReportTargetId(null);
               }}
               targetType="post"
+            />
+
+            <SaveSuccessModal
+              visible={isSaveSuccessModalOpen}
+              onClose={() => setIsSaveSuccessModalOpen(false)}
+              isSaved={lastSaveResult}
             />
           </>
         ) : (
