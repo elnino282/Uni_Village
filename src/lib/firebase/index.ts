@@ -2,4 +2,4 @@
  * Firebase Module Exports
  */
 
-export { auth, firebaseApp, firestore, getCurrentSession, getCurrentUser } from './client';
+export { auth, database, firebaseApp, firestore, getCurrentSession, getCurrentUser } from './client';
