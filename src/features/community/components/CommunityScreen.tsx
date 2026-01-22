@@ -12,6 +12,7 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { ReportModal } from "@/components/ReportModal";
+import { ReportSuccessModal } from "@/components/ReportSuccessModal";
 import { ItineraryDetailsSheet } from "@/features/itinerary/components/ItineraryDetailsSheet";
 import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.types";
 import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
@@ -77,6 +78,7 @@ export function CommunityScreen() {
   );
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isReportSuccessModalOpen, setIsReportSuccessModalOpen] = useState(false);
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
 
   // Dynamic search placeholder based on content filter tab
@@ -209,9 +211,21 @@ export function CommunityScreen() {
   const handleSubmitReport = useCallback(
     (reason: string) => {
       if (reportTargetId && !isReportingPost) {
-        reportPost({ postId: reportTargetId, reason });
-        setIsReportModalOpen(false);
-        setReportTargetId(null);
+        reportPost(
+          { postId: reportTargetId, reason },
+          {
+            onSuccess: () => {
+              setIsReportModalOpen(false);
+              setIsReportSuccessModalOpen(true);
+              // Post will be removed by query invalidation
+            },
+            onError: () => {
+              // Error toast already shown in mutation
+              setIsReportModalOpen(false);
+              setReportTargetId(null);
+            },
+          }
+        );
       }
     },
     [reportTargetId, reportPost, isReportingPost]
@@ -508,6 +522,15 @@ export function CommunityScreen() {
               onSubmit={handleSubmitReport}
               targetType="post"
               isLoading={isReportingPost}
+            />
+
+            <ReportSuccessModal
+              visible={isReportSuccessModalOpen}
+              onClose={() => {
+                setIsReportSuccessModalOpen(false);
+                setReportTargetId(null);
+              }}
+              targetType="post"
             />
           </>
         ) : (

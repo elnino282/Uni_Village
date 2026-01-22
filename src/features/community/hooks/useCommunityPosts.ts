@@ -76,14 +76,16 @@ export function useSavePost() {
 }
 
 export function useReportPost() {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: async ({ postId, reason }: { postId: string; reason: string }) => {
       try {
         const response = await reportPostAPI(Number(postId), reason);
-        return response;
+        return { response, postId };
       } catch (error) {
         if (error instanceof ApiError) {
-          // Handle specific backend errors
+          // Handle specific backend errors without showing toast
           if (error.code === 'DUPLICATE_REPORT') {
             showErrorToast('Bạn đã báo cáo nội dung này rồi');
           } else if (error.code === 'SELF_REPORT') {
@@ -91,7 +93,7 @@ export function useReportPost() {
           } else if (error.code === 'INVALID_REPORT_TARGET') {
             showErrorToast('Không tìm thấy nội dung cần báo cáo');
           } else {
-            showErrorToast(error.message || 'Không thể gửi báo cáo');
+            showErrorToast('Không thể gửi báo cáo');
           }
         } else {
           showErrorToast('Đã xảy ra lỗi khi gửi báo cáo');
@@ -99,8 +101,10 @@ export function useReportPost() {
         throw error;
       }
     },
-    onSuccess: () => {
-      showSuccessToast('Báo cáo của bạn đã được gửi thành công');
+    onSuccess: ({ postId }) => {
+      // Invalidate queries to refresh the list (post will be removed on server side)
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      return postId;
     },
   });
 }

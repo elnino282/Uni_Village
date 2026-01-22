@@ -264,14 +264,14 @@ export function useReportComment() {
     }) => {
       const { reportComment } = await import("@/lib/api");
       const { ApiError } = await import("@/lib/errors/ApiError");
-      const { showSuccessToast, showErrorToast } = await import("@/shared/utils");
+      const { showErrorToast } = await import("@/shared/utils");
 
       try {
         const response = await reportComment(commentId, reason);
         return response;
       } catch (error) {
         if (error instanceof ApiError) {
-          // Handle specific backend errors
+          // Handle specific backend errors without showing success message
           if (error.code === "DUPLICATE_REPORT") {
             showErrorToast("Bạn đã báo cáo nội dung này rồi");
           } else if (error.code === "SELF_REPORT") {
@@ -279,17 +279,13 @@ export function useReportComment() {
           } else if (error.code === "INVALID_REPORT_TARGET") {
             showErrorToast("Không tìm thấy nội dung cần báo cáo");
           } else {
-            showErrorToast(error.message || "Không thể gửi báo cáo");
+            showErrorToast("Không thể gửi báo cáo");
           }
         } else {
           showErrorToast("Đã xảy ra lỗi khi gửi báo cáo");
         }
         throw error;
       }
-    },
-    onSuccess: async () => {
-      const { showSuccessToast } = await import("@/shared/utils");
-      showSuccessToast("Báo cáo của bạn đã được gửi thành công");
     },
   });
 }

@@ -35,6 +35,7 @@ import type { CommentRequest, PostLocation, PostVisibility } from "../types";
 import { sharePost } from "../utils";
 
 import { ReportModal } from "@/components/ReportModal";
+import { ReportSuccessModal } from "@/components/ReportSuccessModal";
 import { EditPrivacySheet } from "@/features/community/components/EditPrivacySheet";
 import { PostOverflowMenu } from "@/features/community/components/PostOverflowMenu";
 import { PostOwnerMenu } from "@/features/community/components/PostOwnerMenu";
@@ -84,6 +85,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isReportSuccessModalOpen, setIsReportSuccessModalOpen] = useState(false);
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
   const [reportTargetType, setReportTargetType] = useState<"post" | "comment">(
     "post"
@@ -224,15 +226,42 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
 
       if (reportTargetType === "post") {
         if (!isReportingPost) {
-          reportPost({ postId: reportTargetId, reason });
-          setIsReportModalOpen(false);
-          setReportTargetId(null);
+          reportPost(
+            { postId: reportTargetId, reason },
+            {
+              onSuccess: () => {
+                setIsReportModalOpen(false);
+                setIsReportSuccessModalOpen(true);
+                // Navigate back after showing success modal for post reports
+                setTimeout(() => {
+                  setIsDeleted(true);
+                  router.back();
+                }, 2000);
+              },
+              onError: () => {
+                setIsReportModalOpen(false);
+                setReportTargetId(null);
+              },
+            }
+          );
         }
       } else {
         if (!isReportingComment) {
-          reportComment({ commentId: Number(reportTargetId), reason });
-          setIsReportModalOpen(false);
-          setReportTargetId(null);
+          reportComment(
+            { commentId: Number(reportTargetId), reason },
+            {
+              onSuccess: () => {
+                setIsReportModalOpen(false);
+                setIsReportSuccessModalOpen(true);
+                // Refresh comments to remove the reported one
+                refetchComments();
+              },
+              onError: () => {
+                setIsReportModalOpen(false);
+                setReportTargetId(null);
+              },
+            }
+          );
         }
       }
     },
@@ -514,6 +543,15 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         isLoading={
           reportTargetType === "post" ? isReportingPost : isReportingComment
         }
+      />
+
+      <ReportSuccessModal
+        visible={isReportSuccessModalOpen}
+        onClose={() => {
+          setIsReportSuccessModalOpen(false);
+          setReportTargetId(null);
+        }}
+        targetType={reportTargetType}
       />
     </KeyboardAvoidingView>
   );
