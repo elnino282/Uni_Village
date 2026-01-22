@@ -46,7 +46,9 @@ function mapPostResponseToProfilePost(post: PostResponse): ProfilePost {
 /**
  * Convert ProfilePost to CommunityPost format for PostCard compatibility
  */
-export function mapProfilePostToCommunityPost(post: ProfilePost): CommunityPost {
+export function mapProfilePostToCommunityPost(
+  post: ProfilePost
+): CommunityPost {
   // Map visibility: PUBLIC -> public, PRIVATE -> private
   let visibility: "public" | "private" | "friends" = "public";
   if (post.visibility) {
@@ -64,7 +66,7 @@ export function mapProfilePostToCommunityPost(post: ProfilePost): CommunityPost 
     },
     content: post.content,
     imageUrl: post.imageUrl,
-    locations: post.locations.map(loc => ({
+    locations: post.locations.map((loc) => ({
       id: loc.id,
       name: loc.name,
     })),

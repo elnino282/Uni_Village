@@ -1,19 +1,23 @@
-import { SaveSuccessModal } from "@/components/SaveSuccessModal";
 import { ReportModal } from "@/components/ReportModal";
 import { ReportSuccessModal } from "@/components/ReportSuccessModal";
+import { SaveSuccessModal } from "@/components/SaveSuccessModal";
 import { EditPrivacySheet } from "@/features/community/components/EditPrivacySheet";
 import { PostCard } from "@/features/community/components/PostCard";
 import { PostOverflowMenu } from "@/features/community/components/PostOverflowMenu";
 import { PostOwnerMenu } from "@/features/community/components/PostOwnerMenu";
-import { useSavePost, useBlockPost, useReportPost } from "@/features/community/hooks";
-import type { PostVisibility, CommunityPost, PostLocation } from "@/features/community/types";
+import {
+  useBlockPost,
+  useReportPost,
+  useSavePost,
+} from "@/features/community/hooks";
+import type { PostLocation, PostVisibility } from "@/features/community/types";
 import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
-import { useReportedPostsStore } from "@/shared/stores";
+import { PostLocationDetailSheet } from "@/shared/components/post";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
-import { showErrorToast } from "@/shared/utils";
-import { PostLocationDetailSheet } from "@/shared/components/post";
+import { useReportedPostsStore } from "@/shared/stores";
 import { PostType, Visibility } from "@/shared/types/backend.types";
+import { showErrorToast } from "@/shared/utils";
 import { Href, router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -54,9 +58,12 @@ export function ProfileScreen() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [lastSaveResult, setLastSaveResult] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [isReportSuccessModalOpen, setIsReportSuccessModalOpen] = useState(false);
+  const [isReportSuccessModalOpen, setIsReportSuccessModalOpen] =
+    useState(false);
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(
+    null
+  );
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
 
   // Fetch current user's profile
@@ -83,7 +90,9 @@ export function ProfileScreen() {
   const { mutate: likePost } = useProfileLikePost();
   const { mutate: reportPost } = useReportPost();
   const { mutate: blockPost } = useBlockPost();
-  const addReportedPost = useReportedPostsStore((state) => state.addReportedPost);
+  const addReportedPost = useReportedPostsStore(
+    (state) => state.addReportedPost
+  );
 
   // Profile share sheet
   const shareSheet = useProfileShareSheet({
@@ -123,7 +132,8 @@ export function ProfileScreen() {
       if (!post) return;
 
       // Check if post is owned by current user
-      const isOwner = profile?.userId && String(post.author.id) === String(profile.userId);
+      const isOwner =
+        profile?.userId && String(post.author.id) === String(profile.userId);
 
       setSelectedPostId(postId);
       if (isOwner) {
