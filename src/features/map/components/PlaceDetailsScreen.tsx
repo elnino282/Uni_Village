@@ -20,6 +20,7 @@ import {
     Dimensions,
     Image,
     Linking,
+    Platform,
     ScrollView,
     Share,
     StyleSheet,
@@ -192,13 +193,18 @@ export function PlaceDetailsScreen() {
         if (!place) return;
         try {
             const deepLinkUrl = `univillage://place-details?placeId=${place.id}`;
-            const message = `${place.name}\n${place.address || ""}\n\nXem chi tiết tại: ${deepLinkUrl}`;
+            const message = `${place.name}\n${place.address || ""}`;
 
-            await Share.share({
-                title: place.name,
-                message: message,
-                url: deepLinkUrl, // For iOS
-            });
+            if (Platform.OS === "ios") {
+                await Share.share({
+                    url: deepLinkUrl,
+                });
+            } else {
+                await Share.share({
+                    title: place.name,
+                    message: `${message}\n\nXem chi tiết tại: ${deepLinkUrl}`,
+                });
+            }
         } catch (error) {
             console.error("Share error:", error);
         }
