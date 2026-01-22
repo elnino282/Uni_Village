@@ -52,7 +52,7 @@
       "changePasswordDesc": "Cập nhật mật khẩu của bạn",
       "language": "Ngôn ngữ",
       "languageCurrent": "Hiện tại: {{language}}",
-      "darkMode": "Chế độ tối",
+      "darkMode": "Chế độ",
       "darkModeOn": "Giao diện tối đang bật",
       "darkModeOff": "Giao diện sáng đang bật",
       "privatePosts": "Bài viết ở chế độ riêng tư",
