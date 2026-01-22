@@ -4,7 +4,13 @@ import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import {
     Animated,
     BackHandler,
@@ -16,12 +22,15 @@ import {
     StyleSheet,
     Text,
     TextInput,
-    View
+    View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { SelectDestinationsMap, SelectDestinationsMapRef } from "@/features/itinerary/components/SelectDestinationsMap";
+import {
+    SelectDestinationsMap,
+    SelectDestinationsMapRef,
+} from "@/features/itinerary/components/SelectDestinationsMap";
 import { useNearbyPlaces, useUserLocation } from "@/features/map/hooks";
 import type { MapMarker, MapRegion, Place } from "@/features/map/types";
 import { Colors, useColorScheme } from "@/shared";
@@ -59,7 +68,7 @@ export function SelectDestinationsScreen({
   tripId,
   existingDestinations,
   isAddingToExisting,
-  onBack
+  onBack,
 }: SelectDestinationsScreenProps) {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
@@ -67,36 +76,37 @@ export function SelectDestinationsScreen({
   const insets = useSafeAreaInsets();
   const mapRef = useRef<SelectDestinationsMapRef>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['30%', '65%', '90%'], []);
+  const snapPoints = useMemo(() => ["30%", "65%", "90%"], []);
 
   // Get user location and nearby places from API
   const { location: userLocation } = useUserLocation();
-  const { displayPlaces: nearbyPlaces, isLoading: isLoadingPlaces } = useNearbyPlaces(
-    userLocation,
-    'all',
-    { radius: 2000, maxResults: 20 }
-  );
+  const { displayPlaces: nearbyPlaces, isLoading: isLoadingPlaces } =
+    useNearbyPlaces(userLocation, "all", { radius: 2000, maxResults: 20 });
 
   // Initialize with existing destinations if adding to existing trip
-  const [selectedDestinations, setSelectedDestinations] = useState<SelectedDestination[]>([]);
+  const [selectedDestinations, setSelectedDestinations] = useState<
+    SelectedDestination[]
+  >([]);
 
   // Update selected destinations when nearbyPlaces load and existingDestinations are provided
   useEffect(() => {
     if (isAddingToExisting && existingDestinations && nearbyPlaces.length > 0) {
       const mapped = existingDestinations
-        .map(dest => {
-          const place = nearbyPlaces.find(p => p.id === dest.id);
+        .map((dest) => {
+          const place = nearbyPlaces.find((p) => p.id === dest.id);
           if (!place) return null;
 
           return {
             place,
             order: dest.order,
-            visitTime: dest.time ? (() => {
-              const [hours, minutes] = dest.time.split(':');
-              const date = new Date();
-              date.setHours(parseInt(hours), parseInt(minutes));
-              return date;
-            })() : undefined,
+            visitTime: dest.time
+              ? (() => {
+                  const [hours, minutes] = dest.time.split(":");
+                  const date = new Date();
+                  date.setHours(parseInt(hours), parseInt(minutes));
+                  return date;
+                })()
+              : undefined,
           } as SelectedDestination;
         })
         .filter((d): d is SelectedDestination => d !== null);
@@ -108,7 +118,9 @@ export function SelectDestinationsScreen({
   const initialDestinationCount = useRef(existingDestinations?.length || 0);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [showTimePickerFor, setShowTimePickerFor] = useState<string | null>(null);
+  const [showTimePickerFor, setShowTimePickerFor] = useState<string | null>(
+    null,
+  );
   const [tempTime, setTempTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -116,23 +128,27 @@ export function SelectDestinationsScreen({
 
   const filteredPlaces = useMemo(() => {
     if (!searchQuery.trim()) return nearbyPlaces;
-    return nearbyPlaces.filter(p =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.address?.toLowerCase().includes(searchQuery.toLowerCase())
+    return nearbyPlaces.filter(
+      (p) =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.address?.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [nearbyPlaces, searchQuery]);
 
   // Map region - use user location when available
-  const initialRegion: MapRegion = useMemo(() => ({
-    latitude: userLocation?.latitude || 10.7626,
-    longitude: userLocation?.longitude || 106.6824,
-    latitudeDelta: 0.015,
-    longitudeDelta: 0.015,
-  }), [userLocation]);
+  const initialRegion: MapRegion = useMemo(
+    () => ({
+      latitude: userLocation?.latitude || 10.7626,
+      longitude: userLocation?.longitude || 106.6824,
+      latitudeDelta: 0.015,
+      longitudeDelta: 0.015,
+    }),
+    [userLocation],
+  );
 
   // Convert places to markers
   const markers: MapMarker[] = useMemo(() => {
-    return filteredPlaces.map(place => ({
+    return filteredPlaces.map((place) => ({
       id: place.id,
       coordinate: {
         latitude: place.lat,
@@ -147,23 +163,26 @@ export function SelectDestinationsScreen({
   // Create map of selected markers with their order
   const selectedMarkersWithOrder = useMemo(() => {
     const map = new Map<string, number>();
-    selectedDestinations.forEach(dest => {
+    selectedDestinations.forEach((dest) => {
       map.set(dest.place.id, dest.order);
     });
     return map;
   }, [selectedDestinations]);
 
-  const getDestinationOrder = useCallback((placeId: string): number | null => {
-    const dest = selectedDestinations.find(d => d.place.id === placeId);
-    return dest ? dest.order : null;
-  }, [selectedDestinations]);
+  const getDestinationOrder = useCallback(
+    (placeId: string): number | null => {
+      const dest = selectedDestinations.find((d) => d.place.id === placeId);
+      return dest ? dest.order : null;
+    },
+    [selectedDestinations],
+  );
 
   const toggleDestination = useCallback((place: Place) => {
-    setSelectedDestinations(prev => {
-      const existing = prev.find(d => d.place.id === place.id);
+    setSelectedDestinations((prev) => {
+      const existing = prev.find((d) => d.place.id === place.id);
       if (existing) {
         // Remove and reorder
-        const filtered = prev.filter(d => d.place.id !== place.id);
+        const filtered = prev.filter((d) => d.place.id !== place.id);
         return filtered.map((d, idx) => ({ ...d, order: idx + 1 }));
       } else {
         // Add to end with next order number
@@ -198,34 +217,40 @@ export function SelectDestinationsScreen({
     }
   }, [isDirty, onBack, showTimePickerFor]);
 
-  const handleMarkerPress = useCallback((markerId: string) => {
-    const place = filteredPlaces.find(p => p.id === markerId);
-    if (place) {
-      toggleDestination(place);
-      mapRef.current?.animateToCoordinate({
-        latitude: place.lat,
-        longitude: place.lng,
-      });
-    }
-  }, [filteredPlaces, toggleDestination]);
+  const handleMarkerPress = useCallback(
+    (markerId: string) => {
+      const place = filteredPlaces.find((p) => p.id === markerId);
+      if (place) {
+        toggleDestination(place);
+        mapRef.current?.animateToCoordinate({
+          latitude: place.lat,
+          longitude: place.lng,
+        });
+      }
+    },
+    [filteredPlaces, toggleDestination],
+  );
 
-  const handleSetTime = useCallback((placeId: string) => {
-    const destination = selectedDestinations.find(d => d.place.id === placeId);
-    setShowTimePickerFor(placeId);
-    setTempTime(destination?.visitTime || new Date());
-    if (Platform.OS === 'android') {
-      setShowTimePicker(true);
-    }
-  }, [selectedDestinations]);
+  const handleSetTime = useCallback(
+    (placeId: string) => {
+      const destination = selectedDestinations.find(
+        (d) => d.place.id === placeId,
+      );
+      setShowTimePickerFor(placeId);
+      setTempTime(destination?.visitTime || new Date());
+      if (Platform.OS === "android") {
+        setShowTimePicker(true);
+      }
+    },
+    [selectedDestinations],
+  );
 
   const handleTimeConfirm = useCallback(() => {
     if (showTimePickerFor) {
-      setSelectedDestinations(prev =>
-        prev.map(d =>
-          d.place.id === showTimePickerFor
-            ? { ...d, visitTime: tempTime }
-            : d
-        )
+      setSelectedDestinations((prev) =>
+        prev.map((d) =>
+          d.place.id === showTimePickerFor ? { ...d, visitTime: tempTime } : d,
+        ),
       );
     }
     setShowTimePickerFor(null);
@@ -298,15 +323,17 @@ export function SelectDestinationsScreen({
         </View>
 
         {/* Header - Overlay on top */}
-        <View style={[
-          styles.headerSafeArea,
-          {
-            paddingTop: insets.top,
-            backgroundColor: colors.background,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: colors.border,
-          }
-        ]}>
+        <View
+          style={[
+            styles.headerSafeArea,
+            {
+              paddingTop: insets.top,
+              backgroundColor: colors.background,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.header}>
             <Pressable onPress={handleBack} style={styles.headerIcon}>
               <Ionicons name="arrow-back" size={22} color={colors.icon} />
@@ -316,13 +343,19 @@ export function SelectDestinationsScreen({
               <Text style={[styles.headerTitle, { color: colors.text }]}>
                 {tripData?.tripName || "Chuyến đi #4"}
               </Text>
-              <Text style={[styles.headerSubtitle, { color: secondaryTextColor }]}>
-                {isAddingToExisting ? "Thêm địa điểm mới" : "Bước 2/2: Chọn điểm đến"}
+              <Text
+                style={[styles.headerSubtitle, { color: secondaryTextColor }]}
+              >
+                {isAddingToExisting
+                  ? "Thêm địa điểm mới"
+                  : "Bước 2/2: Chọn điểm đến"}
               </Text>
             </View>
 
             <Pressable onPress={requestClose} hitSlop={10}>
-              <Text style={[styles.skipText, { color: colors.info }]}>Bỏ qua</Text>
+              <Text style={[styles.skipText, { color: colors.info }]}>
+                Bỏ qua
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -332,8 +365,8 @@ export function SelectDestinationsScreen({
           ref={bottomSheetRef}
           index={0}
           snapPoints={snapPoints}
-          backgroundStyle={{ backgroundColor: colors.background ?? '#ffffff' }}
-          handleIndicatorStyle={{ backgroundColor: colors.border ?? '#e2e8f0' }}
+          backgroundStyle={{ backgroundColor: colors.background ?? "#ffffff" }}
+          handleIndicatorStyle={{ backgroundColor: colors.border ?? "#e2e8f0" }}
           enablePanDownToClose={false}
         >
           <BottomSheetScrollView
@@ -342,7 +375,15 @@ export function SelectDestinationsScreen({
           >
             {/* Search bar */}
             <View style={styles.searchSection}>
-              <View style={[styles.searchBar, { backgroundColor: colors.card || "#fff", borderColor: colors.border }]}>
+              <View
+                style={[
+                  styles.searchBar,
+                  {
+                    backgroundColor: colors.card || "#fff",
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <Ionicons name="search" size={18} color={colors.icon} />
                 <TextInput
                   value={searchQuery}
@@ -358,7 +399,11 @@ export function SelectDestinationsScreen({
                 />
                 {searchQuery.length > 0 && (
                   <Pressable onPress={() => setSearchQuery("")}>
-                    <Ionicons name="close-circle" size={18} color={colors.icon} />
+                    <Ionicons
+                      name="close-circle"
+                      size={18}
+                      color={colors.icon}
+                    />
                   </Pressable>
                 )}
               </View>
@@ -378,10 +423,12 @@ export function SelectDestinationsScreen({
 
             {/* Destination List */}
             <View style={styles.listSection}>
-              {filteredPlaces.map(place => {
+              {filteredPlaces.map((place) => {
                 const order = getDestinationOrder(place.id);
                 const isSelected = order !== null;
-                const destination = selectedDestinations.find(d => d.place.id === place.id);
+                const destination = selectedDestinations.find(
+                  (d) => d.place.id === place.id,
+                );
 
                 return (
                   <View
@@ -411,26 +458,51 @@ export function SelectDestinationsScreen({
                         resizeMode="cover"
                       />
                       <View style={styles.placeInfo}>
-                        <Text style={[styles.placeName, { color: colors.text }]} numberOfLines={1}>
+                        <Text
+                          style={[styles.placeName, { color: colors.text }]}
+                          numberOfLines={1}
+                        >
                           {place.name}
                         </Text>
                         <View style={styles.placeRow}>
-                          <MaterialIcons name="star" size={12} color="#FFA500" />
-                          <Text style={[styles.placeRating, { color: secondaryTextColor }]}>
+                          <MaterialIcons
+                            name="star"
+                            size={12}
+                            color="#FFA500"
+                          />
+                          <Text
+                            style={[
+                              styles.placeRating,
+                              { color: secondaryTextColor },
+                            ]}
+                          >
                             {place.rating} ({place.ratingCount})
                           </Text>
                         </View>
-                        <Text style={[styles.placeAddress, { color: secondaryTextColor }]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.placeAddress,
+                            { color: secondaryTextColor },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {place.address || "Quán ở đâu"}
                         </Text>
-                        <Text style={[styles.placeDistance, { color: colors.info }]}>
+                        <Text
+                          style={[styles.placeDistance, { color: colors.info }]}
+                        >
                           Cách {place.distanceKm} km
                         </Text>
                       </View>
 
                       {isSelected && order && (
                         <View style={styles.orderBadgeContainer}>
-                          <View style={[styles.orderBadge, { backgroundColor: colors.info }]}>
+                          <View
+                            style={[
+                              styles.orderBadge,
+                              { backgroundColor: colors.info },
+                            ]}
+                          >
                             <Text style={styles.orderBadgeText}>{order}</Text>
                           </View>
                         </View>
@@ -440,19 +512,35 @@ export function SelectDestinationsScreen({
                     {isSelected && (
                       <View style={styles.placeActions}>
                         <Pressable
-                          style={[styles.actionButton, { backgroundColor: colors.info }]}
+                          style={[
+                            styles.actionButton,
+                            { backgroundColor: colors.info },
+                          ]}
                           onPress={() => handleSetTime(place.id)}
                         >
-                          <Ionicons name="time-outline" size={16} color="#fff" />
+                          <Ionicons
+                            name="time-outline"
+                            size={16}
+                            color="#fff"
+                          />
                           <Text style={styles.actionButtonText}>
-                            {destination?.visitTime ? formatTime(destination.visitTime) : "Chọn giờ"}
+                            {destination?.visitTime
+                              ? formatTime(destination.visitTime)
+                              : "Chọn giờ"}
                           </Text>
                         </Pressable>
                         <Pressable
-                          style={[styles.actionButton, { backgroundColor: colors.success }]}
-                          onPress={() => { }}
+                          style={[
+                            styles.actionButton,
+                            { backgroundColor: colors.success },
+                          ]}
+                          onPress={() => {}}
                         >
-                          <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={16}
+                            color="#fff"
+                          />
                         </Pressable>
                       </View>
                     )}
@@ -469,21 +557,37 @@ export function SelectDestinationsScreen({
         {/* Bottom Button */}
         {selectedDestinations.length > 0 && (
           <View style={styles.bottomBarContainer}>
-            <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+            <View
+              style={[
+                styles.bottomBar,
+                {
+                  backgroundColor: colors.background,
+                  borderTopColor: colors.border,
+                },
+              ]}
+            >
               <Pressable
-                style={[styles.continueButton, { backgroundColor: colors.info }]}
+                style={[
+                  styles.continueButton,
+                  { backgroundColor: colors.info },
+                ]}
                 onPress={async () => {
                   if (selectedDestinations.length === 0) {
                     alert("Vui lòng chọn ít nhất một địa điểm");
                     return;
                   }
 
-                  const destinationsData = selectedDestinations.map(d => ({
+                  const destinationsData = selectedDestinations.map((d) => ({
                     id: d.place.id,
                     name: d.place.name,
                     thumbnail: d.place.thumbnail,
                     order: d.order,
-                    time: d.visitTime ? d.visitTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : undefined,
+                    time: d.visitTime
+                      ? d.visitTime.toLocaleTimeString("vi-VN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : undefined,
                     lat: d.place.lat,
                     lng: d.place.lng,
                   }));
@@ -491,13 +595,18 @@ export function SelectDestinationsScreen({
                   try {
                     if (isAddingToExisting && tripId) {
                       // Update existing trip
-                      const tripsJson = await AsyncStorage.getItem('@trips');
+                      const tripsJson = await AsyncStorage.getItem("@trips");
                       const trips = tripsJson ? JSON.parse(tripsJson) : [];
 
-                      const tripIndex = trips.findIndex((t: any) => t.id === tripId);
+                      const tripIndex = trips.findIndex(
+                        (t: any) => t.id === tripId,
+                      );
                       if (tripIndex !== -1) {
                         trips[tripIndex].destinations = destinationsData;
-                        await AsyncStorage.setItem('@trips', JSON.stringify(trips));
+                        await AsyncStorage.setItem(
+                          "@trips",
+                          JSON.stringify(trips),
+                        );
 
                         // Navigate back to itinerary detail
                         router.back();
@@ -508,22 +617,29 @@ export function SelectDestinationsScreen({
                       const newTrip = {
                         id: newTripId,
                         tripName: tripData?.tripName || "Chuyến đi #4",
-                        startDate: tripData?.startDate?.toISOString() || new Date().toISOString(),
-                        startTime: tripData?.startTime?.toISOString() || new Date().toISOString(),
+                        startDate:
+                          tripData?.startDate?.toISOString() ||
+                          new Date().toISOString(),
+                        startTime:
+                          tripData?.startTime?.toISOString() ||
+                          new Date().toISOString(),
                         destinations: destinationsData,
                         createdAt: new Date().toISOString(),
-                        status: 'upcoming' as const,
+                        status: "upcoming" as const,
                       };
 
                       // Get existing trips
-                      const tripsJson = await AsyncStorage.getItem('@trips');
+                      const tripsJson = await AsyncStorage.getItem("@trips");
                       const trips = tripsJson ? JSON.parse(tripsJson) : [];
 
                       // Add new trip
                       trips.push(newTrip);
 
                       // Save back to AsyncStorage
-                      await AsyncStorage.setItem('@trips', JSON.stringify(trips));
+                      await AsyncStorage.setItem(
+                        "@trips",
+                        JSON.stringify(trips),
+                      );
 
                       // Navigate to success screen with tripId
                       router.replace({
@@ -531,22 +647,25 @@ export function SelectDestinationsScreen({
                         params: {
                           tripId: newTripId,
                           tripName: tripData?.tripName || "Chuyến đi #4",
-                          startDate: tripData?.startDate?.toISOString() || new Date().toISOString(),
-                          startTime: tripData?.startTime?.toISOString() || new Date().toISOString(),
+                          startDate:
+                            tripData?.startDate?.toISOString() ||
+                            new Date().toISOString(),
+                          startTime:
+                            tripData?.startTime?.toISOString() ||
+                            new Date().toISOString(),
                           destinations: JSON.stringify(destinationsData),
                         },
                       });
                     }
                   } catch (error) {
-                    console.error('Failed to save trip:', error);
+                    console.error("Failed to save trip:", error);
                   }
                 }}
               >
                 <Text style={styles.continueButtonText}>
                   {isAddingToExisting
                     ? `Cập nhật lịch trình (${selectedDestinations.length}) →`
-                    : `Hoàn tất lịch trình (${selectedDestinations.length}) →`
-                  }
+                    : `Hoàn tất lịch trình (${selectedDestinations.length}) →`}
                 </Text>
               </Pressable>
             </View>
@@ -561,7 +680,9 @@ export function SelectDestinationsScreen({
             animationType="none"
             onRequestClose={() => setShowDiscardConfirm(false)}
           >
-            <Animated.View style={[styles.confirmOverlay, { opacity: confirmOpacity }]}>
+            <Animated.View
+              style={[styles.confirmOverlay, { opacity: confirmOpacity }]}
+            >
               <Pressable
                 style={StyleSheet.absoluteFill}
                 onPress={() => setShowDiscardConfirm(false)}
@@ -569,20 +690,37 @@ export function SelectDestinationsScreen({
               <View
                 style={[
                   styles.confirmCard,
-                  { backgroundColor: colors.card || "#fff", borderColor: colors.border },
+                  {
+                    backgroundColor: colors.card || "#fff",
+                    borderColor: colors.border,
+                  },
                 ]}
               >
-                <Text style={[styles.confirmTitle, { color: colors.text }]}>Bỏ dở chuyến đi?</Text>
-                <Text style={[styles.confirmBody, { color: secondaryTextColor }]}>
+                <Text style={[styles.confirmTitle, { color: colors.text }]}>
+                  Bỏ dở chuyến đi?
+                </Text>
+                <Text
+                  style={[styles.confirmBody, { color: secondaryTextColor }]}
+                >
                   Các địa điểm bạn đã chọn sẽ bị mất nếu bạn thoát ngay bây giờ.
                 </Text>
                 <View style={styles.confirmActions}>
                   <Pressable
                     onPress={() => setShowDiscardConfirm(false)}
-                    style={[styles.confirmButton, { borderColor: colors.border, backgroundColor: colors.background }]}
+                    style={[
+                      styles.confirmButton,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: colors.background,
+                      },
+                    ]}
                     hitSlop={8}
                   >
-                    <Text style={[styles.confirmButtonText, { color: colors.text }]}>Ở lại</Text>
+                    <Text
+                      style={[styles.confirmButtonText, { color: colors.text }]}
+                    >
+                      Ở lại
+                    </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => {
@@ -620,9 +758,16 @@ export function SelectDestinationsScreen({
                 onPress={() => setShowTimePickerFor(null)}
               />
 
-              <View style={[styles.timePickerCard, { backgroundColor: colors.card || "#fff" }]}>
+              <View
+                style={[
+                  styles.timePickerCard,
+                  { backgroundColor: colors.card || "#fff" },
+                ]}
+              >
                 <View style={styles.timePickerHeader}>
-                  <Text style={[styles.timePickerTitle, { color: colors.text }]}>
+                  <Text
+                    style={[styles.timePickerTitle, { color: colors.text }]}
+                  >
                     Chọn thời gian xuất phát
                   </Text>
                   <Pressable onPress={() => setShowTimePickerFor(null)}>
@@ -631,14 +776,29 @@ export function SelectDestinationsScreen({
                 </View>
 
                 <View style={styles.timePickerBody}>
-                  <Text style={[styles.timePickerLabel, { color: secondaryTextColor }]}>
-                    Địa điểm xuất phát: {selectedDestinations.find(d => d.place.id === showTimePickerFor)?.place.name}
+                  <Text
+                    style={[
+                      styles.timePickerLabel,
+                      { color: secondaryTextColor },
+                    ]}
+                  >
+                    Địa điểm xuất phát:{" "}
+                    {
+                      selectedDestinations.find(
+                        (d) => d.place.id === showTimePickerFor,
+                      )?.place.name
+                    }
                   </Text>
-                  <Text style={[styles.timePickerHint, { color: secondaryTextColor }]}>
+                  <Text
+                    style={[
+                      styles.timePickerHint,
+                      { color: secondaryTextColor },
+                    ]}
+                  >
                     Thời gian xuất phát
                   </Text>
 
-                  {Platform.OS === 'ios' ? (
+                  {Platform.OS === "ios" ? (
                     <View style={styles.iosTimePickerContainer}>
                       <DateTimePicker
                         value={tempTime}
@@ -651,33 +811,71 @@ export function SelectDestinationsScreen({
                       />
                     </View>
                   ) : (
-                    <View style={styles.androidTimeDisplay}>
-                      <Ionicons name="time-outline" size={32} color={colors.info} />
-                      <Text style={[styles.androidTimeText, { color: colors.text }]}>
+                    <Pressable
+                      style={styles.androidTimeDisplay}
+                      onPress={() => setShowTimePicker(true)}
+                    >
+                      <Ionicons
+                        name="time-outline"
+                        size={32}
+                        color={colors.info}
+                      />
+                      <Text
+                        style={[styles.androidTimeText, { color: colors.text }]}
+                      >
                         {formatTime(tempTime)}
                       </Text>
-                    </View>
+                      <Text
+                        style={{
+                          color: colors.info,
+                          fontSize: 12,
+                          marginTop: 4,
+                        }}
+                      >
+                        Nhấn để chọn giờ
+                      </Text>
+                    </Pressable>
                   )}
 
-                  <Text style={[styles.timePickerFootnote, { color: secondaryTextColor }]}>
+                  <Text
+                    style={[
+                      styles.timePickerFootnote,
+                      { color: secondaryTextColor },
+                    ]}
+                  >
                     Bạn có thể thay đổi sau khi tạo lịch trình
                   </Text>
-                  <Text style={[styles.timePickerRecommend, { color: colors.info }]}>
-                    Hệ thống gợi ý: {formatTime(new Date(new Date().setHours(14, 30)))}
+                  <Text
+                    style={[styles.timePickerRecommend, { color: colors.info }]}
+                  >
+                    Hệ thống gợi ý:{" "}
+                    {formatTime(new Date(new Date().setHours(14, 30)))}
                   </Text>
                 </View>
 
                 <View style={styles.timePickerActions}>
                   <Pressable
-                    style={[styles.timePickerButton, { borderColor: colors.border }]}
+                    style={[
+                      styles.timePickerButton,
+                      { borderColor: colors.border },
+                    ]}
                     onPress={() => setShowTimePickerFor(null)}
                   >
-                    <Text style={[styles.timePickerButtonText, { color: colors.text }]}>
+                    <Text
+                      style={[
+                        styles.timePickerButtonText,
+                        { color: colors.text },
+                      ]}
+                    >
                       Hủy
                     </Text>
                   </Pressable>
                   <Pressable
-                    style={[styles.timePickerButton, styles.timePickerButtonPrimary, { backgroundColor: colors.info }]}
+                    style={[
+                      styles.timePickerButton,
+                      styles.timePickerButtonPrimary,
+                      { backgroundColor: colors.info },
+                    ]}
                     onPress={handleTimeConfirm}
                   >
                     <Text style={styles.timePickerButtonPrimaryText}>
@@ -688,7 +886,7 @@ export function SelectDestinationsScreen({
               </View>
             </View>
 
-            {Platform.OS === 'android' && showTimePicker && (
+            {Platform.OS === "android" && showTimePicker && (
               <DateTimePicker
                 value={tempTime}
                 mode="time"
@@ -985,11 +1183,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   androidTimeDisplay: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    paddingVertical: 20,
+    gap: 8,
+    paddingVertical: 24,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#3B82F6",
+    borderStyle: "dashed",
+    backgroundColor: "rgba(59, 130, 246, 0.08)",
   },
   androidTimeText: {
     fontSize: 32,

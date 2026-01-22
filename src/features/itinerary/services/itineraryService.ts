@@ -12,7 +12,7 @@ import { TourStatus } from '../types/itinerary.types';
  */
 function mapTourStatusToItineraryStatus(status: TourStatus): 'ongoing' | 'upcoming' | 'past' {
     switch (status) {
-        case TourStatus.IN_PROGRESS:
+        case TourStatus.ONGOING:
             return 'ongoing';
         case TourStatus.SCHEDULED:
             return 'upcoming';
@@ -53,7 +53,7 @@ export async function fetchItineraries(status?: 'ongoing' | 'upcoming' | 'past')
     try {
         // Map frontend status to backend status
         let backendStatus: TourStatus | undefined;
-        if (status === 'ongoing') backendStatus = TourStatus.IN_PROGRESS;
+        if (status === 'ongoing') backendStatus = TourStatus.ONGOING;
         else if (status === 'upcoming') backendStatus = TourStatus.SCHEDULED;
         else if (status === 'past') backendStatus = TourStatus.COMPLETED;
 
@@ -103,6 +103,22 @@ export async function createItinerary(data: {
         tourName: data.tourName,
         startDate: data.startDate.toISOString(),
         startTime: data.startTime.toISOString(),
+    });
+    return mapTourToItinerary(tour);
+}
+
+/**
+ * Update an itinerary
+ */
+export async function updateItinerary(id: string, data: {
+    tourName?: string;
+    startDate?: Date;
+    startTime?: Date;
+}): Promise<Itinerary> {
+    const tour = await itineraryApi.updateTour(parseInt(id), {
+        tourName: data.tourName,
+        startDate: data.startDate?.toISOString(),
+        startTime: data.startTime?.toISOString(),
     });
     return mapTourToItinerary(tour);
 }

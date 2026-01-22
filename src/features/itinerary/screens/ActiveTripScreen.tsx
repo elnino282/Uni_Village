@@ -294,7 +294,7 @@ export function ActiveTripScreen() {
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top }]}
       >
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={() => router.replace('/(tabs)/itinerary')} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </Pressable>
         

@@ -1,28 +1,35 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import {
-  Animated,
-  BackHandler,
-  Easing,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Animated,
+    BackHandler,
+    Easing,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LocationPicker } from "@/features/map/components/LocationPicker";
 import { useUserLocation } from "@/features/map/hooks/useUserLocation";
-import { Colors, useColorScheme } from "@/shared";
 import { apiClient } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
-import { ActivityIndicator } from "react-native";
+import { Colors, useColorScheme } from "@/shared";
+
 
 interface CategoryResponse {
   id: number;
@@ -71,26 +78,40 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
   const secondaryTextColor = colors.textSecondary || (colors as any).icon;
 
   // Location hook
-  const { location, isLoading: locationLoading, error: locationError, requestPermission } = useUserLocation();
-  const [locationAddress, setLocationAddress] = useState<string>("Chưa xác định");
+  const {
+    location,
+    isLoading: locationLoading,
+    error: locationError,
+    requestPermission,
+  } = useUserLocation();
+  const [locationAddress, setLocationAddress] =
+    useState<string>("Chưa xác định");
   const [showLocationPicker, setShowLocationPicker] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<{latitude: number; longitude: number; address: string} | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+  } | null>(null);
 
   const [tripName, setTripName] = useState("");
   const initialDateRef = useRef(new Date());
-  
-  const getInitialTime = () => {
-    const base = new Date();
-    base.setHours(18, 8, 0, 0);
-    return base;
-  };
-  const initialTimeRef = useRef<Date>(getInitialTime());
+
+  // Initialize time to 18:08 (6:08 PM) once
+  const initialTimeRef = useRef<Date>(
+    (() => {
+      const base = new Date();
+      base.setHours(18, 8, 0, 0);
+      return base;
+    })(),
+  );
   const initialCategoriesRef = useRef<Category[]>([]);
 
   // selected values
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(() => {
-    return initialTimeRef.current;
+  const [selectedTime, setSelectedTime] = useState<Date>(() => {
+    const base = new Date();
+    base.setHours(18, 8, 0, 0);
+    return base;
   });
 
   // bottom sheet modal
@@ -124,21 +145,23 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
     const fetchCategories = async () => {
       try {
         setCategoriesLoading(true);
-        const response = await apiClient.get<ApiResponse<CategoryResponse[]>>(API_ENDPOINTS.PLACE_TYPES);
+        const response = await apiClient.get<ApiResponse<CategoryResponse[]>>(
+          API_ENDPOINTS.PLACE_TYPES,
+        );
         setCategories(response.result);
         setCategoriesError(null);
       } catch (error) {
-        console.error('Failed to fetch categories:', error);
-        setCategoriesError('Không thể tải danh mục');
+        console.error("Failed to fetch categories:", error);
+        setCategoriesError("Không thể tải danh mục");
         // Fallback to default categories if API fails
         setCategories([
-          { id: 1, code: 'coffee', name: 'Cà phê', description: '' },
-          { id: 2, code: 'food', name: 'Ăn uống', description: '' },
-          { id: 3, code: 'shopping', name: 'Mua sắm', description: '' },
-          { id: 4, code: 'sightseeing', name: 'Tham quan', description: '' },
-          { id: 5, code: 'relax', name: 'Thư giãn', description: '' },
-          { id: 6, code: 'park', name: 'Công viên', description: '' },
-          { id: 7, code: 'other', name: 'Khác', description: '' },
+          { id: 1, code: "coffee", name: "Cà phê", description: "" },
+          { id: 2, code: "food", name: "Ăn uống", description: "" },
+          { id: 3, code: "shopping", name: "Mua sắm", description: "" },
+          { id: 4, code: "sightseeing", name: "Tham quan", description: "" },
+          { id: 5, code: "relax", name: "Thư giãn", description: "" },
+          { id: 6, code: "park", name: "Công viên", description: "" },
+          { id: 7, code: "other", name: "Khác", description: "" },
         ]);
       } finally {
         setCategoriesLoading(false);
@@ -161,18 +184,24 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
   // Update location address when location changes
   useEffect(() => {
     if (location) {
-      setLocationAddress(`${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`);
+      setLocationAddress(
+        `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
+      );
     }
   }, [location]);
 
   const days = useMemo(
     () => getDaysInMonth(viewMonth.getFullYear(), viewMonth.getMonth()),
-    [viewMonth]
+    [viewMonth],
   );
 
   // Monday-first offset
   const firstDayOffset = useMemo(() => {
-    const day = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1).getDay(); // 0-6
+    const day = new Date(
+      viewMonth.getFullYear(),
+      viewMonth.getMonth(),
+      1,
+    ).getDay(); // 0-6
     return day === 0 ? 6 : day - 1;
   }, [viewMonth]);
 
@@ -193,7 +222,7 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
 
   const toggleCategory = (c: Category) => {
     setSelectedCategories((prev) =>
-      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
     );
   };
 
@@ -207,12 +236,7 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
   const setDay = (day: Date) => {
     // keep current time when changing date
     const next = new Date(day);
-    next.setHours(
-      selectedTime.getHours(),
-      selectedTime.getMinutes(),
-      0,
-      0
-    );
+    next.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
     setSelectedDate(next);
 
     // also update selectedTime date part to match
@@ -240,12 +264,7 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
       selectedCategories.length === initialCategoriesRef.current.length &&
       selectedCategories.every((c) => initialCategoriesRef.current.includes(c));
 
-    return !(
-      tripName.trim() === "" &&
-      sameDate &&
-      sameTime &&
-      sameCategories
-    );
+    return !(tripName.trim() === "" && sameDate && sameTime && sameCategories);
   }, [selectedCategories, selectedDate, selectedTime, tripName]);
 
   const requestClose = useCallback(() => {
@@ -369,7 +388,10 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
           <View
             style={[
               styles.inputShell,
-              { backgroundColor: colors.card ?? "#fff", borderColor: errors.tripName ? "#FF3B30" : colors.border },
+              {
+                backgroundColor: colors.card ?? "#fff",
+                borderColor: errors.tripName ? "#FF3B30" : colors.border,
+              },
             ]}
           >
             <TextInput
@@ -386,7 +408,9 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
             />
           </View>
           {errors.tripName && (
-            <Text style={[styles.errorText, { color: "#FF3B30" }]}>{errors.tripName}</Text>
+            <Text style={[styles.errorText, { color: "#FF3B30" }]}>
+              {errors.tripName}
+            </Text>
           )}
         </View>
 
@@ -399,22 +423,39 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
           <View
             style={[
               styles.card,
-              { borderColor: colors.border, backgroundColor: colors.card ?? "#fff" },
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.card ?? "#fff",
+              },
             ]}
           >
-            <Pressable style={styles.row} onPress={() => setShowDateModal(true)}>
+            <Pressable
+              style={styles.row}
+              onPress={() => setShowDateModal(true)}
+            >
               <View style={styles.rowLeft}>
-                <Ionicons name="calendar-outline" size={20} color={colors.info} />
-                <Text style={[styles.rowTitle, { color: colors.text }]}>Ngày đi</Text>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={colors.info}
+                />
+                <Text style={[styles.rowTitle, { color: colors.text }]}>
+                  Ngày đi
+                </Text>
               </View>
               <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
                 {formattedDate}
               </Text>
             </Pressable>
 
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
 
-            <Pressable style={styles.row} onPress={() => setShowDateModal(true)}>
+            <Pressable
+              style={styles.row}
+              onPress={() => setShowDateModal(true)}
+            >
               <View style={styles.rowLeft}>
                 <Ionicons name="time-outline" size={20} color={colors.info} />
                 <Text style={[styles.rowTitle, { color: colors.text }]}>
@@ -452,17 +493,36 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
               }
             }}
           >
-            <Ionicons 
-              name={locationLoading ? "hourglass-outline" : location || selectedLocation ? "location" : "location-outline"} 
-              size={18} 
-              color={colors.info} 
+            <Ionicons
+              name={
+                locationLoading
+                  ? "hourglass-outline"
+                  : location || selectedLocation
+                    ? "location"
+                    : "location-outline"
+              }
+              size={18}
+              color={colors.info}
             />
             <View style={{ flex: 1 }}>
               <Text style={[styles.rowTitle, { color: colors.text }]}>
-                {selectedLocation ? "Điểm xuất phát" : location ? "Vị trí hiện tại" : "Cho phép truy cập vị trí"}
+                {selectedLocation
+                  ? "Điểm xuất phát"
+                  : location
+                    ? "Vị trí hiện tại"
+                    : "Cho phép truy cập vị trí"}
               </Text>
-              <Text style={[styles.rowValue, { color: secondaryTextColor }]} numberOfLines={1}>
-                {selectedLocation ? selectedLocation.address : locationLoading ? "Đang lấy vị trí..." : locationError ? "Không thể lấy vị trí" : locationAddress}
+              <Text
+                style={[styles.rowValue, { color: secondaryTextColor }]}
+                numberOfLines={1}
+              >
+                {selectedLocation
+                  ? selectedLocation.address
+                  : locationLoading
+                    ? "Đang lấy vị trí..."
+                    : locationError
+                      ? "Không thể lấy vị trí"
+                      : locationAddress}
               </Text>
             </View>
 
@@ -470,7 +530,10 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
           </Pressable>
 
           {(location || selectedLocation) && (
-            <Pressable style={styles.linkRow} onPress={() => setShowLocationPicker(true)}>
+            <Pressable
+              style={styles.linkRow}
+              onPress={() => setShowLocationPicker(true)}
+            >
               <Ionicons name="map-outline" size={16} color={colors.info} />
               <Text style={[styles.linkText, { color: colors.info }]}>
                 Chọn điểm xuất phát khác
@@ -486,15 +549,30 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
           </Text>
 
           {categoriesLoading ? (
-            <View style={[styles.chipRow, { justifyContent: 'center', paddingVertical: 20 }]}>
+            <View
+              style={[
+                styles.chipRow,
+                { justifyContent: "center", paddingVertical: 20 },
+              ]}
+            >
               <ActivityIndicator size="small" color={colors.info} />
-              <Text style={[styles.chipText, { color: secondaryTextColor, marginLeft: 8 }]}>
+              <Text
+                style={[
+                  styles.chipText,
+                  { color: secondaryTextColor, marginLeft: 8 },
+                ]}
+              >
                 Đang tải danh mục...
               </Text>
             </View>
           ) : categoriesError ? (
-            <View style={[styles.chipRow, { justifyContent: 'center', paddingVertical: 20 }]}>
-              <Text style={[styles.chipText, { color: '#FF3B30' }]}>
+            <View
+              style={[
+                styles.chipRow,
+                { justifyContent: "center", paddingVertical: 20 },
+              ]}
+            >
+              <Text style={[styles.chipText, { color: "#FF3B30" }]}>
                 {categoriesError}
               </Text>
             </View>
@@ -509,7 +587,9 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: active ? `${colors.info}14` : colors.muted,
+                        backgroundColor: active
+                          ? `${colors.info}14`
+                          : colors.muted,
                         borderColor: active ? colors.info : colors.border,
                       },
                     ]}
@@ -528,31 +608,35 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
             </View>
           )}
           {errors.categories && (
-            <Text style={[styles.errorText, { color: "#FF3B30", marginTop: 8 }]}>{errors.categories}</Text>
+            <Text
+              style={[styles.errorText, { color: "#FF3B30", marginTop: 8 }]}
+            >
+              {errors.categories}
+            </Text>
           )}
         </View>
 
         {/* Actions */}
         <View style={styles.section}>
-          <Pressable 
+          <Pressable
             style={[styles.primaryButton, { backgroundColor: colors.info }]}
             onPress={() => {
               // Validate
               const newErrors: { tripName?: string; categories?: string } = {};
-              
+
               if (!tripName.trim()) {
                 newErrors.tripName = "Vui lòng nhập tên chuyến đi";
               }
-              
+
               if (selectedCategories.length === 0) {
                 newErrors.categories = "Vui lòng chọn ít nhất một sở thích";
               }
-              
+
               if (Object.keys(newErrors).length > 0) {
                 setErrors(newErrors);
                 return;
               }
-              
+
               // Clear errors and navigate
               setErrors({});
               router.push({
@@ -607,7 +691,9 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
             </Text>
 
             <Pressable onPress={handleSaveDateTime} hitSlop={10}>
-              <Text style={[styles.skipText, { color: colors.info }]}>Xong</Text>
+              <Text style={[styles.skipText, { color: colors.info }]}>
+                Xong
+              </Text>
             </Pressable>
           </View>
 
@@ -627,7 +713,11 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
               </Text>
 
               <Pressable onPress={() => goMonth(1)} style={styles.iconBtn}>
-                <Ionicons name="chevron-forward" size={18} color={colors.icon} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.icon}
+                />
               </Pressable>
             </View>
 
@@ -672,7 +762,11 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
                       style={[
                         styles.dayNumber,
                         {
-                          color: isPast ? colors.textSecondary : isActive ? colors.info : colors.text,
+                          color: isPast
+                            ? colors.textSecondary
+                            : isActive
+                              ? colors.info
+                              : colors.text,
                           fontWeight: isActive ? "800" : "600",
                         },
                       ]}
@@ -681,16 +775,27 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
                     </Text>
 
                     {isToday && !isActive ? (
-                      <View style={[styles.todayDot, { backgroundColor: colors.info }]} />
+                      <View
+                        style={[
+                          styles.todayDot,
+                          { backgroundColor: colors.info },
+                        ]}
+                      />
                     ) : null}
                   </Pressable>
                 );
               })}
             </View>
 
-            <View style={[styles.selectedDatePill, { backgroundColor: colors.muted }]}>
+            <View
+              style={[
+                styles.selectedDatePill,
+                { backgroundColor: colors.muted },
+              ]}
+            >
               <Text style={{ color: colors.text }}>
-                Đã chọn: {selectedDate.toLocaleDateString("vi-VN")} • {formattedTime}
+                Đã chọn: {selectedDate.toLocaleDateString("vi-VN")} •{" "}
+                {formattedTime}
               </Text>
             </View>
           </View>
@@ -701,25 +806,43 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
               onPress={() => setShowTimePicker(true)}
               style={[
                 styles.timeCard,
-                { backgroundColor: colors.card ?? "#fff", borderColor: colors.border },
+                {
+                  backgroundColor: colors.card ?? "#fff",
+                  borderColor: colors.border,
+                },
               ]}
             >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+              >
                 <Ionicons name="time-outline" size={18} color={colors.info} />
                 <Text style={[styles.timeLabel, { color: colors.text }]}>
                   Giờ xuất phát
                 </Text>
               </View>
 
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Text style={[styles.timeValue, { color: colors.text }]}>{formattedTime}</Text>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <Text style={[styles.timeValue, { color: colors.text }]}>
+                  {formattedTime}
+                </Text>
                 <Ionicons name="chevron-down" size={16} color={colors.icon} />
               </View>
             </Pressable>
 
             {/* iOS: show spinner inline for smoothness */}
             {Platform.OS === "ios" && showTimePicker && (
-              <View style={[styles.iosPickerWrap, { backgroundColor: colorScheme === 'dark' ? '#1C1C1E' : '#FFFFFF', borderColor: colors.border }]}>
+              <View
+                style={[
+                  styles.iosPickerWrap,
+                  {
+                    backgroundColor:
+                      colorScheme === "dark" ? "#1C1C1E" : "#FFFFFF",
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <DateTimePicker
                   value={selectedTime}
                   mode="time"
@@ -728,13 +851,20 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
                   onChange={(_, date) => {
                     if (!date) return;
                     const d = new Date(date);
-                    d.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                    d.setFullYear(
+                      selectedDate.getFullYear(),
+                      selectedDate.getMonth(),
+                      selectedDate.getDate(),
+                    );
                     setSelectedTime(d);
                   }}
                 />
                 <Pressable
                   onPress={() => setShowTimePicker(false)}
-                  style={[styles.pickerDoneBtn, { backgroundColor: colors.info }]}
+                  style={[
+                    styles.pickerDoneBtn,
+                    { backgroundColor: colors.info },
+                  ]}
                 >
                   <Text style={styles.pickerDoneText}>Xong</Text>
                 </Pressable>
@@ -751,7 +881,11 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
                   setShowTimePicker(false);
                   if (!date) return;
                   const d = new Date(date);
-                  d.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                  d.setFullYear(
+                    selectedDate.getFullYear(),
+                    selectedDate.getMonth(),
+                    selectedDate.getDate(),
+                  );
                   setSelectedTime(d);
                 }}
               />
@@ -759,7 +893,14 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
           </View>
 
           <Pressable
-            style={[styles.primaryButton, { backgroundColor: colors.info, marginHorizontal: 16, marginBottom: 16 }]}
+            style={[
+              styles.primaryButton,
+              {
+                backgroundColor: colors.info,
+                marginHorizontal: 16,
+                marginBottom: 16,
+              },
+            ]}
             onPress={handleSaveDateTime}
           >
             <Text style={styles.primaryButtonText}>Lưu</Text>
@@ -775,26 +916,45 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
           animationType="none"
           onRequestClose={() => setShowDiscardConfirm(false)}
         >
-          <Animated.View style={[styles.confirmOverlay, { opacity: confirmOpacity }]}>
-            <Pressable 
-              style={StyleSheet.absoluteFill} 
+          <Animated.View
+            style={[styles.confirmOverlay, { opacity: confirmOpacity }]}
+          >
+            <Pressable
+              style={StyleSheet.absoluteFill}
               onPress={() => setShowDiscardConfirm(false)}
             />
             <View
               style={[
                 styles.confirmCard,
-                { backgroundColor: colors.card ?? "#fff", borderColor: colors.border },
+                {
+                  backgroundColor: colors.card ?? "#fff",
+                  borderColor: colors.border,
+                },
               ]}
             >
-              <Text style={[styles.confirmTitle, { color: colors.text }]}>Bỏ dở chuyến đi?</Text>
-              <Text style={[styles.confirmBody, { color: secondaryTextColor }]}>Mọi thông tin bạn đã chọn sẽ bị mất nếu bạn thoát ngay bây giờ.</Text>
+              <Text style={[styles.confirmTitle, { color: colors.text }]}>
+                Bỏ dở chuyến đi?
+              </Text>
+              <Text style={[styles.confirmBody, { color: secondaryTextColor }]}>
+                Mọi thông tin bạn đã chọn sẽ bị mất nếu bạn thoát ngay bây giờ.
+              </Text>
               <View style={styles.confirmActions}>
                 <Pressable
                   onPress={() => setShowDiscardConfirm(false)}
-                  style={[styles.confirmButton, { borderColor: colors.border, backgroundColor: colors.background }]}
+                  style={[
+                    styles.confirmButton,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: colors.background,
+                    },
+                  ]}
                   hitSlop={8}
                 >
-                  <Text style={[styles.confirmButtonText, { color: colors.text }]}>Ở lại</Text>
+                  <Text
+                    style={[styles.confirmButtonText, { color: colors.text }]}
+                  >
+                    Ở lại
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => {
@@ -827,11 +987,17 @@ export function CreateItineraryScreen({ onBack }: CreateItineraryScreenProps) {
         >
           <LocationPicker
             initialLocation={
-              selectedLocation 
-                ? { latitude: selectedLocation.latitude, longitude: selectedLocation.longitude }
-                : location 
-                ? { latitude: location.latitude, longitude: location.longitude } 
-                : undefined
+              selectedLocation
+                ? {
+                    latitude: selectedLocation.latitude,
+                    longitude: selectedLocation.longitude,
+                  }
+                : location
+                  ? {
+                      latitude: location.latitude,
+                      longitude: location.longitude,
+                    }
+                  : undefined
             }
             onLocationSelect={(loc) => {
               setSelectedLocation(loc);
@@ -865,8 +1031,8 @@ const styles = StyleSheet.create({
   headerIcon: { padding: 6 },
 
   headerTitle: { fontSize: 18, fontWeight: "800" },
-  skipText: { 
-    fontSize: 14, 
+  skipText: {
+    fontSize: 14,
     fontWeight: "700",
     paddingHorizontal: 6,
     paddingVertical: 6,
@@ -920,14 +1086,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  linkRow: { 
+  linkRow: {
     marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   linkText: { fontSize: 14, fontWeight: "700" },
-  
+
   errorText: {
     fontSize: 13,
     marginTop: 6,
@@ -1150,24 +1316,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
-  pickerDoneText: { 
-    color: "#fff", 
+  pickerDoneText: {
+    color: "#fff",
     fontWeight: "800",
     fontSize: 17,
     letterSpacing: 0.3,
   },
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-

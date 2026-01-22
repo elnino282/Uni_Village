@@ -6,8 +6,8 @@ export type ItineraryStatus = 'ongoing' | 'upcoming' | 'past';
 
 export enum TourStatus {
     SCHEDULED = 'SCHEDULED',    // upcoming
-    IN_PROGRESS = 'IN_PROGRESS', // ongoing  
-    COMPLETED = 'COMPLETED',     // past
+    ONGOING = 'ONGOING',        // ongoing  
+    COMPLETED = 'COMPLETED',    // past
     CANCELLED = 'CANCELLED'
 }
 
