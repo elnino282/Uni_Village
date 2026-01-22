@@ -1,6 +1,57 @@
+<<<<<<< HEAD
 import { Client, IMessage, StompConfig } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import type { WebSocketConfig, WebSocketMessage, StompSubscription } from './types';
+=======
+import { Client, IMessage, StompConfig, type StompHeaders } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
+import type {
+    StompSubscription,
+    WebSocketConfig,
+    WebSocketMessage,
+} from "./types";
+
+/**
+ * Error rate limiter to prevent spam logging
+ */
+class ErrorRateLimiter {
+  private lastErrorTime = 0;
+  private lastErrorMessage = "";
+  private errorCount = 0;
+  private readonly minIntervalMs = 10000; // 10 seconds minimum between same error logs
+
+  /**
+   * Check if we should log this error
+   * Returns true if enough time has passed or error message is different
+   */
+  shouldLog(errorMessage: string): boolean {
+    const now = Date.now();
+    const isDifferentError = errorMessage !== this.lastErrorMessage;
+    const hasEnoughTimePassed = now - this.lastErrorTime >= this.minIntervalMs;
+
+    if (isDifferentError || hasEnoughTimePassed) {
+      if (this.errorCount > 1) {
+        console.warn(
+          `[STOMP] Suppressed ${this.errorCount - 1} duplicate error(s)`,
+        );
+      }
+      this.lastErrorTime = now;
+      this.lastErrorMessage = errorMessage;
+      this.errorCount = 1;
+      return true;
+    }
+
+    this.errorCount++;
+    return false;
+  }
+
+  reset(): void {
+    this.lastErrorTime = 0;
+    this.lastErrorMessage = "";
+    this.errorCount = 0;
+  }
+}
+>>>>>>> parent of 732e9d4 (Refactor chat WebSocket event handling and types)
 
 class StompClientService {
     private client: Client | null = null;
@@ -80,6 +131,7 @@ class StompClientService {
         }
     }
 
+<<<<<<< HEAD
     subscribe<T = unknown>(
         destination: string,
         callback: (message: WebSocketMessage<T>) => void
@@ -96,6 +148,36 @@ class StompClientService {
             } catch (error) {
                 console.error('[STOMP] Failed to parse message:', error);
             }
+=======
+    const handlers = new Map<string, (message: WebSocketMessage<unknown>) => void>();
+    handlers.set(
+      handlerId,
+      callback as (message: WebSocketMessage<unknown>) => void,
+    );
+
+    const subscription = this.client.subscribe(
+      destination,
+      (message: IMessage) => {
+        let parsedMessage: WebSocketMessage<unknown> | null = null;
+        try {
+          parsedMessage = JSON.parse(message.body) as WebSocketMessage<unknown>;
+        } catch (error) {
+          console.error("[STOMP] Failed to parse message:", error);
+          return;
+        }
+
+        const entry = this.destinationSubscriptions.get(destination);
+        if (!entry) {
+          return;
+        }
+
+        entry.handlers.forEach((handler) => {
+          try {
+            handler(parsedMessage as WebSocketMessage<T>);
+          } catch (error) {
+            console.error("[STOMP] Handler error:", error);
+          }
+>>>>>>> parent of 732e9d4 (Refactor chat WebSocket event handling and types)
         });
 
         const stompSub: StompSubscription = {

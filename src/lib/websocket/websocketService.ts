@@ -6,7 +6,6 @@ import { stompClient } from "./stompClient";
 import type {
     AckEvent,
     ChatMessageEvent,
-    ChatMessageWsEvent,
     ChatSendPayload,
     ConversationUpgradedEvent,
     MessageEvent,
@@ -115,16 +114,10 @@ class WebSocketService {
   /**
    * Subscribe to message events for a conversation
    * Destination: /topic/message.{conversationId}
-   *
-   * Backend sends ChatMessageWsEvent with data directly (not wrapped in .message):
-   * - SEND: { eventType: 'SEND', data: MessageResponse }
-   * - EDIT: { eventType: 'EDIT', data: MessageResponse }
-   * - UNSEND: { eventType: 'UNSEND', data: MessageResponse }
-   * - SEEN: { eventType: 'SEEN', data: { userId, lastReadMessageId } }
    */
   subscribeToMessages(
     conversationId: string,
-    onMessage: (message: ChatMessageWsEvent) => void,
+    onMessage: (message: WebSocketMessage<MessageEvent>) => void,
   ): StompSubscription | null {
     const destination = `/topic/message.${conversationId}`;
     const existingKey = `message-${conversationId}`;
@@ -135,11 +128,9 @@ class WebSocketService {
       this.activeSubscriptions.delete(existingKey);
     }
 
-    // Cast through unknown since stompClient expects WebSocketMessage<T>
-    // but we know backend sends ChatMessageWsEvent shape
-    const subscription = stompClient.subscribe(
+    const subscription = stompClient.subscribe<MessageEvent>(
       destination,
-      onMessage as (message: WebSocketMessage<unknown>) => void,
+      onMessage,
     );
 
     if (subscription) {
@@ -423,9 +414,7 @@ class WebSocketService {
       return false;
     }
 
-    const headers = options?.receiptId
-      ? { receipt: options.receiptId }
-      : undefined;
+    const headers = options?.receiptId ? { receipt: options.receiptId } : undefined;
     try {
       stompClient.send("/app/chat.send", payload, headers);
       return true;
