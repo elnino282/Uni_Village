@@ -45,7 +45,4 @@ export * from "./useThread";
 export * from "./useThreadInfo";
 export * from "./useTypingIndicator";
 
-// Deprecated WebSocket hooks - kept for backward compatibility
-// TODO: Remove after full migration verification
-
 

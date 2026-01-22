@@ -100,22 +100,3 @@ export enum FileType {
     DOCUMENT = 'DOCUMENT',
 }
 
-// ============================================
-// WebSocket Event Types
-// ============================================
-
-export enum WebSocketEventType {
-    SEND = 'SEND',
-    EDIT = 'EDIT',
-    UNSEND = 'UNSEND',
-    SEEN = 'SEEN',
-    DELIVERED = 'DELIVERED',
-    TYPING = 'TYPING',
-    CHANNEL_CHANGED = 'CHANNEL_CHANGED',
-    COMMENT_CHANGED = 'COMMENT_CHANGED',
-    REACTION_CHANGED = 'REACTION_CHANGED',
-    POST_CHANGED = 'POST_CHANGED',
-    SEND_JOIN_REQUEST = 'SEND_JOIN_REQUEST',
-    ACCEPT_JOIN_REQUEST = 'ACCEPT_JOIN_REQUEST',
-    REJECT_JOIN_REQUEST = 'REJECT_JOIN_REQUEST',
-}

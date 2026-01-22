@@ -18,6 +18,7 @@ import { AppState, AppStateStatus } from "react-native";
 import { queryKeys } from "@/config/queryKeys";
 import { rtdbPresenceService } from "@/features/chat/services/rtdbPresence.service";
 import { rtdbTypingService } from "@/features/chat/services/rtdbTyping.service";
+import { useChatStore } from "@/features/chat/store/chatStore";
 import { auth, database } from "@/lib/firebase";
 import { useQueryClient } from "@tanstack/react-query";
 import { onValue, ref } from "firebase/database";
@@ -50,6 +51,7 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
   const queryClient = useQueryClient();
+  const setSocketStatus = useChatStore((state) => state.setSocketStatus);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const wasConnectedRef = useRef(false);
   const connectionUnsubscribeRef = useRef<(() => void) | null>(null);
@@ -71,6 +73,7 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
           connected ? "connected" : "disconnected",
         );
 
+        setError(null);
         setIsConnected(connected);
         setIsConnecting(false);
 
@@ -217,6 +220,26 @@ export function FirebaseChatProvider({ children }: FirebaseChatProviderProps) {
       connectionUnsubscribeRef.current = null;
     };
   }, [initializeConnection]);
+
+  // Keep chat store socket status in sync with Firebase RTDB connection
+  useEffect(() => {
+    if (!firebaseUser) {
+      setSocketStatus("disconnected");
+      return;
+    }
+
+    if (error) {
+      setSocketStatus("error", error.message);
+      return;
+    }
+
+    if (isConnecting) {
+      setSocketStatus("connecting");
+      return;
+    }
+
+    setSocketStatus(isConnected ? "connected" : "disconnected");
+  }, [firebaseUser, error, isConnecting, isConnected, setSocketStatus]);
 
   // Initialize presence when authenticated and connected
   useEffect(() => {
