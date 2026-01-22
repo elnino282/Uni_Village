@@ -6,6 +6,9 @@
 export const env = {
     API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080',
 
+    FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
+    FIREBASE_AUTH_DOMAIN: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+    FIREBASE_DATABASE_URL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL || 'https://fluent-anagram-479106-v2-default-rtdb.asia-southeast1.firebasedatabase.app/',
     FIREBASE_STORAGE_BUCKET: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
     FIREBASE_MESSAGING_SENDER_ID: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
     FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
@@ -36,7 +39,7 @@ export function validateEnv(): void {
         );
     }
 
-    const firebaseRequired = ['FIREBASE_PROJECT_ID', 'FIREBASE_APP_ID'];
+    const firebaseRequired = ['FIREBASE_PROJECT_ID', 'FIREBASE_APP_ID', 'FIREBASE_DATABASE_URL'];
     const missingFirebase = firebaseRequired.filter((key) => !env[key as keyof typeof env]);
     
     if (missingFirebase.length > 0) {
