@@ -20,8 +20,6 @@ export {
 } from "./useConversations";
 export * from "./useCreateChannel";
 export * from "./useDeleteConversation";
-export * from "./useFriendRequests";
-export * from "./useFriends";
 export * from "./useGlobalWebSocketSubscriptions";
 export * from "./useGroupMembers";
 export * from "./useMessageActions";

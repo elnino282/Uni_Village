@@ -1,9 +1,14 @@
-import { Client, IMessage, StompConfig, type StompHeaders } from "@stomp/stompjs";
+import {
+  Client,
+  IMessage,
+  StompConfig,
+  type StompHeaders,
+} from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import type {
-    StompSubscription,
-    WebSocketConfig,
-    WebSocketMessage,
+  StompSubscription,
+  WebSocketConfig,
+  WebSocketMessage,
 } from "./types";
 
 /**
@@ -255,7 +260,10 @@ class StompClientService {
       };
     }
 
-    const handlers = new Map<string, (message: WebSocketMessage<unknown>) => void>();
+    const handlers = new Map<
+      string,
+      (message: WebSocketMessage<unknown>) => void
+    >();
     handlers.set(
       handlerId,
       callback as (message: WebSocketMessage<unknown>) => void,
