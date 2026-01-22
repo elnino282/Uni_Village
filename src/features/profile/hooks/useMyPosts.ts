@@ -2,8 +2,9 @@
  * useMyPosts Hook - Fetches current user's posts and saved posts for profile
  */
 
+import { postsApi } from "@/features/post/api";
+import type { PostResponse } from "@/features/post/types";
 import { useQuery } from "@tanstack/react-query";
-import { profileApi } from "../api/profileApi";
 import type { ProfileTabKey } from "../components/ProfileTabs";
 import type { ProfilePost } from "../types";
 
@@ -12,57 +13,54 @@ export const myPostsKeys = {
   list: (tab: ProfileTabKey) => [...myPostsKeys.all, tab] as const,
 };
 
+/**
+ * Map PostResponse from backend to ProfilePost format for UI
+ */
+function mapPostResponseToProfilePost(post: PostResponse): ProfilePost {
+  return {
+    id: String(post.id ?? ""),
+    author: {
+      id: String(post.authorId ?? ""),
+      name: post.authorName ?? "Unknown",
+      avatarUrl: post.authorAvatarUrl,
+    },
+    content: post.content ?? "",
+    imageUrl: post.mediaUrls?.[0], // Use first image as main image
+    createdAt: post.createdAt ?? new Date().toISOString(),
+    locations:
+      post.locations?.map((loc) => ({
+        id: String(loc.id ?? ""),
+        name: loc.name ?? "",
+      })) ?? [],
+    reactions: {
+      likes: post.reactionCount ?? 0,
+      comments: post.commentCount ?? 0,
+      shares: 0,
+      isLiked: post.isLiked ?? false,
+    },
+  };
+}
+
 export function useMyPosts(tab: ProfileTabKey = "my-posts") {
   return useQuery<ProfilePost[], Error>({
     queryKey: myPostsKeys.list(tab),
     queryFn: async (): Promise<ProfilePost[]> => {
       try {
+        let response;
         if (tab === "favorites") {
-          const response = await profileApi.getSavedPosts();
-          return extractPostsFromResponse(response);
+          response = await postsApi.getSavedPosts({ page: 0, size: 50 });
+        } else {
+          response = await postsApi.getMyPosts({ page: 0, size: 50 });
         }
-        // For "my-posts", we need to call getMyPosts API
-        const response = await profileApi.getMyPosts();
-        return extractPostsFromResponse(response);
+
+        // Extract content from response and map to ProfilePost format
+        const posts = response.result?.content ?? [];
+        return posts.map(mapPostResponseToProfilePost);
       } catch (error) {
         console.error("Error fetching my posts:", error);
         return [];
       }
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
-}
-
-// Helper function to extract posts from various response formats
-function extractPostsFromResponse(response: unknown): ProfilePost[] {
-  // If response is already an array
-  if (Array.isArray(response)) {
-    return response;
-  }
-
-  // If response is an object with content, data, or pagination
-  if (response && typeof response === "object") {
-    const res = response as Record<string, unknown>;
-
-    // Spring Boot paginated format
-    if (Array.isArray(res.content)) {
-      return res.content as ProfilePost[];
-    }
-
-    // Frontend PaginatedResponse format
-    if (Array.isArray(res.data)) {
-      return res.data as ProfilePost[];
-    }
-
-    // Check for pagination.data
-    if (res.pagination && typeof res.pagination === "object") {
-      const paginationRes = res.pagination as Record<string, unknown>;
-      if (Array.isArray(paginationRes.data)) {
-        return paginationRes.data as ProfilePost[];
-      }
-    }
-  }
-
-  // Fallback to empty array
-  return [];
 }

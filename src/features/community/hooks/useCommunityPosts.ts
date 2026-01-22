@@ -4,9 +4,10 @@ import {
     useLikePost as useRealLikePost,
     useSavePost as useRealSavePost,
 } from "@/features/post/hooks";
+import { myPostsKeys } from "@/features/profile/hooks/useMyPosts";
 import { reportPost as reportPostAPI } from "@/lib/api";
 import { ApiError } from "@/lib/errors/ApiError";
-import { showErrorToast } from "@/shared/utils";
+import { showErrorToast, showSuccessToast } from "@/shared/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { mapSliceToCommunityPostsResponse } from "../adapters/postAdapter";
@@ -85,13 +86,27 @@ export function useLikePost() {
 }
 
 export function useSavePost() {
+  const queryClient = useQueryClient();
   const realSavePost = useRealSavePost();
 
   return useMutation({
     mutationFn: (postId: string) => realSavePost.mutateAsync(Number(postId)),
-    onSuccess: () => {},
+    onSuccess: (response) => {
+      const isSaved = response?.result?.isSaved;
+      if (isSaved) {
+        showSuccessToast("Đã lưu bài viết");
+      } else {
+        showSuccessToast("Đã bỏ lưu bài viết");
+      }
+      // Invalidate myPosts queries to refresh saved posts in profile
+      queryClient.invalidateQueries({ queryKey: myPostsKeys.all });
+    },
+    onError: () => {
+      showErrorToast("Không thể lưu bài viết");
+    },
   });
 }
+
 
 export function useReportPost() {
   const queryClient = useQueryClient();
