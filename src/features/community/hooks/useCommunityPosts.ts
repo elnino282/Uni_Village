@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useFeed as useRealFeed, useLikePost as useRealLikePost, useSavePost as useRealSavePost } from '@/features/post/hooks';
-import type { CommunityPostsResponse } from '../types';
-import { mapSliceToCommunityPostsResponse } from '../adapters/postAdapter';
+import { removePostFromCollections, useFeed as useRealFeed, useLikePost as useRealLikePost, useSavePost as useRealSavePost } from '@/features/post/hooks';
 import { reportPost as reportPostAPI } from '@/lib/api';
 import { ApiError } from '@/lib/errors/ApiError';
-import { showSuccessToast, showErrorToast } from '@/shared/utils';
+import { showErrorToast } from '@/shared/utils';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { mapSliceToCommunityPostsResponse } from '../adapters/postAdapter';
+import type { CommunityPostsResponse } from '../types';
 
 const COMMUNITY_POSTS_KEY = ['community', 'posts'];
 
@@ -102,7 +102,10 @@ export function useReportPost() {
       }
     },
     onSuccess: ({ postId }) => {
-      // Invalidate queries to refresh the list (post will be removed on server side)
+      // Remove the reported post from all post collections immediately
+      // This ensures the post disappears for the user who reported it
+      removePostFromCollections(queryClient, Number(postId));
+      // Also invalidate queries to ensure fresh data on next fetch
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       return postId;
     },
