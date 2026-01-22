@@ -3,6 +3,7 @@
  * Hook for fetching feed data
  */
 
+import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { feedApi } from '../api/feedApi';
 import type { FeedResponse } from '../types';
@@ -16,7 +17,10 @@ export function useFeed() {
         initialPageParam: 0,
     });
 
-    const feedItems = query.data?.pages.flatMap((page) => page.data) ?? [];
+    const feedItems = useMemo(
+        () => query.data?.pages.flatMap((page) => page.data) ?? [],
+        [query.data]
+    );
 
     return {
         feedItems,
