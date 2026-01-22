@@ -1,21 +1,22 @@
 /**
  * Report Service
- * 
+ *
  * API service for creating and managing reports.
  * Handles reporting posts, comments, users, and conversations.
  */
 
-import { API_ENDPOINTS } from './endpoints';
-import { apiClient } from './client';
-import type { 
-  CreateReportRequest, 
-  ReportResponse 
-} from '@/shared/types/report.types';
-import type { ApiResponse } from '@/shared/types';
+import type {
+  CreateReportRequest,
+  ReportResponse,
+  ReportReason,
+  REPORT_REASON_TO_TYPE_ID,
+} from "@/shared/types/report.types";
+import { apiClient } from "./client";
+import { API_ENDPOINTS } from "./endpoints";
 
 /**
  * Create a new report
- * 
+ *
  * @param request - Report creation data
  * @returns Promise with report response
  * @throws ApiError with specific error codes:
@@ -26,12 +27,13 @@ import type { ApiResponse } from '@/shared/types';
 export async function createReport(
   request: CreateReportRequest
 ): Promise<ReportResponse> {
-  const response = await apiClient.post<ApiResponse<ReportResponse>>(
+  const response = await apiClient.post<ReportResponse>(
     API_ENDPOINTS.REPORTS.CREATE,
     request
   );
-  
-  return response.data.data;
+
+  // Backend returns ReportResponse directly without ApiResponse wrapper
+  return response as any;
 }
 
 /**
@@ -41,10 +43,20 @@ export async function reportPost(
   postId: number,
   reason: string
 ): Promise<ReportResponse> {
+  // Import at runtime to avoid circular dependency
+  const { REPORT_REASON_TO_TYPE_ID, ReportReason } = await import(
+    "@/shared/types/report.types"
+  );
+
+  // Check if reason is a ReportReason enum or custom text
+  const reportTypeId = Object.values(ReportReason).includes(reason as ReportReason)
+    ? REPORT_REASON_TO_TYPE_ID[reason as ReportReason]
+    : REPORT_REASON_TO_TYPE_ID[ReportReason.OTHER]; // Default to OTHER for custom reasons
+
   return createReport({
-    targetType: 'POST' as any,
-    targetId: postId,
-    reason,
+    reportTypeId,
+    targetPostId: postId,
+    description: reason,
   });
 }
 
@@ -55,10 +67,18 @@ export async function reportComment(
   commentId: number,
   reason: string
 ): Promise<ReportResponse> {
+  const { REPORT_REASON_TO_TYPE_ID, ReportReason } = await import(
+    "@/shared/types/report.types"
+  );
+
+  const reportTypeId = Object.values(ReportReason).includes(reason as ReportReason)
+    ? REPORT_REASON_TO_TYPE_ID[reason as ReportReason]
+    : REPORT_REASON_TO_TYPE_ID[ReportReason.OTHER];
+
   return createReport({
-    targetType: 'COMMENT' as any,
-    targetId: commentId,
-    reason,
+    reportTypeId,
+    targetCommentId: commentId,
+    description: reason,
   });
 }
 
@@ -69,10 +89,18 @@ export async function reportUser(
   userId: number,
   reason: string
 ): Promise<ReportResponse> {
+  const { REPORT_REASON_TO_TYPE_ID, ReportReason } = await import(
+    "@/shared/types/report.types"
+  );
+
+  const reportTypeId = Object.values(ReportReason).includes(reason as ReportReason)
+    ? REPORT_REASON_TO_TYPE_ID[reason as ReportReason]
+    : REPORT_REASON_TO_TYPE_ID[ReportReason.OTHER];
+
   return createReport({
-    targetType: 'USER' as any,
-    targetId: userId,
-    reason,
+    reportTypeId,
+    targetUserId: userId,
+    description: reason,
   });
 }
 
@@ -83,9 +111,17 @@ export async function reportConversation(
   conversationId: number,
   reason: string
 ): Promise<ReportResponse> {
+  const { REPORT_REASON_TO_TYPE_ID, ReportReason } = await import(
+    "@/shared/types/report.types"
+  );
+
+  const reportTypeId = Object.values(ReportReason).includes(reason as ReportReason)
+    ? REPORT_REASON_TO_TYPE_ID[reason as ReportReason]
+    : REPORT_REASON_TO_TYPE_ID[ReportReason.OTHER];
+
   return createReport({
-    targetType: 'CONVERSATION' as any,
-    targetId: conversationId,
-    reason,
+    reportTypeId,
+    targetConversationId: String(conversationId),
+    description: reason,
   });
 }
