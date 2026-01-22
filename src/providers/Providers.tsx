@@ -14,6 +14,7 @@ import {
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryProvider } from "./QueryProvider";
+import { SessionExpiredProvider } from "./SessionExpiredProvider";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
 import { WebSocketProvider } from "./WebSocketProvider";
 
@@ -30,7 +31,9 @@ function InnerProviders({ children }: ProvidersProps) {
     >
       <BottomSheetModalProvider>
         <WebSocketProvider>
-          <SplashProvider>{children}</SplashProvider>
+          <SessionExpiredProvider>
+            <SplashProvider>{children}</SplashProvider>
+          </SessionExpiredProvider>
         </WebSocketProvider>
       </BottomSheetModalProvider>
     </NavigationThemeProvider>

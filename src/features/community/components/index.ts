@@ -1,5 +1,4 @@
 // Components
-export { AddFriendScreen } from './AddFriendScreen';
 export { CommunityFAB } from './CommunityFAB';
 export { CommunityHeader } from './CommunityHeader';
 export { CommunityScreen } from './CommunityScreen';

@@ -328,7 +328,6 @@ export function ItineraryScreen() {
                     <Text style={[styles.title, { color: colors.textPrimary ?? colors.text }]}>
                         Lịch trình của tôi
                     </Text>
-                    <Ionicons name="settings-outline" size={22} color={colors.icon} />
                 </View>
 
                 <View style={[styles.tabList, { backgroundColor: colors.backgroundSecondary ?? colors.muted, borderColor: tabStyles.border }]}>

@@ -8,7 +8,6 @@ export {
     useRemoveChannelMember,
     useUpdateChannel
 } from "./useChannels";
-export { useChatRealtime, useChatSubscription } from "./useChatSubscription";
 export {
     useAcceptJoinRequest,
     useChannelConversations,

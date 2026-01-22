@@ -10,6 +10,7 @@ import {
   Share,
   StyleSheet,
   Text,
+  TextInput,
   View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -49,6 +50,8 @@ export function CompletedTripScreen() {
 
   const [tripData, setTripData] = useState<TripData | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [editTripName, setEditTripName] = useState("");
 
   useEffect(() => {
     loadTripData();
@@ -107,6 +110,26 @@ export function CompletedTripScreen() {
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
+  const handleSaveTripName = async () => {
+    if (!tripData || !editTripName.trim()) return;
+    
+    try {
+      const tripsJson = await AsyncStorage.getItem('@trips');
+      if (tripsJson) {
+        const trips = JSON.parse(tripsJson);
+        const updatedTrips = trips.map((trip: TripData) => 
+          trip.id === tripData.id ? { ...trip, tripName: editTripName.trim() } : trip
+        );
+        await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
+        
+        setTripData({ ...tripData, tripName: editTripName.trim() });
+        setShowEditNameModal(false);
+      }
+    } catch (error) {
+      console.error('Failed to update trip name:', error);
+    }
+  };
+
   if (!tripData) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -129,8 +152,16 @@ export function CompletedTripScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>Chuyến đi đã kết thúc</Text>
         </View>
 
-        <Pressable style={styles.backButton} onPress={() => {}}>
-          <Ionicons name="ellipsis-horizontal" size={24} color={colors.icon} />
+        <Pressable 
+          style={styles.backButton} 
+          onPress={() => {
+            if (tripData) {
+              setEditTripName(tripData.tripName);
+              setShowEditNameModal(true);
+            }
+          }}
+        >
+          <Ionicons name="settings-outline" size={24} color={colors.icon} />
         </Pressable>
       </View>
 
@@ -432,6 +463,51 @@ export function CompletedTripScreen() {
           </Pressable>
         </Modal>
       )}
+
+      {/* Edit Trip Name Modal */}
+      <Modal
+        visible={showEditNameModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEditNameModal(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowEditNameModal(false)}
+        >
+          <Pressable style={[styles.editNameModal, { backgroundColor: colors.card }]} onPress={e => e.stopPropagation()}>
+            <Text style={[styles.editNameTitle, { color: colors.text }]}>Chỉnh sửa tên chuyến đi</Text>
+            
+            <TextInput
+              style={[styles.textInput, { 
+                backgroundColor: colors.background, 
+                color: colors.text,
+                borderColor: colors.border 
+              }]}
+              value={editTripName}
+              onChangeText={setEditTripName}
+              placeholder="Nhập tên chuyến đi"
+              placeholderTextColor={colors.textSecondary}
+              autoFocus
+            />
+            
+            <View style={styles.editNameButtons}>
+              <Pressable
+                style={[styles.editNameButton, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}
+                onPress={() => setShowEditNameModal(false)}
+              >
+                <Text style={[styles.editNameButtonText, { color: colors.text }]}>Hủy</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.editNameButton, { backgroundColor: colors.info }]}
+                onPress={handleSaveTripName}
+              >
+                <Text style={[styles.editNameButtonText, { color: '#FFFFFF' }]}>Lưu</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -683,6 +759,40 @@ const styles = StyleSheet.create({
   successButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  editNameModal: {
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+  },
+  editNameTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  editNameButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  editNameButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  editNameButtonText: {
+    fontSize: 15,
     fontWeight: '600',
   },
 });
