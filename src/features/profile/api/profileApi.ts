@@ -108,6 +108,17 @@ export const profileApi = {
     },
 
     /**
+     * Get current user's posts (my posts)
+     */
+    getMyPosts: async (page = 0, size = 20): Promise<PaginatedResponse<ProfilePost>> => {
+        const response = await apiClient.get<ApiResponse<PaginatedResponse<ProfilePost>>>(
+            API_ENDPOINTS.POSTS.MY_POSTS,
+            { params: { page, size } }
+        );
+        return response.result;
+    },
+
+    /**
      * Get user's posts
      */
     getUserPosts: async (
