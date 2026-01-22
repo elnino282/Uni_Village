@@ -15,8 +15,7 @@ import {
     Share,
     StyleSheet,
     Text,
-    TextInput,
-    View
+    View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -59,8 +58,6 @@ export function ItineraryDetailScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showDateTimeModal, setShowDateTimeModal] = useState(false);
-  const [showEditNameModal, setShowEditNameModal] = useState(false);
-  const [editTripName, setEditTripName] = useState("");
   const modalOpacity = React.useRef(new Animated.Value(0)).current;
 
   // Load trip data from AsyncStorage when screen is focused
@@ -229,32 +226,6 @@ export function ItineraryDetailScreen() {
     }
   };
 
-  const handleSaveTripName = async () => {
-    if (!editTripName.trim()) return;
-    
-    try {
-      const tripId = params.tripId as string;
-      if (!tripId) return;
-
-      // Update local state
-      setTripData({ ...tripData, tripName: editTripName.trim() });
-
-      // Update AsyncStorage
-      const tripsJson = await AsyncStorage.getItem('@trips');
-      if (tripsJson) {
-        const trips = JSON.parse(tripsJson);
-        const updatedTrips = trips.map((t: any) => 
-          t.id === tripId ? { ...t, tripName: editTripName.trim() } : t
-        );
-        await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
-      }
-      
-      setShowEditNameModal(false);
-    } catch (error) {
-      console.error('Failed to update trip name:', error);
-    }
-  };
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["bottom"]}>
       {/* Header with gradient background */}
@@ -397,20 +368,6 @@ export function ItineraryDetailScreen() {
           <Pressable 
             style={styles.actionRow}
             onPress={() => {
-              setEditTripName(tripData.tripName);
-              setShowEditNameModal(true);
-            }}
-          >
-            <Ionicons name="create-outline" size={20} color={colors.info} />
-            <Text style={[styles.actionText, { color: colors.text }]}>Đổi tên chuyến đi</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.icon} />
-          </Pressable>
-
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          
-          <Pressable 
-            style={styles.actionRow}
-            onPress={() => {
               router.push({
                 pathname: "/(modals)/select-destinations" as any,
                 params: {
@@ -545,51 +502,6 @@ export function ItineraryDetailScreen() {
           </Pressable>
         </Modal>
       )}
-
-      {/* Edit Trip Name Modal */}
-      <Modal
-        visible={showEditNameModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowEditNameModal(false)}
-      >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => setShowEditNameModal(false)}
-        >
-          <Pressable style={[styles.editNameModal, { backgroundColor: colors.card }]} onPress={e => e.stopPropagation()}>
-            <Text style={[styles.editNameTitle, { color: colors.text }]}>Đổi tên chuyến đi</Text>
-            
-            <TextInput
-              style={[styles.textInput, { 
-                backgroundColor: colors.background, 
-                color: colors.text,
-                borderColor: colors.border 
-              }]}
-              value={editTripName}
-              onChangeText={setEditTripName}
-              placeholder="Nhập tên chuyến đi"
-              placeholderTextColor={colors.textSecondary}
-              autoFocus
-            />
-            
-            <View style={styles.editNameButtons}>
-              <Pressable
-                style={[styles.editNameButton, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}
-                onPress={() => setShowEditNameModal(false)}
-              >
-                <Text style={[styles.editNameButtonText, { color: colors.text }]}>Hủy</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.editNameButton, { backgroundColor: colors.info }]}
-                onPress={handleSaveTripName}
-              >
-                <Text style={[styles.editNameButtonText, { color: '#FFFFFF' }]}>Lưu</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -825,40 +737,6 @@ const styles = StyleSheet.create({
   doneButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  editNameModal: {
-    borderRadius: 16,
-    padding: 24,
-    width: '90%',
-    maxWidth: 400,
-  },
-  editNameTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  textInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  editNameButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  editNameButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  editNameButtonText: {
-    fontSize: 15,
     fontWeight: '600',
   },
 });

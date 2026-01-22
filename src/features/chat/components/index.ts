@@ -36,8 +36,12 @@ export { ThreadInfoHeader } from './ThreadInfoHeader';
 export { ThreadInfoOptionRow } from './ThreadInfoOptionRow';
 export { ThreadInfoScreen } from './ThreadInfoScreen';
 
-// Message Request components
+// Friend & Message Request components
 export { AcceptMessageRequestBanner } from './AcceptMessageRequestBanner';
+export { AddFriendBanner } from './AddFriendBanner';
+export { FriendRequestBadge } from './FriendRequestBadge';
+export { FriendRequestItem } from './FriendRequestItem';
+export { FriendRequestsList } from './FriendRequestsList';
 export { MessageRequestItem } from './MessageRequestItem';
 export { MessageRequestsEntryRow } from './MessageRequestsEntryRow';
 

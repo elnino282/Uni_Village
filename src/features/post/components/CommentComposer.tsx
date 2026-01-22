@@ -3,22 +3,21 @@
  * Sticky bottom bar for composing comments
  */
 
-import { MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
-import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { useAuthStore } from "@/features/auth/store/authStore";
-import { Avatar } from "@/shared/components/ui";
+import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState } from 'react';
 import {
-    BorderRadius,
-    Colors,
-    Shadows,
-    Spacing,
-    Typography,
-} from "@/shared/constants";
-import { useColorScheme } from "@/shared/hooks";
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Avatar } from '@/shared/components/ui';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
+import { useColorScheme } from '@/shared/hooks';
+import { mockCurrentUser } from '../services/mockPostDetail';
 
 interface CommentComposerProps {
   onSubmit: (content: string) => void;
@@ -36,17 +35,12 @@ export function CommentComposer({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
-  const [text, setText] = useState("");
-
-  // Get current user from auth store
-  const user = useAuthStore((state) => state.user);
-  const userDisplayName = user?.fullName || user?.username || "Người dùng";
-  const userAvatarUrl = user?.avatarUrl || undefined;
+  const [text, setText] = useState('');
 
   const handleSubmit = () => {
     if (text.trim() && !isSubmitting) {
       onSubmit(text.trim());
-      setText("");
+      setText('');
     }
   };
 
@@ -69,11 +63,7 @@ export function CommentComposer({
         <View style={styles.replyIndicator}>
           <MaterialIcons name="reply" size={14} color={colors.textSecondary} />
           <TouchableOpacity onPress={onCancelReply} style={styles.cancelReply}>
-            <MaterialIcons
-              name="close"
-              size={16}
-              color={colors.textSecondary}
-            />
+            <MaterialIcons name="close" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       )}
@@ -82,18 +72,13 @@ export function CommentComposer({
         {/* User avatar */}
         <Avatar
           size="sm"
-          source={userAvatarUrl}
-          name={userDisplayName}
+          source={mockCurrentUser.avatarUrl}
+          name={mockCurrentUser.displayName}
           style={styles.avatar}
         />
 
         {/* Input field */}
-        <View
-          style={[
-            styles.inputContainer,
-            { backgroundColor: colors.chipBackground },
-          ]}
-        >
+        <View style={[styles.inputContainer, { backgroundColor: colors.chipBackground }]}>
           <TextInput
             style={[styles.input, { color: colors.text }]}
             placeholder="Viết bình luận..."
@@ -107,11 +92,7 @@ export function CommentComposer({
 
           {/* Emoji button (optional, inside input) */}
           <TouchableOpacity style={styles.emojiButton} activeOpacity={0.7}>
-            <MaterialIcons
-              name="insert-emoticon"
-              size={16}
-              color={colors.textSecondary}
-            />
+            <MaterialIcons name="insert-emoticon" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -120,10 +101,7 @@ export function CommentComposer({
           onPress={handleSubmit}
           disabled={!canSubmit}
           activeOpacity={0.7}
-          style={[
-            styles.sendButtonWrapper,
-            !canSubmit && styles.sendButtonDisabled,
-          ]}
+          style={[styles.sendButtonWrapper, !canSubmit && styles.sendButtonDisabled]}
         >
           <LinearGradient
             colors={
@@ -138,7 +116,7 @@ export function CommentComposer({
             <MaterialIcons
               name="send"
               size={14}
-              color={canSubmit ? "#fff" : colors.textSecondary}
+              color={canSubmit ? '#fff' : colors.textSecondary}
             />
           </LinearGradient>
         </TouchableOpacity>
@@ -154,17 +132,17 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm + 3, // ~11px
   },
   replyIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: Spacing.xs,
     gap: 4,
   },
   cancelReply: {
-    marginLeft: "auto",
+    marginLeft: 'auto',
   },
   inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm, // 8px
   },
   avatar: {
@@ -174,15 +152,15 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.cardPadding - 4, // 12px
     minHeight: 36,
   },
   input: {
     flex: 1,
-    fontSize: Typography.sizes["13"], // 13px
+    fontSize: Typography.sizes['13'], // 13px
     fontWeight: Typography.weights.normal,
     paddingVertical: Spacing.xs + 4, // ~8px
     maxHeight: 100,
@@ -192,7 +170,7 @@ const styles = StyleSheet.create({
   },
   sendButtonWrapper: {
     borderRadius: BorderRadius.full,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   sendButtonDisabled: {
     opacity: 0.6,
@@ -201,7 +179,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: BorderRadius.full,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
