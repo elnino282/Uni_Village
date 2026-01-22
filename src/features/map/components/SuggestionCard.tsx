@@ -151,7 +151,7 @@ export const SuggestionCard = memo(function SuggestionCard({
                         >
                             {place.tags.map((tag, index) => (
                                 <View
-                                    key={index}
+                                    key={tag}
                                     style={[
                                         styles.tag,
                                         { backgroundColor: colors.muted },
