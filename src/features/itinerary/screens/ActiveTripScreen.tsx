@@ -39,9 +39,11 @@ interface Destination {
   isCheckedIn?: boolean;
   isSkipped?: boolean;
   checkedInAt?: string;
+  googlePlaceId?: string;
   lat?: number;
   lng?: number;
   placeId?: number;
+  address?: string;
 }
 
 interface TripData {
@@ -106,8 +108,10 @@ export function ActiveTripScreen() {
                 name: stop.name,
                 thumbnail: stop.imageUrl,
                 order: stop.order,
+                googlePlaceId: stop.googlePlaceId,
                 lat: stop.lat,
                 lng: stop.lng,
+                address: stop.address,
                 isCheckedIn: storedState.isCheckedIn || false,
                 isSkipped: storedState.isSkipped || false,
                 checkedInAt: storedState.checkedInAt,

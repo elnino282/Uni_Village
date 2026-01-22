@@ -55,7 +55,7 @@ interface SelectDestinationsScreenProps {
   existingDestinations?: {
     id: string;
     name: string;
-    thumbnail: string;
+    thumbnail?: string;
     order: number;
     time?: string;
     isCheckedIn?: boolean;
@@ -64,6 +64,7 @@ interface SelectDestinationsScreenProps {
     googlePlaceId?: string;
     lat?: number;
     lng?: number;
+    address?: string;
   }[];
   isAddingToExisting?: boolean;
   onBack?: () => void;
@@ -118,27 +119,26 @@ export function SelectDestinationsScreen({
             });
           }
 
-          // If not found by name
+          // If not found, try by name
           if (!place) {
             place = nearbyPlaces.find(
               (p) => p.name.toLowerCase() === dest.name.toLowerCase(),
             );
           }
 
-          // If still not found but we have the data, create a virtual place from existing data
-          if (!place && dest.lat && dest.lng) {
+          // If still not found, create a virtual place from existing data
+          // This ensures existing destinations always show even if not in nearbyPlaces
+          if (!place) {
             place = {
               id: dest.googlePlaceId || dest.id,
               name: dest.name,
-              lat: dest.lat,
-              lng: dest.lng,
-              address: "",
-              thumbnail: dest.thumbnail,
+              lat: dest.lat || 0,
+              lng: dest.lng || 0,
+              address: dest.address || "",
+              thumbnail: dest.thumbnail || "",
               category: "other" as const,
             };
           }
-
-          if (!place) return null;
 
           return {
             place,
@@ -152,8 +152,7 @@ export function SelectDestinationsScreen({
                 })()
               : undefined,
           } as SelectedDestination;
-        })
-        .filter((d): d is SelectedDestination => d !== null);
+        });
       setSelectedDestinations(mapped);
       setIsInitialized(true);
     }
