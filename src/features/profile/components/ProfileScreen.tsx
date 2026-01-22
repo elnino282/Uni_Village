@@ -1,9 +1,7 @@
 import { ReportModal } from "@/components/ReportModal";
 import { ReportSuccessModal } from "@/components/ReportSuccessModal";
 import { SaveSuccessModal } from "@/components/SaveSuccessModal";
-import { EditPrivacySheet } from "@/features/community/components/EditPrivacySheet";
 import { PostCard } from "@/features/community/components/PostCard";
-import { PostOverflowMenu } from "@/features/community/components/PostOverflowMenu";
 import { PostOwnerMenu } from "@/features/community/components/PostOwnerMenu";
 import {
     useBlockPost,
@@ -44,6 +42,7 @@ import { ProfileHeaderIcons } from "./ProfileHeaderIcons";
 import { ProfileInfo } from "./ProfileInfo";
 import { ProfileShareSheet } from "./ProfileShareSheet";
 import { ProfileTabKey, ProfileTabs } from "./ProfileTabs";
+import { ProfileUnsaveMenu } from "./ProfileUnsaveMenu";
 
 export function ProfileScreen() {
   const colorScheme = useColorScheme() ?? "light";
@@ -129,28 +128,21 @@ export function ProfileScreen() {
 
   const handleMenuPress = useCallback(
     (postId: string) => {
-      const post = posts.find((p) => p.id === postId);
-      if (!post) return;
-
-      // Check if post is owned by current user
-      const isOwner =
-        profile?.userId && String(post.author.id) === String(profile.userId);
-
       setSelectedPostId(postId);
-      if (isOwner) {
-        const visibility: PostVisibility =
-          post.visibility === "PUBLIC"
-            ? "public"
-            : post.visibility === "PRIVATE"
-              ? "private"
-              : "friends";
-        setSelectedPostVisibility(visibility);
-        setIsOwnerMenuOpen(true);
-      } else {
+
+      // If in favorites tab, show unsave menu
+      if (activeTab === "favorites") {
         setIsMenuOpen(true);
+        return;
+      }
+
+      // If in my-posts tab, show owner menu for own posts
+      const post = posts.find((p) => p.id === postId);
+      if (post) {
+        setIsOwnerMenuOpen(true);
       }
     },
-    [posts, profile?.userId]
+    [posts, activeTab]
   );
 
   const handleCloseMenu = useCallback(() => {
@@ -458,28 +450,16 @@ export function ProfileScreen() {
             onClose={handleCloseMenu}
             postId={selectedPostId ?? ""}
             onSave={handleSavePost}
-            onEditPrivacy={handleEditPrivacy}
             onEditPost={handleEditPost}
             onMoveToTrash={handleMoveToTrash}
           />
 
-          {/* Post Overflow Menu - for other users' posts (in favorites tab) */}
-          <PostOverflowMenu
+          {/* Unsave Menu - for favorites tab */}
+          <ProfileUnsaveMenu
             isOpen={isMenuOpen}
             onClose={handleCloseMenu}
             postId={selectedPostId ?? ""}
-            onSave={handleSavePost}
-            onReport={handleReportPost}
-            onBlock={handleBlockPost}
-          />
-
-          {/* Edit Privacy Sheet */}
-          <EditPrivacySheet
-            isOpen={isEditPrivacyOpen}
-            onClose={handleCloseEditPrivacy}
-            postId={selectedPostId ?? ""}
-            currentVisibility={selectedPostVisibility}
-            onSave={handleUpdateVisibility}
+            onUnsave={handleUnsavePost}
           />
 
           {/* Location Detail Sheet */}

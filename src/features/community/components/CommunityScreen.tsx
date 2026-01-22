@@ -47,7 +47,6 @@ import { CommunityHeader } from "./CommunityHeader";
 import { CommunitySearchBar } from "./CommunitySearchBar";
 import { CommunitySegmentedTabs } from "./CommunitySegmentedTabs";
 import { ContentTabChips } from "./ContentTabChips";
-import { EditPrivacySheet } from "./EditPrivacySheet";
 import { MessagesTab } from "./MessagesTab";
 import { PostCard } from "./PostCard";
 import { PostOverflowMenu } from "./PostOverflowMenu";
@@ -501,17 +500,8 @@ export function CommunityScreen() {
               onClose={handleMenuClose}
               postId={selectedPostId || ""}
               onSave={handleSavePost}
-              onEditPrivacy={handleEditPrivacy}
               onEditPost={handleEditPost}
               onMoveToTrash={handleMoveToTrash}
-            />
-
-            <EditPrivacySheet
-              isOpen={isEditPrivacyOpen}
-              onClose={handleCloseEditPrivacy}
-              postId={selectedPostId || ""}
-              currentVisibility={selectedPostVisibility}
-              onSave={handleUpdateVisibility}
             />
 
             <ItineraryDetailsSheet

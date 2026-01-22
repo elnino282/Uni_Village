@@ -1,6 +1,6 @@
 /**
  * PostOwnerMenu Component
- * Bottom sheet menu for post owner actions (save, edit privacy, edit post, delete)
+ * Bottom sheet menu for post owner actions (save, edit post, delete)
  * Hiển thị khi menu được mở cho bài viết của chủ sở hữu
  */
 
@@ -20,7 +20,6 @@ interface PostOwnerMenuProps {
     onClose: () => void;
     postId: string;
     onSave: (postId: string) => void;
-    onEditPrivacy: (postId: string) => void;
     onEditPost: (postId: string) => void;
     onMoveToTrash: (postId: string) => void;
 }
@@ -42,7 +41,6 @@ export function PostOwnerMenu({
     onClose,
     postId,
     onSave,
-    onEditPrivacy,
     onEditPost,
     onMoveToTrash,
 }: PostOwnerMenuProps) {
@@ -50,7 +48,7 @@ export function PostOwnerMenu({
     const colors = Colors[colorScheme];
     const bottomSheetRef = useRef<BottomSheet>(null);
 
-    const snapPoints = useMemo(() => [280], []);
+    const snapPoints = useMemo(() => [220], []);
 
     const menuItems: MenuItem[] = useMemo(
         () => [
@@ -60,15 +58,6 @@ export function PostOwnerMenu({
                 icon: 'bookmark-outline',
                 onPress: () => {
                     onSave(postId);
-                    onClose();
-                },
-            },
-            {
-                id: 'editPrivacy',
-                label: 'Chỉnh sửa quyền riêng tư',
-                icon: 'lock-closed-outline',
-                onPress: () => {
-                    onEditPrivacy(postId);
                     onClose();
                 },
             },
@@ -92,7 +81,7 @@ export function PostOwnerMenu({
                 },
             },
         ],
-        [postId, onSave, onEditPrivacy, onEditPost, onMoveToTrash, onClose]
+        [postId, onSave, onEditPost, onMoveToTrash, onClose]
     );
 
     const renderBackdrop = useCallback(
