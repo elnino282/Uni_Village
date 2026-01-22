@@ -3,9 +3,12 @@
  * Second step of channel creation: add members / select friends
  * Matches Figma node 499:1729
  */
-import { MaterialIcons } from '@expo/vector-icons';
-import { BottomSheetFlatList, BottomSheetTextInput } from '@gorhom/bottom-sheet';
-import React, { type ComponentType, useState } from 'react';
+import { MaterialIcons } from "@expo/vector-icons";
+import {
+  BottomSheetFlatList,
+  BottomSheetTextInput,
+} from "@gorhom/bottom-sheet";
+import React, { type ComponentType, useState } from "react";
 import {
   FlatList as RNFlatList,
   TextInput as RNTextInput,
@@ -13,16 +16,16 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { Spinner } from '@/shared/components/ui';
-import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
-import { useColorScheme, useDebounce } from '@/shared/hooks';
+import { Spinner } from "@/shared/components/ui";
+import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
+import { useColorScheme, useDebounce } from "@/shared/hooks";
 
-import { useFriends } from '../hooks/useFriends';
-import type { FriendPreview } from '../types/channel.types';
-import { MemberSelectRow } from './MemberSelectRow';
-import { StepIndicator } from './StepIndicator';
+import { useSearchUsers } from "../hooks/useSearchUsers";
+import type { FriendPreview } from "../types/channel.types";
+import { MemberSelectRow } from "./MemberSelectRow";
+import { StepIndicator } from "./StepIndicator";
 
 /** Footer height constant */
 const FOOTER_HEIGHT = 72;
@@ -59,20 +62,28 @@ export function CreateChannelStep2({
   const TextInput = useBottomSheet ? BottomSheetTextInput : RNTextInput;
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
-  
+
   // Calculate total footer height including safe area
   const totalFooterHeight = FOOTER_HEIGHT + bottomInset;
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  const { data: friends = [], isLoading } = useFriends(debouncedSearch || undefined);
+  const { data: users = [], isLoading } = useSearchUsers(debouncedSearch);
+
+  // Convert users to friend format
+  const friends: FriendPreview[] = users.map((user) => ({
+    id: user.id.toString(),
+    username: user.username,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+  }));
 
   const handleToggleMember = (friend: FriendPreview) => {
     const isSelected = selectedMembers.some((m) => m.id === friend.id);
     if (isSelected) {
       onSelectedMembersChange(
-        selectedMembers.filter((m) => m.id !== friend.id)
+        selectedMembers.filter((m) => m.id !== friend.id),
       );
     } else {
       onSelectedMembersChange([...selectedMembers, friend]);
@@ -125,7 +136,7 @@ export function CreateChannelStep2({
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity
-              onPress={() => setSearchQuery('')}
+              onPress={() => setSearchQuery("")}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <MaterialIcons
@@ -167,8 +178,8 @@ export function CreateChannelStep2({
             <View style={styles.emptyContainer}>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 {searchQuery
-                  ? 'Không tìm thấy bạn bè'
-                  : 'Bạn chưa có bạn bè nào'}
+                  ? "Không tìm thấy bạn bè"
+                  : "Bạn chưa có bạn bè nào"}
               </Text>
             </View>
           }
@@ -180,7 +191,7 @@ export function CreateChannelStep2({
         style={[
           styles.footer,
           {
-            backgroundColor: colors.background ?? '#ffffff',
+            backgroundColor: colors.background ?? "#ffffff",
             paddingBottom: bottomInset + Spacing.md,
           },
         ]}
@@ -189,7 +200,7 @@ export function CreateChannelStep2({
           style={[
             styles.button,
             styles.backButton,
-            { backgroundColor: colors.chipBackground ?? '#f3f4f6' },
+            { backgroundColor: colors.chipBackground ?? "#f3f4f6" },
           ]}
           onPress={onBack}
           activeOpacity={0.8}
@@ -215,7 +226,7 @@ export function CreateChannelStep2({
           {isCreating ? (
             <Spinner size="sm" />
           ) : (
-            <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>
+            <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
               Tạo Channel
             </Text>
           )}
@@ -234,8 +245,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     height: 48,
     borderWidth: 1,
     borderRadius: BorderRadius.lg,
@@ -247,7 +258,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    height: '100%',
+    height: "100%",
   },
   selectedCountContainer: {
     paddingHorizontal: Spacing.screenPadding,
@@ -265,36 +276,36 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: Spacing.xl * 2,
   },
   emptyText: {
     fontSize: Typography.sizes.md,
   },
   footer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.md,
     gap: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    borderTopColor: "rgba(0,0,0,0.05)",
   },
   button: {
     flex: 1,
     height: 48,
     borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   backButton: {},
   primaryButton: {},
