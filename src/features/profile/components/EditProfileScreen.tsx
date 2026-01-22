@@ -1,28 +1,34 @@
 import {
-    BorderRadius,
-    Colors,
-    Shadows,
-    Spacing,
-    Typography,
+  BorderRadius,
+  Colors,
+  Shadows,
+  Spacing,
+  Typography,
 } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
-import BottomSheet from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useImagePicker, useMyProfile, useUpdateProfile } from "../hooks";
+import {
+  useImagePicker,
+  useMyProfile,
+  useUpdateProfile,
+  useUploadAvatar,
+  useUploadCover,
+} from "../hooks";
 import { editProfileSchema, type EditProfileFormData } from "../schemas";
 import { EditProfileFormRow } from "./EditProfileFormRow";
 import { EditProfileFormSection } from "./EditProfileFormSection";
@@ -34,7 +40,7 @@ import { ProfileFAB } from "./ProfileFAB";
 export function EditProfileScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const bottomSheetRef = useRef<BottomSheet>(null);
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
   const { showImagePickerOptions: showAvatarPicker } = useImagePicker({
     aspect: [1, 1],
     quality: 0.8,
@@ -55,6 +61,37 @@ export function EditProfileScreen() {
     onError: (error) => {
       console.error("Failed to save profile:", error);
       Alert.alert("Lỗi", "Không thể lưu thay đổi. Vui lòng thử lại.", [
+        { text: "OK" },
+      ]);
+    },
+  });
+
+  // Upload image mutations
+  const { uploadAvatar, isPending: isUploadingAvatar } = useUploadAvatar({
+    onSuccess: (data) => {
+      // Update form with the server-returned avatar URL
+      if (data.avatarUrl) {
+        setValue("avatarUrl", data.avatarUrl, { shouldDirty: true });
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to upload avatar:", error);
+      Alert.alert("Lỗi", "Không thể tải ảnh đại diện lên. Vui lòng thử lại.", [
+        { text: "OK" },
+      ]);
+    },
+  });
+
+  const { uploadCover, isPending: isUploadingCover } = useUploadCover({
+    onSuccess: (data) => {
+      // Update form with the server-returned cover URL
+      if (data.coverUrl) {
+        setValue("coverUrl", data.coverUrl, { shouldDirty: true });
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to upload cover:", error);
+      Alert.alert("Lỗi", "Không thể tải ảnh bìa lên. Vui lòng thử lại.", [
         { text: "OK" },
       ]);
     },
@@ -141,19 +178,33 @@ export function EditProfileScreen() {
   const handleChangeAvatar = useCallback(async () => {
     const result = await showAvatarPicker();
     if (result) {
-      setValue("avatarUrl", result.uri, { shouldDirty: true });
+      // Upload image to server first, then the server returns updated profile with avatarUrl
+      const fileName = result.uri.split("/").pop() || "avatar.jpg";
+      const fileType = result.type || "image/jpeg";
+      await uploadAvatar({
+        uri: result.uri,
+        name: fileName,
+        type: fileType,
+      });
     }
-  }, [setValue, showAvatarPicker]);
+  }, [showAvatarPicker, uploadAvatar]);
 
   const handleChangeCover = useCallback(async () => {
     const result = await showCoverPicker();
     if (result) {
-      setValue("coverUrl", result.uri, { shouldDirty: true });
+      // Upload image to server first, then the server returns updated profile with coverUrl
+      const fileName = result.uri.split("/").pop() || "cover.jpg";
+      const fileType = result.type || "image/jpeg";
+      await uploadCover({
+        uri: result.uri,
+        name: fileName,
+        type: fileType,
+      });
     }
-  }, [setValue, showCoverPicker]);
+  }, [showCoverPicker, uploadCover]);
 
   const handleOpenInterests = useCallback(() => {
-    bottomSheetRef.current?.expand();
+    bottomSheetRef.current?.present();
   }, []);
 
   const handleAddInterest = useCallback(
@@ -196,8 +247,8 @@ export function EditProfileScreen() {
           title="Chỉnh sửa trang cá nhân"
           onCancel={handleCancel}
           onDone={handleSubmit(onSubmit)}
-          isLoading={isSubmitting}
-          isDoneDisabled={!isDirty}
+          isLoading={isSubmitting || isUploadingAvatar || isUploadingCover}
+          isDoneDisabled={!isDirty || isUploadingAvatar || isUploadingCover}
         />
       </View>
 
