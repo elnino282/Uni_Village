@@ -27,13 +27,13 @@ import { MessageType } from "@/shared/types/backend.types";
 import type { Slice } from "@/shared/types/pagination.types";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useMessages,
-  useSendMessageHybrid,
-  useSendSharedCard,
-  useThread,
+    useMessages,
+    useSendMessageHybrid,
+    useSendSharedCard,
+    useThread,
 } from "../hooks";
 import { isVirtualThreadId } from "../services";
-import type { ChatThread, GroupThread, ImageMessage, Message, TextMessage, UserPreview } from "../types";
+import type { ChatThread, GroupThread, ImageMessage, Message, SystemMessage, TextMessage, UserPreview } from "../types";
 import { isGroupThread } from "../types";
 import { AcceptMessageRequestBanner } from "./AcceptMessageRequestBanner";
 import { AddFriendBanner } from "./AddFriendBanner";
@@ -72,6 +72,22 @@ function mapMessageResponse(msg: MessageResponse, currentUserId?: number): Messa
   const messageId = typeof msg.id === 'number' ? msg.id : undefined;
   const conversationId = msg.conversationId;
   const isUnsent = msg.isActive === false;
+
+  // Handle SYSTEM messages
+  if (msg.messageType === MessageType.SYSTEM) {
+    return {
+      id: String(msg.id ?? Date.now()),
+      type: 'system' as const,
+      text: msg.content ?? '',
+      sender: 'system',
+      createdAt: msg.timestamp ?? new Date().toISOString(),
+      timeLabel,
+      status,
+      messageId,
+      conversationId,
+      isUnsent,
+    } satisfies SystemMessage;
+  }
 
   if (msg.messageType === MessageType.IMAGE) {
     // Read from attachments array (backend MediaAttachmentResponse structure)
@@ -309,8 +325,13 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
 
   const handleInfoPress = useCallback(() => {
     if (!threadId) return;
-    router.push(`/chat/${threadId}/info`);
-  }, [threadId]);
+    // For group threads (channels), navigate to channel info
+    if (isGroup) {
+      router.push(`/channel/${threadId}/info`);
+    } else {
+      router.push(`/chat/${threadId}/info`);
+    }
+  }, [threadId, isGroup]);
 
   // Group-specific handlers
   const handleNotificationPress = useCallback(() => {
@@ -497,6 +518,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
       {isGroup && groupThread && (
         <AddMemberBottomSheet
           ref={addMemberSheetRef}
+          channelId={groupThread.channelId}
           threadId={threadId}
           groupName={groupThread.name}
           onMembersAdded={handleMembersAdded}

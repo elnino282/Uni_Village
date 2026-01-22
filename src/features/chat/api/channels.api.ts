@@ -8,13 +8,19 @@ import type {
     ChannelResponse,
     ChannelType,
     JoinConversationResponse,
+    ParticipantRole,
 } from '@/shared/types/backend.types';
+
+// Channel Category enum (matches backend)
+export type ChannelCategory = 'TRAVEL' | 'COURSE' | 'FOOD' | 'PHOTOGRAPHY' | 'READING' | 'OTHER';
 
 export interface CreateChannelFormData {
     name: string;
     description?: string;
     privacy?: ChannelPrivacy;
     channelType?: ChannelType;
+    category?: ChannelCategory;
+    allowSharing?: boolean;
     participantIds?: number[];
     avatar?: FileUpload;
 }
@@ -22,7 +28,17 @@ export interface CreateChannelFormData {
 export interface UpdateChannelFormData {
     name?: string;
     description?: string;
+    privacy?: ChannelPrivacy;
+    category?: ChannelCategory;
+    allowSharing?: boolean;
     avatar?: FileUpload;
+}
+
+export interface DiscoverChannelsParams {
+    search?: string;
+    category?: ChannelCategory;
+    page?: number;
+    size?: number;
 }
 
 export const channelsApi = {
@@ -33,6 +49,8 @@ export const channelsApi = {
                 description: data.description,
                 privacy: data.privacy,
                 channelType: data.channelType,
+                category: data.category,
+                allowSharing: data.allowSharing?.toString(),
                 participantIds: data.participantIds ? JSON.stringify(data.participantIds) : undefined,
             },
             data.avatar,
@@ -62,6 +80,9 @@ export const channelsApi = {
             {
                 name: data.name,
                 description: data.description,
+                privacy: data.privacy,
+                category: data.category,
+                allowSharing: data.allowSharing?.toString(),
             },
             data.avatar,
             'avatar'
@@ -91,8 +112,49 @@ export const channelsApi = {
             API_ENDPOINTS.CHANNELS.REMOVE_MEMBER(channelId, memberId)
         ),
 
+    updateMemberRole: (
+        channelId: number,
+        memberId: number,
+        role: ParticipantRole
+    ): Promise<ApiResponse<ChannelMemberResponse>> =>
+        apiClient.patch<ApiResponse<ChannelMemberResponse>>(
+            API_ENDPOINTS.CHANNELS.UPDATE_MEMBER_ROLE(channelId, memberId),
+            undefined,
+            { params: { role } }
+        ),
+
     getJoinRequests: (channelId: number): Promise<ApiResponse<JoinConversationResponse[]>> =>
         apiClient.get<ApiResponse<JoinConversationResponse[]>>(
             API_ENDPOINTS.CHANNELS.JOIN_REQUESTS(channelId)
+        ),
+
+    // ==================== DISCOVERY & INVITE ====================
+
+    discoverPublicChannels: (params: DiscoverChannelsParams = {}): Promise<ApiResponse<ChannelResponse[]>> =>
+        apiClient.get<ApiResponse<ChannelResponse[]>>(
+            API_ENDPOINTS.CHANNELS.DISCOVER_PUBLIC,
+            {
+                params: {
+                    search: params.search,
+                    category: params.category,
+                    page: params.page ?? 0,
+                    size: params.size ?? 20,
+                },
+            }
+        ),
+
+    getChannelByInviteCode: (inviteCode: string): Promise<ApiResponse<ChannelResponse>> =>
+        apiClient.get<ApiResponse<ChannelResponse>>(
+            API_ENDPOINTS.CHANNELS.BY_INVITE_CODE(inviteCode)
+        ),
+
+    joinByInviteCode: (inviteCode: string): Promise<ApiResponse<ChannelResponse>> =>
+        apiClient.post<ApiResponse<ChannelResponse>>(
+            API_ENDPOINTS.CHANNELS.JOIN_BY_INVITE(inviteCode)
+        ),
+
+    regenerateInviteCode: (channelId: number): Promise<ApiResponse<ChannelResponse>> =>
+        apiClient.post<ApiResponse<ChannelResponse>>(
+            API_ENDPOINTS.CHANNELS.REGENERATE_INVITE(channelId)
         ),
 };

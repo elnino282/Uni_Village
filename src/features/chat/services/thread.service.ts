@@ -2,9 +2,9 @@
  * Thread Service
  * Provides thread/conversation data using the real backend API
  */
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { ChannelResponse, ConversationResponse } from '@/shared/types/backend.types';
 import { profileApi } from '@/features/profile/api/profileApi';
+import type { ChannelResponse, ConversationResponse } from '@/shared/types/backend.types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { channelsApi, conversationsApi, friendsApi } from '../api';
 import type { ChatThread, GroupThread, ThreadInfo, ThreadResponse } from '../types';
 
@@ -66,6 +66,7 @@ function mapChannelToThread(channel: ChannelResponse): GroupThread {
         avatarUrl: channel.avatarUrl,
         memberCount: channel.memberCount || 0,
         onlineCount: 0, // Not available from API, can be updated via presence
+        channelId: channel.id,
     };
 }
 
