@@ -13,9 +13,9 @@ import {
 } from "@react-navigation/native";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { FirebaseChatProvider } from "./FirebaseChatProvider";
 import { QueryProvider } from "./QueryProvider";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
-import { WebSocketProvider } from "./WebSocketProvider";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -29,9 +29,9 @@ function InnerProviders({ children }: ProvidersProps) {
       value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
     >
       <BottomSheetModalProvider>
-        <WebSocketProvider>
+        <FirebaseChatProvider>
           <SplashProvider>{children}</SplashProvider>
-        </WebSocketProvider>
+        </FirebaseChatProvider>
       </BottomSheetModalProvider>
     </NavigationThemeProvider>
   );

@@ -1,18 +1,17 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { generateMessageId } from '../services';
+import { generateMessageId, isVirtualThreadId } from '../services';
 import {
     ensureDirectConversation,
-    sendImageMessage,
-    sendSharedCardMessage,
-    sendTextMessage,
+    sendImageMessage as rtdbSendImageMessage,
+    sendSharedCardMessage as rtdbSendSharedCardMessage,
+    sendTextMessage as rtdbSendTextMessage,
     type ConversationParticipant,
-} from '../services';
+} from '../services/firebaseRtdb.service';
+import { uploadChatImage } from '../services/media.service';
 import type { ChatMessageRecord, SharedCard } from '../types';
 import { messageKeys } from './useMessages';
-import { isVirtualThreadId } from '../services';
 
 interface SendMessageInput {
     threadId: string;
@@ -26,7 +25,7 @@ const updateOptimisticStatus = (
     queryClient: ReturnType<typeof useQueryClient>,
     conversationId: string,
     clientMessageId: string,
-    status: 'sending' | 'sent' | 'error',
+    status: 'sending' | 'sent',
     error?: string
 ) => {
     queryClient.setQueryData<ChatMessageRecord[]>(messageKeys.list(conversationId), (oldData) => {
@@ -53,6 +52,37 @@ const replaceOptimisticWithReal = (
     });
 };
 
+function mapRtdbToChatRecord(message: {
+    id: string;
+    conversationId: string;
+    legacySenderId?: number;
+    senderName?: string;
+    senderAvatarUrl?: string;
+    type: 'text' | 'image' | 'sharedCard';
+    text?: string;
+    imageUrl?: string;
+    card?: SharedCard;
+    createdAt: number;
+    isActive: boolean;
+    clientMessageId?: string;
+}): ChatMessageRecord {
+    return {
+        id: message.id,
+        conversationId: message.conversationId,
+        senderId: message.legacySenderId ?? 0,
+        senderName: message.senderName,
+        senderAvatarUrl: message.senderAvatarUrl,
+        messageType: message.type,
+        content: message.text,
+        imageUrl: message.imageUrl,
+        card: message.card,
+        createdAt: new Date(message.createdAt).toISOString(),
+        isActive: message.isActive,
+        _clientMessageId: message.clientMessageId,
+        _status: 'sent',
+    };
+}
+
 export function useSendMessageHybrid() {
     const queryClient = useQueryClient();
 
@@ -66,12 +96,7 @@ export function useSendMessageHybrid() {
                 throw new Error('Missing recipient info for virtual thread');
             }
 
-            const currentUser = useAuthStore.getState().user;
-            if (!currentUser) {
-                throw new Error('User not authenticated');
-            }
-
-            return ensureDirectConversation(currentUser, recipient);
+            return ensureDirectConversation(sender, recipient);
         },
         []
     );
@@ -80,11 +105,12 @@ export function useSendMessageHybrid() {
         async (input: SendMessageInput) => {
             const clientMessageId = generateMessageId();
             const createdAt = new Date().toISOString();
+            const senderLegacyId = input.senderInfo.legacyUserId ?? 0;
 
             const optimisticMessage: ChatMessageRecord = {
                 id: clientMessageId,
                 conversationId: input.threadId,
-                senderId: input.senderInfo.id,
+                senderId: senderLegacyId,
                 senderName: input.senderInfo.displayName,
                 senderAvatarUrl: input.senderInfo.avatarUrl,
                 messageType: 'text',
@@ -105,16 +131,26 @@ export function useSendMessageHybrid() {
                     input.senderInfo,
                     input.recipient
                 );
-                const realMessage = await sendTextMessage(
+                const realMessage = await rtdbSendTextMessage(
                     conversationId,
-                    input.senderInfo,
-                    input.text
+                    input.text,
+                    {
+                        displayName: input.senderInfo.displayName,
+                        avatarUrl: input.senderInfo.avatarUrl,
+                        legacyUserId: senderLegacyId,
+                    },
+                    clientMessageId
                 );
 
-                replaceOptimisticWithReal(queryClient, input.threadId, clientMessageId, realMessage);
-                return { ...realMessage, conversationId };
+                replaceOptimisticWithReal(
+                    queryClient,
+                    input.threadId,
+                    clientMessageId,
+                    mapRtdbToChatRecord(realMessage)
+                );
+                return { ...mapRtdbToChatRecord(realMessage), conversationId };
             } catch (error) {
-                updateOptimisticStatus(queryClient, input.threadId, clientMessageId, 'error', 'Failed');
+                updateOptimisticStatus(queryClient, input.threadId, clientMessageId, 'sending', (error as Error)?.message ?? 'Failed');
                 throw error;
             }
         },
@@ -131,11 +167,12 @@ export function useSendMessageHybrid() {
         ) => {
             const clientMessageId = generateMessageId();
             const createdAt = new Date().toISOString();
+            const senderLegacyId = senderInfo.legacyUserId ?? 0;
 
             const optimisticMessage: ChatMessageRecord = {
                 id: clientMessageId,
                 conversationId: threadId,
-                senderId: senderInfo.id,
+                senderId: senderLegacyId,
                 senderName: senderInfo.displayName,
                 senderAvatarUrl: senderInfo.avatarUrl,
                 messageType: 'image',
@@ -153,11 +190,26 @@ export function useSendMessageHybrid() {
 
             try {
                 const conversationId = await resolveConversationId(threadId, senderInfo, recipient);
-                const realMessage = await sendImageMessage(conversationId, senderInfo, file, caption);
-                replaceOptimisticWithReal(queryClient, threadId, clientMessageId, realMessage);
-                return { ...realMessage, conversationId };
+                const imageUrl = await uploadChatImage(conversationId, file);
+                const realMessage = await rtdbSendImageMessage(
+                    conversationId,
+                    imageUrl,
+                    caption,
+                    {
+                        displayName: senderInfo.displayName,
+                        avatarUrl: senderInfo.avatarUrl,
+                        legacyUserId: senderLegacyId,
+                    }
+                );
+                replaceOptimisticWithReal(
+                    queryClient,
+                    threadId,
+                    clientMessageId,
+                    mapRtdbToChatRecord(realMessage)
+                );
+                return { ...mapRtdbToChatRecord(realMessage), conversationId };
             } catch (error) {
-                updateOptimisticStatus(queryClient, threadId, clientMessageId, 'error', 'Failed');
+                updateOptimisticStatus(queryClient, threadId, clientMessageId, 'sending', (error as Error)?.message ?? 'Failed');
                 throw error;
             }
         },
@@ -172,7 +224,11 @@ export function useSendMessageHybrid() {
             recipient?: ConversationParticipant
         ) => {
             const conversationId = await resolveConversationId(threadId, senderInfo, recipient);
-            return sendSharedCardMessage(conversationId, senderInfo, card);
+            return rtdbSendSharedCardMessage(conversationId, card, {
+                displayName: senderInfo.displayName,
+                avatarUrl: senderInfo.avatarUrl,
+                legacyUserId: senderInfo.legacyUserId,
+            });
         },
         [resolveConversationId]
     );
@@ -184,3 +240,5 @@ export function useSendMessageHybrid() {
         canSend: true,
     };
 }
+
+

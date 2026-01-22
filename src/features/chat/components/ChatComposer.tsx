@@ -25,6 +25,7 @@ interface ChatComposerProps {
   isSending?: boolean;
   attachments?: ImagePickerAsset[];
   onRemoveAttachment?: (uri: string) => void;
+  onTextChange?: (text: string) => void;
 }
 
 /**
@@ -37,6 +38,7 @@ export function ChatComposer({
   isSending,
   attachments = [],
   onRemoveAttachment,
+  onTextChange,
 }: ChatComposerProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
@@ -44,16 +46,16 @@ export function ChatComposer({
   const [text, setText] = useState('');
 
   const handleSend = () => {
-    // Allow sending attachments without text
     if (attachments.length > 0) {
       onSend(text.trim());
       setText('');
+      onTextChange?.('');
     } else {
-      // Require text if no attachments
       const trimmedText = text.trim();
       if (trimmedText && !isSending) {
         onSend(trimmedText);
         setText('');
+        onTextChange?.('');
       }
     }
   };
@@ -64,6 +66,11 @@ export function ChatComposer({
 
   const handleCalendarPress = () => {
     onCalendarPress?.();
+  };
+
+  const handleTextChange = (value: string) => {
+    setText(value);
+    onTextChange?.(value);
   };
 
   const canSend = (text.trim().length > 0 || attachments.length > 0) && !isSending;
@@ -89,7 +96,7 @@ export function ChatComposer({
           onPress={handleImagePress}
           style={styles.iconButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityLabel="Đính kèm ảnh"
+          accessibilityLabel="��nh k�m ?nh"
           accessibilityRole="button"
         >
           <Feather name="image" size={24} color={colors.textSecondary} />
@@ -100,7 +107,7 @@ export function ChatComposer({
           onPress={handleCalendarPress}
           style={styles.iconButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityLabel="Chia sẻ lịch trình"
+          accessibilityLabel="Chia s? l?ch tr�nh"
           accessibilityRole="button"
         >
           <Feather name="calendar" size={24} color={colors.textSecondary} />
@@ -116,15 +123,15 @@ export function ChatComposer({
           <TextInput
             style={[styles.input, { color: colors.text }]}
             value={text}
-            onChangeText={setText}
-            placeholder="Nhập tin nhắn..."
+            onChangeText={handleTextChange}
+            placeholder="Nh?p tin nh?n..."
             placeholderTextColor="rgba(10,10,10,0.5)"
             multiline
             maxLength={1000}
             editable={!isSending}
             returnKeyType="default"
             blurOnSubmit={false}
-            accessibilityLabel="Nhập tin nhắn"
+            accessibilityLabel="Nh?p tin nh?n"
           />
         </View>
 
@@ -140,7 +147,7 @@ export function ChatComposer({
           ]}
           disabled={!canSend}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityLabel="Gửi tin nhắn"
+          accessibilityLabel="G?i tin nh?n"
           accessibilityRole="button"
         >
           <Ionicons
@@ -173,7 +180,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flex: 1,
-    borderRadius: 9999, // Pill shape
+    borderRadius: 9999,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     minHeight: 44,

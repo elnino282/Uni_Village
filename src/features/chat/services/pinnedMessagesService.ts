@@ -4,15 +4,15 @@ const PINNED_MESSAGES_KEY = 'pinned_messages';
 const MAX_PINNED_PER_CONVERSATION = 3;
 
 interface PinnedMessage {
-    messageId: number;
+    messageId: string;
     conversationId: string;
     pinnedAt: string;
 }
 
 class PinnedMessagesService {
-    private cache: Map<string, number[]> = new Map();
+    private cache: Map<string, string[]> = new Map();
 
-    async getPinnedMessages(conversationId: string): Promise<number[]> {
+    async getPinnedMessages(conversationId: string): Promise<string[]> {
         if (this.cache.has(conversationId)) {
             return this.cache.get(conversationId)!;
         }
@@ -28,7 +28,7 @@ class PinnedMessagesService {
         }
     }
 
-    async pinMessage(conversationId: string, messageId: number): Promise<boolean> {
+    async pinMessage(conversationId: string, messageId: string): Promise<boolean> {
         try {
             const current = await this.getPinnedMessages(conversationId);
 
@@ -37,7 +37,7 @@ class PinnedMessagesService {
             }
 
             if (current.length >= MAX_PINNED_PER_CONVERSATION) {
-                throw new Error(`Chỉ có thể ghim tối đa ${MAX_PINNED_PER_CONVERSATION} tin nhắn`);
+                throw new Error(`Ch? c� th? ghim t?i da ${MAX_PINNED_PER_CONVERSATION} tin nh?n`);
             }
 
             const updated = [...current, messageId];
@@ -53,7 +53,7 @@ class PinnedMessagesService {
         }
     }
 
-    async unpinMessage(conversationId: string, messageId: number): Promise<boolean> {
+    async unpinMessage(conversationId: string, messageId: string): Promise<boolean> {
         try {
             const current = await this.getPinnedMessages(conversationId);
             const updated = current.filter((id) => id !== messageId);
@@ -70,7 +70,7 @@ class PinnedMessagesService {
         }
     }
 
-    async isPinned(conversationId: string, messageId: number): Promise<boolean> {
+    async isPinned(conversationId: string, messageId: string): Promise<boolean> {
         const pinned = await this.getPinnedMessages(conversationId);
         return pinned.includes(messageId);
     }

@@ -3,8 +3,36 @@
  * Zustand store for real-time chat state management
  */
 
-import type { AckEvent, ChatMessageEvent, ParticipantStatus } from '@/lib/websocket';
 import { create } from 'zustand';
+/**
+ * Local ACK/presence types (RTDB-based)
+ */
+export type AckStatus = 'DELIVERED' | 'DUPLICATE' | 'BLOCKED' | 'ERROR';
+
+export interface AckEvent {
+    clientMessageId: string;
+    conversationId?: string;
+    status: AckStatus;
+    errorMessage?: string;
+}
+
+/**
+ * Participant status in a conversation
+ */
+export type ParticipantStatus = 'INBOX' | 'REQUEST' | 'ARCHIVED' | 'DELETED';
+
+/**
+ * Chat message event (used for message requests)
+ */
+export interface ChatMessageEvent {
+    conversationId: string;
+    senderId: number;
+    senderName: string;
+    senderAvatarUrl?: string;
+    content: string;
+    timestamp: string;
+    isRequest?: boolean;
+}
 
 /**
  * Socket connection status
@@ -25,7 +53,7 @@ export interface TypingUserInfo {
  */
 export interface PendingMessage {
     clientMessageId: string;
-    recipientId: number;
+    conversationId: string;
     content: string;
     replyToId?: number;
     timestamp: number;
@@ -51,7 +79,7 @@ interface ChatState {
     activeConversationId: string | null;
     /** Map of typing users by userId */
     typingUsers: Map<number, TypingUserInfo>;
-    /** WebSocket connection status */
+    /** Firebase RTDB connection status (legacy: was WebSocket) */
     socketStatus: SocketStatus;
     /** Last socket error message */
     lastError: string | null;
@@ -306,4 +334,5 @@ export const useMessageRequestCount = () =>
 
 export const useParticipantStatus = (conversationId: string) =>
     useChatStore((state) => state.participantStatuses.get(conversationId) ?? 'INBOX');
+
 

@@ -2,10 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { Colors, Spacing } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
-import { useTypingIndicator } from '../hooks/useRealtime';
+import { useTypingIndicator } from '../hooks/useTypingIndicator';
 
 interface TypingIndicatorProps {
-    conversationId: string;
+    conversationId?: string;
 }
 
 export function TypingIndicator({ conversationId }: TypingIndicatorProps) {
@@ -31,13 +31,13 @@ export function TypingIndicator({ conversationId }: TypingIndicatorProps) {
         }
     }, [isAnyoneTyping, fadeAnim]);
 
-    if (!isAnyoneTyping) return null;
+    if (!conversationId || !isAnyoneTyping) return null;
 
     const displayText = typingUsers.length === 1
-        ? `${typingUsers[0].userName} đang nhắn tin...`
+        ? `${typingUsers[0].userName} dang nh?n tin...`
         : typingUsers.length === 2
-        ? `${typingUsers[0].userName} và ${typingUsers[1].userName} đang nhắn tin...`
-        : `${typingUsers.length} người đang nhắn tin...`;
+        ? `${typingUsers[0].userName} v� ${typingUsers[1].userName} dang nh?n tin...`
+        : `${typingUsers.length} ngu?i dang nh?n tin...`;
 
     return (
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>

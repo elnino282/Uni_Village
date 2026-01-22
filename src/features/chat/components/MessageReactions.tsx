@@ -6,7 +6,7 @@ import { useMessageReactions, useAddMessageReaction, useRemoveMessageReaction } 
 import { useAuthStore } from '@/features/auth';
 
 interface MessageReactionsProps {
-    messageId: number;
+    messageId: string;
     conversationId: string;
 }
 
@@ -25,7 +25,7 @@ export function MessageReactions({ messageId, conversationId }: MessageReactions
 
     const handleReactionPress = (emoji: string) => {
         const reactions = groupedReactions[emoji] || [];
-        const userReacted = reactions.some((r) => String(r.userId) === currentUserId);
+        const userReacted = !!currentUserId && reactions.some((r) => r.userId === currentUserId);
 
         if (userReacted) {
             removeReaction({ messageId, emoji, conversationId });
@@ -38,7 +38,7 @@ export function MessageReactions({ messageId, conversationId }: MessageReactions
         <View style={styles.container}>
             {Object.entries(groupedReactions).map(([emoji, reactionList]) => {
                 const count = reactionList.length;
-                const userReacted = reactionList.some((r) => String(r.userId) === currentUserId);
+                const userReacted = !!currentUserId && reactionList.some((r) => r.userId === currentUserId);
 
                 return (
                     <Pressable

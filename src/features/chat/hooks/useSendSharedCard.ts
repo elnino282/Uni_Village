@@ -1,15 +1,20 @@
 /**
  * useSendSharedCard hook
  * Sends a shared card message (e.g., itinerary) with optimistic updates
+ * Uses Firebase RTDB for real-time messaging
  */
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { generateMessageId } from '../services';
-import type { ChatMessageRecord, SharedCard } from '../types';
-import { messageKeys } from './useMessages';
-import { sendSharedCardMessage, ensureDirectConversation, type ConversationParticipant } from '../services';
-import { isVirtualThreadId } from '../services';
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { auth } from "@/lib/firebase";
+import {
+    ensureDirectConversation,
+    isVirtualThreadId,
+    sendSharedCardMessage as rtdbSendSharedCardMessage,
+    type ConversationParticipant,
+} from "../services/firebaseRtdb.service";
+import type { ChatMessageRecord, SharedCard } from "../types";
+import { messageKeys } from "./useMessages";
 
 export interface SendSharedCardInput {
   threadId: string;
@@ -28,53 +33,90 @@ interface MutationContext {
 export function useSendSharedCard() {
   const queryClient = useQueryClient();
 
-  return useMutation<ChatMessageRecord, Error, SendSharedCardInput, MutationContext>({
+  return useMutation<
+    ChatMessageRecord,
+    Error,
+    SendSharedCardInput,
+    MutationContext
+  >({
     mutationFn: async ({ threadId, card, recipient }) => {
       const user = useAuthStore.getState().user;
-      if (!user) {
-        throw new Error('User not authenticated');
+      const firebaseUser = auth.currentUser;
+
+      if (!user || !firebaseUser) {
+        throw new Error("User not authenticated");
       }
 
-      const sender: ConversationParticipant = {
-        id: user.id,
+      const senderInfo = {
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
+        legacyUserId: user.id,
       };
 
       if (isVirtualThreadId(threadId) && !recipient) {
-        throw new Error('Missing recipient info for virtual thread');
+        throw new Error("Missing recipient info for virtual thread");
       }
 
-      const conversationId = isVirtualThreadId(threadId)
-        ? await ensureDirectConversation(user, recipient as ConversationParticipant)
-        : threadId;
+      // Create conversation if it's a virtual thread
+      let conversationId = threadId;
+      if (isVirtualThreadId(threadId) && recipient) {
+        const currentUserParticipant: ConversationParticipant = {
+          uid: firebaseUser.uid,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          legacyUserId: user.id,
+        };
+        conversationId = await ensureDirectConversation(
+          currentUserParticipant,
+          recipient,
+        );
+      }
 
-      return sendSharedCardMessage(conversationId, sender, card);
+      const rtdbMessage = await rtdbSendSharedCardMessage(
+        conversationId,
+        card,
+        senderInfo,
+      );
+
+      // Convert to ChatMessageRecord format
+      return {
+        id: rtdbMessage.id,
+        conversationId: rtdbMessage.conversationId,
+        senderId: rtdbMessage.legacySenderId ?? user.id,
+        senderName: rtdbMessage.senderName,
+        senderAvatarUrl: rtdbMessage.senderAvatarUrl,
+        messageType: "sharedCard",
+        card: rtdbMessage.card,
+        createdAt: new Date(rtdbMessage.createdAt).toISOString(),
+        isActive: rtdbMessage.isActive,
+        _status: "sent",
+      };
     },
     onMutate: async ({ threadId, card }) => {
       await queryClient.cancelQueries({ queryKey: messageKeys.list(threadId) });
 
       const previousMessages = queryClient.getQueryData<ChatMessageRecord[]>(
-        messageKeys.list(threadId)
+        messageKeys.list(threadId),
       );
 
+      const user = useAuthStore.getState().user;
       const optimisticMessage: ChatMessageRecord = {
-        id: generateMessageId(),
+        id: `optimistic_${Date.now()}`,
         conversationId: threadId,
-        senderId: useAuthStore.getState().user?.id ?? 0,
-        senderName: useAuthStore.getState().user?.displayName,
-        senderAvatarUrl: useAuthStore.getState().user?.avatarUrl,
-        messageType: 'sharedCard',
+        senderId: user?.id ?? 0,
+        senderName: user?.displayName,
+        senderAvatarUrl: user?.avatarUrl,
+        messageType: "sharedCard",
         card,
         createdAt: new Date().toISOString(),
         isActive: true,
-        _status: 'sending',
+        _status: "sending",
       };
 
-      queryClient.setQueryData<ChatMessageRecord[]>(messageKeys.list(threadId), (old) => [
-        optimisticMessage,
-        ...(old ?? []),
-      ]);
+      queryClient.setQueryData<ChatMessageRecord[]>(
+        messageKeys.list(threadId),
+        (old) => [...(old ?? []), optimisticMessage],
+      );
 
       return { previousMessages, optimisticMessage };
     },
@@ -82,15 +124,17 @@ export function useSendSharedCard() {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(threadId),
-          context.previousMessages
+          context.previousMessages,
         );
       }
     },
     onSuccess: (newMessage, { threadId }, context) => {
-      queryClient.setQueryData<ChatMessageRecord[]>(messageKeys.list(threadId), (old) =>
-        (old ?? []).map((msg) =>
-          msg.id === context?.optimisticMessage.id ? newMessage : msg
-        )
+      queryClient.setQueryData<ChatMessageRecord[]>(
+        messageKeys.list(threadId),
+        (old) =>
+          (old ?? []).map((msg) =>
+            msg.id === context?.optimisticMessage.id ? newMessage : msg,
+          ),
       );
     },
   });

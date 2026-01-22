@@ -3,7 +3,9 @@
  * Zustand store for authentication state
  */
 
+import { auth } from '@/lib/firebase';
 import { secureStorage } from '@/lib/storage';
+import { signOut } from 'firebase/auth';
 import { create } from 'zustand';
 import type { AuthState, AuthTokens, User } from '../types';
 
@@ -51,6 +53,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     },
 
     clear: async () => {
+        // Sign out from Firebase first
+        try {
+            await signOut(auth);
+            console.log('[Auth Store] Firebase sign out successful');
+        } catch (e) {
+            console.warn('[Auth Store] Firebase signout error (ignored):', e);
+        }
+
         set({
             user: null,
             accessToken: null,

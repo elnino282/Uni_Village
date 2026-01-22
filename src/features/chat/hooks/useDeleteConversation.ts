@@ -1,4 +1,4 @@
-﻿/**
+/**
  * useDeleteConversation Hook
  * Handles conversation deletion with proper cache invalidation
  * and navigation. Uses optimistic update for immediate UI feedback.
@@ -6,10 +6,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 
-import { useAuthStore } from '@/features/auth/store/authStore';
 import { handleApiError, showSuccessToast } from '@/shared/utils';
 import type { ChatMessageRecord } from '../types';
-import { deleteConversationForUser } from '../services';
+import { leaveConversation } from '../services';
 import { messageKeys } from './useMessages';
 
 interface UseDeleteConversationOptions {
@@ -28,11 +27,7 @@ export function useDeleteConversation(options?: UseDeleteConversationOptions) {
 
   const deleteConversation = useMutation({
     mutationFn: async (conversationId: string) => {
-      const user = useAuthStore.getState().user;
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      await deleteConversationForUser(conversationId, user.id);
+      await leaveConversation(conversationId);
     },
     onMutate: async (conversationId): Promise<DeleteMutationContext> => {
       const previousMessages = queryClient.getQueryData<ChatMessageRecord[]>(
@@ -46,7 +41,7 @@ export function useDeleteConversation(options?: UseDeleteConversationOptions) {
     onSuccess: (_, conversationId) => {
       queryClient.removeQueries({ queryKey: messageKeys.list(conversationId) });
 
-      showSuccessToast('Đã xóa cuộc hội thoại');
+      showSuccessToast('�� x�a cu?c h?i tho?i');
 
       if (navigateAfterDelete) {
         router.replace('/(tabs)/community');
@@ -62,7 +57,7 @@ export function useDeleteConversation(options?: UseDeleteConversationOptions) {
         );
       }
 
-      handleApiError(error, 'Xóa cuộc hội thoại');
+      handleApiError(error, 'X�a cu?c h?i tho?i');
     },
   });
 

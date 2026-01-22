@@ -4,12 +4,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
 import { usePinnedMessages, useUnpinMessage } from '../hooks/usePinnedMessages';
-import type { MessageResponse } from '@/shared/types/backend.types';
+import type { ChatMessageRecord } from '../types';
 
 interface PinnedMessagesBannerProps {
     conversationId: string;
-    messages: MessageResponse[];
-    onMessagePress: (messageId: number) => void;
+    messages: ChatMessageRecord[];
+    onMessagePress: (messageId: string) => void;
 }
 
 export function PinnedMessagesBanner({
@@ -37,7 +37,7 @@ export function PinnedMessagesBanner({
             <View style={styles.header}>
                 <MaterialIcons name="push-pin" size={16} color={colors.actionBlue} />
                 <Text style={[styles.headerText, { color: colors.text }]}>
-                    Tin nhắn đã ghim
+                    Tin nh?n d� ghim
                 </Text>
             </View>
 
@@ -52,7 +52,7 @@ export function PinnedMessagesBanner({
                             {message.senderName}
                         </Text>
                         <Text style={[styles.content, { color: colors.text }]} numberOfLines={2}>
-                            {message.content}
+                            {message.content || ''}
                         </Text>
                         <Pressable
                             style={styles.unpinButton}

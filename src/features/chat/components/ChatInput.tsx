@@ -3,9 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors, Spacing } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
-import { useSendMessage, useSendMessageWithFiles } from '../hooks';
-import { useTypingIndicator } from '../hooks/useRealtime';
-import { fileUploadService } from '@/features/post/services';
+import { useSendMessage, useSendMessageWithFiles, useTypingIndicator } from '../hooks';
+import { fileUploadService, type PickedFile } from '@/features/post/services';
 
 interface ChatInputProps {
     conversationId: string;
@@ -17,8 +16,8 @@ export function ChatInput({ conversationId, replyToId, onSent }: ChatInputProps)
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme];
     const [message, setMessage] = useState('');
-    const [files, setFiles] = useState<any[]>([]);
-    const typingTimeoutRef = useRef<NodeJS.Timeout>();
+    const [files, setFiles] = useState<PickedFile[]>([]);
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { mutate: sendMessage, isPending: isSending } = useSendMessage();
     const { mutate: sendWithFiles, isPending: isSendingFiles } = useSendMessageWithFiles();
@@ -75,8 +74,8 @@ export function ChatInput({ conversationId, replyToId, onSent }: ChatInputProps)
         } else {
             sendMessage(
                 {
+                    conversationId,
                     content: message.trim(),
-                    ConversationId: conversationId,
                     replyToId,
                 },
                 {
@@ -92,7 +91,7 @@ export function ChatInput({ conversationId, replyToId, onSent }: ChatInputProps)
 
     const handlePickFiles = async () => {
         try {
-            const picked = await fileUploadService.pickMedia(true);
+            const picked = await fileUploadService.showImagePickerOptions(true);
             setFiles((prev) => [...prev, ...picked]);
         } catch (error) {
             console.error('Failed to pick files:', error);
@@ -116,7 +115,7 @@ export function ChatInput({ conversationId, replyToId, onSent }: ChatInputProps)
 
                 <TextInput
                     style={[styles.input, { color: colors.text, backgroundColor: colors.chipBackground }]}
-                    placeholder="Nhắn tin..."
+                    placeholder="Nh?n tin..."
                     placeholderTextColor={colors.textSecondary}
                     value={message}
                     onChangeText={handleTextChange}

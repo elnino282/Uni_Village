@@ -1,0 +1,74 @@
+{
+  "rules": {
+    "conversations": {
+      "$conversationId": {
+        ".read": "auth != null && data.child('members').child(auth.uid).val() == true",
+        ".write": "auth != null && ((!data.exists() && newData.child('members').child(auth.uid).val() == true) || data.child('members').child(auth.uid).val() == true)",
+        "members": {
+          ".validate": "newData.hasChildren()"
+        }
+      }
+    },
+    "messages": {
+      "$conversationId": {
+        ".indexOn": ["createdAt"],
+        "$messageId": {
+          ".read": "auth != null && root.child('conversations').child($conversationId).child('members').child(auth.uid).val() == true",
+          ".write": "auth != null && root.child('conversations').child($conversationId).child('members').child(auth.uid).val() == true && ((!data.exists() && newData.child('senderId').val() == auth.uid) || (data.exists() && data.child('senderId').val() == auth.uid))",
+          "senderId": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "type": {
+            ".validate": "newData.isString() && (newData.val() == 'text' || newData.val() == 'image' || newData.val() == 'sharedCard')"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "isActive": {
+            ".validate": "newData.isBoolean()"
+          }
+        }
+      }
+    },
+    "userConversations": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        "$conversationId": {
+          ".write": "auth != null && auth.uid == $uid && ((!data.exists() && root.child('conversations').child($conversationId).child('members').child(auth.uid).val() == true) || data.exists())",
+          ".validate": "newData.isBoolean() && newData.val() == true"
+        }
+      }
+    },
+    "status": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $uid",
+        "state": {
+          ".validate": "newData.isString() && (newData.val() == 'online' || newData.val() == 'offline')"
+        },
+        "lastChanged": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    "typing": {
+      "$conversationId": {
+        "$uid": {
+          ".read": "auth != null && root.child('conversations').child($conversationId).child('members').child(auth.uid).val() == true",
+          ".write": "auth != null && auth.uid == $uid",
+          "displayName": {
+            ".validate": "newData.isString()"
+          },
+          "isTyping": {
+            ".validate": "newData.isBoolean()"
+          },
+          "timestamp": {
+            ".validate": "newData.isNumber()"
+          }
+        }
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}

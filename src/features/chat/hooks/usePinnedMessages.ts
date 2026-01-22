@@ -14,7 +14,7 @@ export function usePinMessage() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ conversationId, messageId }: { conversationId: string; messageId: number }) =>
+        mutationFn: ({ conversationId, messageId }: { conversationId: string; messageId: string }) =>
             pinnedMessagesService.pinMessage(conversationId, messageId),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
@@ -28,7 +28,7 @@ export function useUnpinMessage() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ conversationId, messageId }: { conversationId: string; messageId: number }) =>
+        mutationFn: ({ conversationId, messageId }: { conversationId: string; messageId: string }) =>
             pinnedMessagesService.unpinMessage(conversationId, messageId),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
@@ -37,3 +37,4 @@ export function useUnpinMessage() {
         },
     });
 }
+

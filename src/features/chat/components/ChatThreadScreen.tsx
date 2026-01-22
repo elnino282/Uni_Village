@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ChatThreadScreen Component
  * Main chat thread screen composition - supports both DM and Group chats
  * Matches Figma node 317:2269 (DM) and 317:2919 (Group)
@@ -6,7 +6,7 @@
 import BottomSheet from "@gorhom/bottom-sheet";
 import * as ImagePicker from "expo-image-picker";
 import { router, useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 
@@ -20,13 +20,20 @@ import { useColorScheme } from "@/shared/hooks";
 import "@/lib/i18n";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { auth } from "@/lib/firebase";
 import {
   useMessages,
-  useSendMessageHybrid,
+  useSendMessage,
+  useSendMessageWithFiles,
   useSendSharedCard,
   useThread,
 } from "../hooks";
+import { useTypingIndicator } from "../hooks/useTypingIndicator";
 import { isVirtualThreadId } from "../services";
+import {
+  ensureDirectConversation,
+  type ConversationParticipant,
+} from "../services/firebaseRtdb.service";
 import type {
   ChatMessageRecord,
   ChatThread,
@@ -46,9 +53,10 @@ import { GroupChatHeader } from "./GroupChatHeader";
 import { ItineraryShareSheet } from "./ItineraryShareSheet";
 import { MessageList } from "./MessageList";
 import { PinnedMessageBar } from "./PinnedMessageBar";
+import { TypingIndicator } from "./TypingIndicator";
 
 /**
- * Map Firestore message record to local Message type
+ * Map RTDB message record to local Message type
  */
 function mapMessageRecord(msg: ChatMessageRecord, currentUserId?: number): Message {
   const isSentByMe = currentUserId ? msg.senderId === currentUserId : false;
@@ -62,7 +70,7 @@ function mapMessageRecord(msg: ChatMessageRecord, currentUserId?: number): Messa
     return {
       id: msg.id,
       type: 'text' as const,
-      text: 'Tin nhắn đã bị thu hồi',
+      text: 'Tin nh?n d� b? thu h?i',
       sender: isSentByMe ? 'me' : 'other',
       createdAt: msg.createdAt,
       timeLabel,
@@ -83,7 +91,7 @@ function mapMessageRecord(msg: ChatMessageRecord, currentUserId?: number): Messa
       return {
         id: msg.id,
         type: 'text' as const,
-        text: '📷 [Image unavailable]',
+        text: '?? [Image unavailable]',
         sender: isSentByMe ? 'me' : 'other',
         createdAt: msg.createdAt,
         timeLabel,
@@ -133,7 +141,7 @@ function mapMessageRecord(msg: ChatMessageRecord, currentUserId?: number): Messa
   return {
     id: msg.id,
     type: 'text' as const,
-    text: isUnsent ? 'Tin nhắn đã bị thu hồi' : (msg.content ?? ''),
+    text: isUnsent ? 'Tin nh?n d� b? thu h?i' : (msg.content ?? ''),
     sender: isSentByMe ? 'me' : 'other',
     createdAt: msg.createdAt,
     timeLabel,
@@ -160,42 +168,37 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const colors = Colors[colorScheme];
   const routerInstance = useRouter();
 
-  // State for attachments
   const [attachments, setAttachments] = useState<ImagePicker.ImagePickerAsset[]>([]);
 
-  // Bottom sheet refs
   const itinerarySheetRef = useRef<BottomSheet>(null);
   const addMemberSheetRef = useRef<AddMemberBottomSheetRef>(null);
 
-  // Auth for current user ID
   const currentUserId = useAuthStore(state => state.user?.id);
 
-  // Data fetching
   const { data: thread, isLoading: isLoadingThread } = useThread(threadId);
   const messagesQuery = useMessages(threadId);
-  const { sendMessage: sendMessageHybrid, sendImage } = useSendMessageHybrid();
+  const { mutateAsync: sendMessage } = useSendMessage();
+  const { mutateAsync: sendWithFiles } = useSendMessageWithFiles();
   const { mutateAsync: sendSharedCard } = useSendSharedCard();
 
-  // Flatten and map messages
   const rawMessages = messagesQuery.data ?? [];
   const messages: Message[] = rawMessages.map(msg => mapMessageRecord(msg, currentUserId));
   const isLoadingMessages = messagesQuery.isLoading;
 
-  // Determine if group chat
   const isGroup = thread ? isGroupThread(thread) : false;
   const groupThread = isGroup ? (thread as GroupThread) : null;
   const dmThread = !isGroup ? (thread as ChatThread | undefined) : null;
 
-  const peerInfo = dmThread?.peer
+  const recipient: ConversationParticipant | undefined = dmThread?.peer
     ? {
-        id: Number(dmThread.peer.id),
+        uid: dmThread.peer.uid ?? dmThread.peer.id.toString(),
         displayName: dmThread.peer.displayName,
         avatarUrl: dmThread.peer.avatarUrl,
+        legacyUserId: dmThread.peer.id,
       }
     : undefined;
 
-  // Conversation context for DM chats - get from thread metadata
-  const otherUserId = dmThread?.peer ? Number(dmThread.peer.id) : null;
+  const otherUserId = dmThread?.peer ? dmThread.peer.id : null;
   const relationshipStatus = dmThread?.relationshipStatus || 'NONE';
   const participantStatus = dmThread?.participantStatus || 'INBOX';
 
@@ -212,14 +215,41 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
     relationshipStatus !== 'ACCEPTED' &&
     relationshipStatus !== 'FRIEND';
 
+  const typingConversationId = useMemo(
+    () => (isVirtualThreadId(threadId) ? undefined : threadId),
+    [threadId]
+  );
+
+  const { sendTyping, stopTyping } = useTypingIndicator(typingConversationId);
+
+  const resolveConversationId = useCallback(async () => {
+    if (!isVirtualThreadId(threadId)) {
+      return threadId;
+    }
+
+    const user = useAuthStore.getState().user;
+    const firebaseUser = auth.currentUser;
+
+    if (!user || !firebaseUser || !recipient) {
+      throw new Error('Missing sender/recipient info for virtual thread');
+    }
+
+    const sender: ConversationParticipant = {
+      uid: firebaseUser.uid,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      legacyUserId: user.id,
+    };
+
+    return ensureDirectConversation(sender, recipient);
+  }, [recipient, threadId]);
+
   const handleSend = useCallback(
     async (text: string) => {
       const user = useAuthStore.getState().user;
+      const firebaseUser = auth.currentUser;
 
-      if (!user || !user.id) {
-        console.error('[ChatThread] Cannot send message: User not initialized');
-        console.error('[ChatThread] Please log out and log in again');
-
+      if (!user || !firebaseUser) {
         Alert.alert(
           'Error',
           'User session expired. Please log in again.',
@@ -228,65 +258,42 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
         return;
       }
 
-      if (attachments.length > 0) {
-        const uploadPromises = attachments.map(asset => {
-          const fileName = asset.fileName || `image_${Date.now()}.jpg`;
-          const fileType = asset.mimeType || 'image/jpeg';
+      if (!text.trim() && attachments.length === 0) {
+        return;
+      }
 
-          return sendImage(
-            threadId,
-            {
+      try {
+        const conversationId = await resolveConversationId();
+
+        if (attachments.length > 0) {
+          await sendWithFiles({
+            conversationId,
+            content: text.trim() || undefined,
+            files: attachments.map((asset) => ({
               uri: asset.uri,
-              name: fileName,
-              type: fileType,
-            },
-            {
-              id: user.id!,
-              displayName: user.displayName,
-              avatarUrl: user.avatarUrl,
-            },
-            text,
-            peerInfo
-          );
-        });
-
-        try {
-          const results = await Promise.all(uploadPromises);
-          setAttachments([]);
-
-          if (isVirtualThreadId(threadId) && results.length > 0) {
-            const conversationId = results[0].conversationId;
-            if (conversationId && conversationId !== threadId) {
-              routerInstance.replace(`/chat/${conversationId}`);
-            }
-          }
-        } catch (error) {
-          console.error('[ChatThread] Failed to send one or more images:', error);
-          Alert.alert('Error', 'Failed to send one or more images');
-        }
-      } else {
-        try {
-          const message = await sendMessageHybrid({
-            threadId,
-            text,
-            recipient: peerInfo,
-            senderInfo: {
-              id: user.id,
-              displayName: user.displayName,
-              avatarUrl: user.avatarUrl,
-            },
+              name: asset.fileName || `image_${Date.now()}.jpg`,
+              type: asset.mimeType || 'image/jpeg',
+            })),
           });
 
-          if (isVirtualThreadId(threadId) && message.conversationId && message.conversationId !== threadId) {
-            console.log(`[ChatThread] Redirecting from virtual thread ${threadId} to ${message.conversationId}`);
-            routerInstance.replace(`/chat/${message.conversationId}`);
-          }
-        } catch (error) {
-          console.error('[ChatThread] Failed to send message:', error);
+          setAttachments([]);
+        } else {
+          await sendMessage({
+            conversationId,
+            content: text.trim(),
+          });
         }
+
+        stopTyping();
+
+        if (isVirtualThreadId(threadId) && conversationId !== threadId) {
+          routerInstance.replace(`/chat/${conversationId}`);
+        }
+      } catch (error) {
+        console.error('[ChatThread] Failed to send message:', error);
       }
     },
-    [sendMessageHybrid, threadId, attachments, sendImage, peerInfo, routerInstance]
+    [attachments, resolveConversationId, sendMessage, sendWithFiles, stopTyping, threadId, routerInstance]
   );
 
   const handleImagePress = useCallback(async () => {
@@ -319,7 +326,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
       try {
         const result = await sendSharedCard({
           threadId,
-          recipient: peerInfo,
+          recipient,
           card: {
             id: itinerary.id,
             title: itinerary.title,
@@ -340,7 +347,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
         console.error('[ChatThread] Failed to send shared card:', error);
       }
     },
-    [sendSharedCard, threadId, t, peerInfo, routerInstance]
+    [sendSharedCard, threadId, t, recipient, routerInstance]
   );
 
   const handleInfoPress = useCallback(() => {
@@ -364,10 +371,25 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
     console.log('Pinned message dismissed');
   }, []);
 
+  const handleComposerTextChange = useCallback(
+    (value: string) => {
+      if (!typingConversationId) {
+        return;
+      }
+
+      if (value.trim().length > 0) {
+        sendTyping();
+      } else {
+        stopTyping();
+      }
+    },
+    [sendTyping, stopTyping, typingConversationId]
+  );
+
   if (isLoadingThread || !thread) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }] }>
-        <EmptyState icon="💬" title={t('common.loading')} message="" />
+        <EmptyState icon="??" title={t('common.loading')} message="" />
       </View>
     );
   }
@@ -419,6 +441,8 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
           isGroupChat={isGroup}
         />
 
+        <TypingIndicator conversationId={typingConversationId} />
+
         <ChatComposer
           onSend={handleSend}
           onImagePress={handleImagePress}
@@ -426,6 +450,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
           isSending={false}
           attachments={attachments}
           onRemoveAttachment={handleRemoveAttachment}
+          onTextChange={handleComposerTextChange}
         />
       </KeyboardAvoidingView>
 

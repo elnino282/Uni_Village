@@ -1,80 +1,46 @@
-﻿import { useCallback, useEffect, useState } from 'react';
-import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+﻿/**
+ * useRealtime.ts
+ * Real-time hooks using Firebase RTDB
+ * 
+ * NOTE: WebSocket functionality has been migrated to Firebase RTDB.
+ * These exports provide backward-compatible APIs.
+ */
 
-import { firestore } from '@/lib/firebase';
-import { useAuthStore } from '@/features/auth/store/authStore';
+import { useFirebaseChat } from '@/providers/FirebaseChatProvider';
 
-const TYPING_TTL_MS = 5000;
-
+/**
+ * Hook for connection status - now uses Firebase RTDB
+ * @deprecated Use useFirebaseChat() directly for Firebase connection state
+ */
 export function useWebSocketConnection() {
-    const connect = useCallback(async () => undefined, []);
-    const disconnect = useCallback(() => undefined, []);
+    const { isConnected, isConnecting, reconnect } = useFirebaseChat();
 
     return {
-        isConnected: false,
-        isConnecting: false,
+        isConnected,
+        isConnecting,
         error: null,
-        connect,
-        disconnect,
+        connect: reconnect,
+        disconnect: () => { /* Firebase handles connection lifecycle */ },
     };
 }
 
+/**
+ * Hook for real-time conversation messages
+ * @deprecated Messages are now handled via useChatSubscription with RTDB
+ */
 export function useConversationMessages() {
     return { realtimeMessages: [] };
 }
 
-export function useTypingIndicator(conversationId: string | undefined) {
-    const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
+/**
+ * @deprecated Use useTypingIndicator from ./useTypingIndicator.ts instead
+ * That hook uses Firebase RTDB via rtdbTypingService
+ */
+export { useTypingIndicator } from './useTypingIndicator';
 
-    useEffect(() => {
-        if (!conversationId) return;
-
-        const typingRef = collection(firestore, 'conversations', conversationId, 'typing');
-        const typingQuery = query(typingRef, where('isTyping', '==', true));
-
-        const unsubscribe = onSnapshot(typingQuery, (snapshot) => {
-            const now = Date.now();
-            const active = snapshot.docs
-                .map((docSnap) => docSnap.data() as { userId: number; userName: string; updatedAt?: { toDate?: () => Date } })
-                .filter((entry) => {
-                    const updatedAt = entry.updatedAt?.toDate?.() ?? new Date(0);
-                    return now - updatedAt.getTime() < TYPING_TTL_MS;
-                })
-                .map((entry) => ({ userId: entry.userId, userName: entry.userName }));
-
-            setTypingUsers(active);
-        });
-
-        return () => unsubscribe();
-    }, [conversationId]);
-
-    const sendTypingEvent = useCallback(
-        async (isTyping: boolean) => {
-            const user = useAuthStore.getState().user;
-            if (!conversationId || !user) return;
-
-            const typingDoc = doc(firestore, 'conversations', conversationId, 'typing', String(user.id));
-            await setDoc(
-                typingDoc,
-                {
-                    userId: user.id,
-                    userName: user.displayName,
-                    isTyping,
-                    updatedAt: serverTimestamp(),
-                },
-                { merge: true }
-            );
-        },
-        [conversationId]
-    );
-
-    return {
-        typingUsers,
-        isAnyoneTyping: typingUsers.length > 0,
-        sendTypingEvent,
-    };
-}
-
+/**
+ * @deprecated Real-time updates are now handled via Firebase RTDB subscriptions
+ */
 export function useRealtimeUpdates() {
     return;
 }

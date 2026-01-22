@@ -1,153 +1,164 @@
 /**
  * useTypingIndicator hook
- * Debounced typing event sender with auto-timeout
+ * Debounced typing event sender with auto-timeout using Firebase RTDB
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { TypingEvent } from '@/lib/websocket';
-import { websocketService } from '@/lib/websocket';
-import { useChatStore } from '../store';
+import {
+    rtdbTypingService,
+    type TypingUser,
+} from "../services/rtdbTyping.service";
 
 const TYPING_DEBOUNCE_MS = 300;
 const TYPING_TIMEOUT_MS = 3000;
 
 /**
  * Hook for managing typing indicator with debounce and auto-cleanup
+ * Uses Firebase RTDB for real-time typing updates
  * @param conversationId - Current conversation ID
  */
 export function useTypingIndicator(conversationId: string | undefined) {
-    const { setTypingUser, typingUsers } = useChatStore();
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
 
-    // Refs for debounce and timeout
-    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isTypingSentRef = useRef(false);
-    const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
+  // Refs for debounce and timeout
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingSentRef = useRef(false);
 
-    /**
-     * Send typing event with debounce
-     */
-    const sendTyping = useCallback(() => {
-        if (!conversationId || !websocketService.isConnected()) return;
+  /**
+   * Send typing event with debounce
+   */
+  const sendTyping = useCallback(() => {
+    if (!conversationId) return;
 
-        // Clear existing debounce timer
-        if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
+    // Clear existing debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Debounce the typing event
+    debounceTimerRef.current = setTimeout(async () => {
+      // Only send if we haven't already sent "typing = true"
+      if (!isTypingSentRef.current) {
+        try {
+          await rtdbTypingService.setTyping(conversationId, true);
+          isTypingSentRef.current = true;
+        } catch (error) {
+          console.error("[useTypingIndicator] Error setting typing:", error);
         }
+      }
 
-        // Debounce the typing event
-        debounceTimerRef.current = setTimeout(() => {
-            // Only send if we haven't already sent "typing = true"
-            if (!isTypingSentRef.current) {
-                websocketService.sendTypingEvent(conversationId, true);
-                isTypingSentRef.current = true;
-            }
+      // Reset or start the auto-stop timer
+      if (autoStopTimerRef.current) {
+        clearTimeout(autoStopTimerRef.current);
+      }
 
-            // Reset or start the auto-stop timer
-            if (autoStopTimerRef.current) {
-                clearTimeout(autoStopTimerRef.current);
-            }
-
-            autoStopTimerRef.current = setTimeout(() => {
-                if (isTypingSentRef.current) {
-                    websocketService.sendTypingEvent(conversationId, false);
-                    isTypingSentRef.current = false;
-                }
-            }, TYPING_TIMEOUT_MS);
-        }, TYPING_DEBOUNCE_MS);
-    }, [conversationId]);
-
-    /**
-     * Stop typing immediately (call when user sends message or leaves input)
-     */
-    const stopTyping = useCallback(() => {
-        if (!conversationId) return;
-
-        // Clear all timers
-        if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
-            debounceTimerRef.current = null;
+      autoStopTimerRef.current = setTimeout(async () => {
+        if (isTypingSentRef.current) {
+          try {
+            await rtdbTypingService.setTyping(conversationId, false);
+          } catch (error) {
+            console.error("[useTypingIndicator] Error clearing typing:", error);
+          }
+          isTypingSentRef.current = false;
         }
-        if (autoStopTimerRef.current) {
-            clearTimeout(autoStopTimerRef.current);
-            autoStopTimerRef.current = null;
-        }
+      }, TYPING_TIMEOUT_MS);
+    }, TYPING_DEBOUNCE_MS);
+  }, [conversationId]);
 
-        // Send stop typing if we had sent start
-        if (isTypingSentRef.current && websocketService.isConnected()) {
-            websocketService.sendTypingEvent(conversationId, false);
-            isTypingSentRef.current = false;
-        }
-    }, [conversationId]);
+  /**
+   * Stop typing immediately (call when user sends message or leaves input)
+   */
+  const stopTyping = useCallback(async () => {
+    if (!conversationId) return;
 
-    /**
-     * Handle incoming typing events
-     */
-    const handleTypingEvent = useCallback(
-        (event: TypingEvent) => {
-            setTypingUser(event.userId, event.userName, event.isTyping);
-        },
-        [setTypingUser]
+    // Clear all timers
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    if (autoStopTimerRef.current) {
+      clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = null;
+    }
+
+    // Send stop typing if we had sent start
+    if (isTypingSentRef.current) {
+      try {
+        await rtdbTypingService.setTyping(conversationId, false);
+      } catch (error) {
+        console.error("[useTypingIndicator] Error stopping typing:", error);
+      }
+      isTypingSentRef.current = false;
+    }
+  }, [conversationId]);
+
+  // Subscribe to typing events from RTDB
+  useEffect(() => {
+    if (!conversationId) {
+      setTypingUsers([]);
+      return;
+    }
+
+    const unsubscribe = rtdbTypingService.subscribeToTyping(
+      conversationId,
+      (users) => {
+        setTypingUsers(users);
+      },
     );
 
-    // Subscribe to typing events
-    useEffect(() => {
-        if (!conversationId || !websocketService.isConnected()) {
-            return;
-        }
-
-        const subscription = websocketService.subscribeToTyping(
-            conversationId,
-            handleTypingEvent
-        );
-
-        subscriptionRef.current = subscription;
-
-        return () => {
-            if (subscriptionRef.current) {
-                subscriptionRef.current.unsubscribe();
-                subscriptionRef.current = null;
-            }
-        };
-    }, [conversationId, handleTypingEvent]);
-
-    // Cleanup on unmount or conversation change
-    useEffect(() => {
-        return () => {
-            stopTyping();
-        };
-    }, [stopTyping]);
-
-    // Get typing users list (excluding stale entries)
-    const typingUsersList = Array.from(typingUsers.values()).filter((user) => {
-        // Remove typing users older than TYPING_TIMEOUT_MS
-        return Date.now() - user.timestamp < TYPING_TIMEOUT_MS;
-    });
-
-    return {
-        /** Call this on text input change */
-        sendTyping,
-        /** Call this when user sends a message or blurs input */
-        stopTyping,
-        /** List of currently typing users */
-        typingUsers: typingUsersList,
-        /** True if anyone is typing */
-        isAnyoneTyping: typingUsersList.length > 0,
-        /** Formatted typing indicator text */
-        typingText: getTypingText(typingUsersList),
+    return () => {
+      unsubscribe();
     };
+  }, [conversationId]);
+
+  // Cleanup on unmount or conversation change
+  useEffect(() => {
+    return () => {
+      stopTyping();
+    };
+  }, [stopTyping]);
+
+  // Convert to legacy format for UI compatibility
+  const typingUsersList = typingUsers.map((user) => ({
+    userId: 0, // Legacy ID not available from RTDB
+    userName: user.displayName,
+    timestamp: user.timestamp,
+  }));
+
+  return {
+    /** Call this on text input change */
+    sendTyping,
+    /** Call this when user sends a message or blurs input */
+    stopTyping,
+    /** Legacy API: sendTypingEvent(isTyping) - for backward compatibility */
+    sendTypingEvent: (isTyping: boolean) => {
+      if (isTyping) {
+        sendTyping();
+      } else {
+        stopTyping();
+      }
+    },
+    /** List of currently typing users */
+    typingUsers: typingUsersList,
+    /** True if anyone is typing */
+    isAnyoneTyping: typingUsersList.length > 0,
+    /** Formatted typing indicator text */
+    typingText: getTypingText(typingUsersList),
+  };
 }
 
 /**
  * Format typing indicator text
  */
 function getTypingText(
-    typingUsers: Array<{ userId: number; userName: string }>
+  typingUsers: Array<{ userId: number; userName: string }>,
 ): string {
-    if (typingUsers.length === 0) return '';
-    if (typingUsers.length === 1) return `${typingUsers[0].userName} đang nhập...`;
-    if (typingUsers.length === 2) {
-        return `${typingUsers[0].userName} và ${typingUsers[1].userName} đang nhập...`;
-    }
-    return `${typingUsers[0].userName} và ${typingUsers.length - 1} người khác đang nhập...`;
+  if (typingUsers.length === 0) return "";
+  if (typingUsers.length === 1)
+    return `${typingUsers[0].userName} đang nhập...`;
+  if (typingUsers.length === 2) {
+    return `${typingUsers[0].userName} và ${typingUsers[1].userName} đang nhập...`;
+  }
+  return `${typingUsers[0].userName} và ${typingUsers.length - 1} người khác đang nhập...`;
 }

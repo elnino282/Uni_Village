@@ -4,7 +4,7 @@
  */
 import { FlashList } from '@shopify/flash-list';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
@@ -29,7 +29,6 @@ export function FriendRequestsList() {
 
     const currentQuery = activeTab === 'incoming' ? incomingQuery : outgoingQuery;
 
-    // Flatten pages into single array
     const requests = currentQuery.data?.pages.flatMap(page => page.content) ?? [];
 
     const handleRefresh = useCallback(() => {
@@ -56,12 +55,12 @@ export function FriendRequestsList() {
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
             <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-                {activeTab === 'incoming' ? 'Không có lời mời đến' : 'Không có lời mời đi'}
+                {activeTab === 'incoming' ? 'Kh�ng c� l?i m?i d?n' : 'Kh�ng c� l?i m?i di'}
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                 {activeTab === 'incoming'
-                    ? 'Bạn chưa nhận được lời mời kết bạn nào'
-                    : 'Bạn chưa gửi lời mời kết bạn nào'}
+                    ? 'B?n chua nh?n du?c l?i m?i k?t b?n n�o'
+                    : 'B?n chua g?i l?i m?i k?t b?n n�o'}
             </Text>
         </View>
     );
@@ -90,7 +89,7 @@ export function FriendRequestsList() {
                         styles.tabText,
                         { color: activeTab === 'incoming' ? colors.tint : colors.textSecondary },
                     ]}>
-                        Lời mời đến
+                        L?i m?i d?n
                     </Text>
                     {(incomingQuery.data?.pages[0]?.totalElements ?? 0) > 0 && (
                         <View style={[styles.tabBadge, { backgroundColor: colors.tint }]}>
@@ -112,7 +111,7 @@ export function FriendRequestsList() {
                         styles.tabText,
                         { color: activeTab === 'outgoing' ? colors.tint : colors.textSecondary },
                     ]}>
-                        Lời mời đi
+                        L?i m?i di
                     </Text>
                     {(outgoingQuery.data?.pages[0]?.totalElements ?? 0) > 0 && (
                         <View style={[styles.tabBadge, { backgroundColor: colors.textSecondary }]}>
@@ -139,14 +138,8 @@ export function FriendRequestsList() {
                     ListFooterComponent={renderFooter}
                     onEndReached={handleLoadMore}
                     onEndReachedThreshold={0.3}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={currentQuery.isRefetching && !currentQuery.isFetchingNextPage}
-                            onRefresh={handleRefresh}
-                            colors={[colors.tint]}
-                            tintColor={colors.tint}
-                        />
-                    }
+                    refreshing={currentQuery.isRefetching && !currentQuery.isFetchingNextPage}
+                    onRefresh={handleRefresh}
                 />
             )}
         </View>

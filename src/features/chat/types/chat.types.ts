@@ -111,6 +111,7 @@ export type Message = TextMessage | SharedCardMessage | ImageMessage;
  */
 export interface ThreadPeer {
   id: number;
+  uid?: string;
   displayName: string;
   avatarUrl?: string;
 }
@@ -226,3 +227,5 @@ export interface SendMessageInput {
   threadId: string;
   text: string;
 }
+
+

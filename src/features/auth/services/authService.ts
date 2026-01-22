@@ -1,3 +1,5 @@
+import { auth } from '@/lib/firebase';
+import { signInAnonymously } from 'firebase/auth';
 import { authApi } from '../api';
 import { useAuthStore } from '../store/authStore';
 import type { ForgetPasswordRequest, LoginRequest, RegisterRequest, VerifyRequest } from '../types';
@@ -20,7 +22,16 @@ export const authService = {
             const user = mapProfileToUser(profile);
             useAuthStore.getState().setUser(user);
             console.log('[Auth Service] User initialized:', { id: user.id, displayName: user.displayName });
-            
+
+            // Sign in to Firebase anonymously for RTDB chat access
+            try {
+                const firebaseUser = await signInAnonymously(auth);
+                console.log('[Auth Service] Firebase anonymous auth success:', firebaseUser.user.uid);
+            } catch (firebaseError) {
+                console.error('[Auth Service] Firebase anonymous auth failed:', firebaseError);
+                // Non-blocking: Chat may not work, but login should still succeed
+            }
+
             return { success: true, message: 'Login successful' };
         } catch (error: any) {
             return { success: false, message: error.message || 'Login failed' };

@@ -21,6 +21,7 @@ import { useColorScheme } from '@/shared/hooks';
 
 import type { ChatThread, Thread } from '../types';
 import { isGroupThread } from '../types';
+import { useOnlineStatusByUid } from '../hooks/useOnlineStatus';
 
 interface ChatHeaderProps {
   thread: Thread;
@@ -36,15 +37,19 @@ export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
-  // Only render for DM threads
   if (isGroupThread(thread)) {
     return null;
   }
 
   const dmThread = thread as ChatThread;
+  const { isOnline } = useOnlineStatusByUid(dmThread.peer.uid);
+
+  const onlineStatus = dmThread.peer.uid ? (isOnline ? 'online' : 'offline') : dmThread.onlineStatus;
+  const onlineStatusText = dmThread.peer.uid
+    ? (isOnline ? 'Ðang ho?t d?ng' : 'Offline')
+    : dmThread.onlineStatusText;
 
   const handleBack = () => {
-    // Check if we can go back, otherwise navigate to home
     if (navigation.canGoBack()) {
       router.back();
     } else {
@@ -56,13 +61,11 @@ export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
     if (onInfoPress) {
       onInfoPress();
     } else {
-       
       console.log('Info pressed for thread:', dmThread.id);
     }
   };
 
-  // Online status color from Figma: #00A63E
-  const onlineStatusColor = dmThread.onlineStatus === 'online' ? '#00A63E' : colors.textSecondary;
+  const onlineStatusColor = onlineStatus === 'online' ? '#00A63E' : colors.textSecondary;
 
   return (
     <View
@@ -81,7 +84,7 @@ export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
           onPress={handleBack}
           style={styles.iconButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityLabel="Quay láº¡i"
+          accessibilityLabel="Quay l?i"
           accessibilityRole="button"
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
@@ -105,7 +108,7 @@ export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
               style={[styles.status, { color: onlineStatusColor }]}
               numberOfLines={1}
             >
-              {dmThread.onlineStatusText}
+              {onlineStatusText}
             </Text>
           </View>
         </View>
@@ -118,7 +121,7 @@ export function ChatHeader({ thread, onInfoPress }: ChatHeaderProps) {
           onPress={handleInfo}
           style={styles.iconButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityLabel="ThÃ´ng tin cuá»™c trÃ² chuyá»‡n"
+          accessibilityLabel="Thông tin cu?c trò chuy?n"
           accessibilityRole="button"
         >
           <Ionicons

@@ -7,6 +7,7 @@ import { Href, router } from 'expo-router';
 
 import { channelsApi, type CreateChannelFormData } from '../api';
 import type { CreateChannelInput, CreateChannelResponse } from '../types/channel.types';
+import { ChannelPrivacy } from '@/shared/types/backend.types';
 
 /**
  * Create channel mutation hook
@@ -17,12 +18,15 @@ export function useCreateChannel() {
 
   return useMutation<CreateChannelResponse, Error, CreateChannelInput>({
     mutationFn: async (input) => {
-      // Map CreateChannelInput to CreateChannelFormData
+      const participantIds = input.memberIds
+        .map((id) => Number(id))
+        .filter((id) => !Number.isNaN(id));
+
       const formData: CreateChannelFormData = {
         name: input.name,
         description: input.description,
-        privacy: 'PUBLIC', // Default to public
-        participantIds: input.memberIds,
+        privacy: input.isPrivate ? ChannelPrivacy.PRIVATE : ChannelPrivacy.PUBLIC,
+        participantIds,
       };
 
       const response = await channelsApi.createChannel(formData);
@@ -33,24 +37,22 @@ export function useCreateChannel() {
       }
 
       return {
+        success: true,
         channelId: channel.conversationId || '',
         channel: {
-          id: channel.id || 0,
+          id: String(channel.id ?? ''),
           name: channel.name || input.name,
-          memberCount: channel.memberCount || input.memberIds.length + 1,
+          avatarUrl: channel.avatarUrl,
+          memberCount: channel.memberCount || participantIds.length + 1,
+          category: input.category,
         },
       };
     },
     onSuccess: (data) => {
-      // Invalidate channels list to refresh
       queryClient.invalidateQueries({ queryKey: ['channels'] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
 
-      // Use setTimeout to ensure modal is fully closed before navigation
-      // This prevents the "unhandled action" error when navigating from a modal
       setTimeout(() => {
-        // Navigate to the new channel thread using imperative API
-        // This works better when navigating from modals/bottom sheets
         router.push(`/chat/${data.channelId}` as Href);
       }, 300);
     },

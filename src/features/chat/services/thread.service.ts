@@ -1,18 +1,24 @@
-﻿/**
+/**
  * Thread Service
- * Provides thread/conversation data using Firebase
+ * Provides thread/conversation data using Firebase RTDB
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { profileApi } from '@/features/profile/api/profileApi';
+import { auth } from '@/lib/firebase';
 import type { ChatThread, GroupThread, ThreadInfo, ThreadResponse } from '../types';
-import { getConversation, getMediaMessages, type ConversationParticipant } from './firebaseChat.service';
+import {
+    getConversation,
+    type RtdbConversation,
+    type RtdbConversationMember,
+} from './firebaseRtdb.service';
+import { getMediaMessages } from './media.service';
 
 /**
  * Check if a thread ID is a virtual thread (user-{userId})
  */
-export function isVirtualThreadId(threadId: string): boolean {
+function isVirtualThreadId(threadId: string): boolean {
     return threadId.startsWith('user-');
 }
 
@@ -32,24 +38,51 @@ export function isGroupThreadId(threadId: string): boolean {
     return threadId.startsWith('group-') || threadId.startsWith('channel-');
 }
 
-function mapConversationToThread(
-    conversation: FirebaseConversation,
-    currentUserId?: number
-): ChatThread {
-    const fallbackPeer: ConversationParticipant = conversation.participants?.[0] ?? {
-        id: 0,
-        displayName: 'Người dùng',
-    };
+function resolvePeer(conversation: RtdbConversation): {
+    peerUid?: string;
+    peerDetails?: RtdbConversationMember;
+    peerLegacyId?: number;
+} {
+    const currentUid = auth.currentUser?.uid;
+    const currentLegacyId = useAuthStore.getState().user?.id;
+    const memberDetails = conversation.memberDetails ?? {};
+    const memberEntries = Object.entries(memberDetails);
 
-    const peer = conversation.participants?.find((p) => p.id !== currentUserId) ?? fallbackPeer;
+    let peerUid: string | undefined;
+    let peerDetails: RtdbConversationMember | undefined;
+
+    if (memberEntries.length > 0) {
+        const match =
+            memberEntries.find(
+                ([uid, member]) =>
+                    uid !== currentUid && member?.legacyUserId !== currentLegacyId
+            ) ?? memberEntries[0];
+
+        peerUid = match?.[0];
+        peerDetails = match?.[1];
+    } else {
+        const memberUids = Object.keys(conversation.members ?? {});
+        peerUid = memberUids.find((uid) => uid !== currentUid) ?? memberUids[0];
+    }
+
+    const peerLegacyId =
+        peerDetails?.legacyUserId ??
+        (peerUid && !Number.isNaN(Number(peerUid)) ? Number(peerUid) : 0);
+
+    return { peerUid, peerDetails, peerLegacyId };
+}
+
+function mapConversationToThread(conversation: RtdbConversation): ChatThread {
+    const { peerUid, peerDetails, peerLegacyId } = resolvePeer(conversation);
 
     return {
         id: conversation.id,
         type: 'dm',
         peer: {
-            id: peer.id,
-            displayName: peer.displayName || 'Người dùng',
-            avatarUrl: peer.avatarUrl,
+            id: peerLegacyId ?? 0,
+            uid: peerUid,
+            displayName: peerDetails?.displayName || 'Ngu?i d�ng',
+            avatarUrl: peerDetails?.avatarUrl,
         },
         onlineStatus: 'offline',
         onlineStatusText: 'Offline',
@@ -58,13 +91,13 @@ function mapConversationToThread(
     };
 }
 
-function mapGroupConversationToThread(conversation: FirebaseConversation): GroupThread {
-    const memberCount = conversation.memberCount ?? conversation.participants?.length ?? 0;
+function mapGroupConversationToThread(conversation: RtdbConversation): GroupThread {
+    const memberCount = Object.keys(conversation.members ?? {}).length;
 
     return {
         id: conversation.id,
         type: 'group',
-        name: conversation.name || 'Kênh',
+        name: conversation.name || 'K�nh',
         avatarUrl: conversation.avatarUrl,
         memberCount,
         onlineCount: 0,
@@ -72,18 +105,17 @@ function mapGroupConversationToThread(conversation: FirebaseConversation): Group
 }
 
 /**
- * Fetch DM thread metadata from Firebase
+ * Fetch DM thread metadata from Firebase RTDB
  */
 export async function fetchThread(conversationId: string): Promise<ThreadResponse> {
     try {
         const conversation = await getConversation(conversationId);
-        const currentUserId = useAuthStore.getState().user?.id;
 
         if (conversation) {
             if (conversation.type === 'group') {
                 return { thread: mapGroupConversationToThread(conversation) };
             }
-            return { thread: mapConversationToThread(conversation, currentUserId) };
+            return { thread: mapConversationToThread(conversation) };
         }
 
         return {
@@ -92,7 +124,7 @@ export async function fetchThread(conversationId: string): Promise<ThreadRespons
                 type: 'dm',
                 peer: {
                     id: 0,
-                    displayName: 'Người dùng',
+                    displayName: 'Ngu?i d�ng',
                     avatarUrl: undefined,
                 },
                 onlineStatus: 'offline',
@@ -109,7 +141,7 @@ export async function fetchThread(conversationId: string): Promise<ThreadRespons
                 type: 'dm',
                 peer: {
                     id: 0,
-                    displayName: 'Người dùng',
+                    displayName: 'Ngu?i d�ng',
                     avatarUrl: undefined,
                 },
                 onlineStatus: 'offline',
@@ -134,7 +166,7 @@ export async function fetchVirtualThread(userId: number): Promise<ThreadResponse
                 type: 'dm',
                 peer: {
                     id: userId,
-                    displayName: profile.displayName || profile.username || 'Người dùng',
+                    displayName: profile.displayName || profile.username || 'Ngu?i d�ng',
                     avatarUrl: profile.avatarUrl,
                 },
                 onlineStatus: 'offline',
@@ -151,7 +183,7 @@ export async function fetchVirtualThread(userId: number): Promise<ThreadResponse
                 type: 'dm',
                 peer: {
                     id: userId,
-                    displayName: 'Người dùng',
+                    displayName: 'Ngu?i d�ng',
                     avatarUrl: undefined,
                 },
                 onlineStatus: 'offline',
@@ -164,7 +196,7 @@ export async function fetchVirtualThread(userId: number): Promise<ThreadResponse
 }
 
 /**
- * Fetch group/channel thread metadata from Firebase
+ * Fetch group/channel thread metadata from Firebase RTDB
  */
 export async function fetchGroupThread(conversationId: string): Promise<ThreadResponse | null> {
     try {
@@ -195,7 +227,7 @@ export async function fetchThreadInfo(threadId: string): Promise<ThreadInfo> {
         return {
             threadId,
             peerId: String(userId),
-            peerName: profile.displayName || profile.username || 'Người dùng',
+            peerName: profile.displayName || profile.username || 'Ngu?i d�ng',
             peerAvatarUrl: profile.avatarUrl,
             isMuted: muteStatus,
             isBlocked: false,
@@ -208,17 +240,15 @@ export async function fetchThreadInfo(threadId: string): Promise<ThreadInfo> {
         throw new Error('Conversation not found');
     }
 
-    const currentUserId = useAuthStore.getState().user?.id;
-    const peer = conversation.participants.find((p) => p.id !== currentUserId) ?? conversation.participants[0];
-
+    const { peerUid, peerDetails, peerLegacyId } = resolvePeer(conversation);
     const mediaList = await getMediaMessages(threadId).catch(() => []);
     const muteStatus = await getMuteStatus(threadId);
 
     return {
         threadId,
-        peerId: String(peer?.id ?? ''),
-        peerName: peer?.displayName || 'Người dùng',
-        peerAvatarUrl: peer?.avatarUrl,
+        peerId: peerLegacyId ? String(peerLegacyId) : peerUid ?? '',
+        peerName: peerDetails?.displayName || 'Ngu?i d�ng',
+        peerAvatarUrl: peerDetails?.avatarUrl,
         isMuted: muteStatus,
         isBlocked: false,
         sentMediaCount: mediaList.length,
@@ -257,3 +287,4 @@ export async function toggleThreadMute(threadId: string): Promise<boolean> {
         throw error;
     }
 }
+

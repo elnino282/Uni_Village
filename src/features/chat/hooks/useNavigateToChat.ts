@@ -1,6 +1,7 @@
-﻿import { useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
+import { auth } from '@/lib/firebase';
 import { buildDmConversationId, getConversation } from '../services';
 import type { RelationshipStatus } from '../api/friends.api';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -18,11 +19,13 @@ export function useNavigateToChat() {
         try {
             setIsNavigating(true);
 
-            const currentUserId = useAuthStore.getState().user?.id;
+            const currentUser = useAuthStore.getState().user;
+            const currentUid = auth.currentUser?.uid ?? currentUser?.id?.toString();
+            const peerUid = userId.toString();
             let threadId = `user-${userId}`;
 
-            if (currentUserId) {
-                const dmId = buildDmConversationId(currentUserId, userId);
+            if (currentUid) {
+                const dmId = buildDmConversationId(currentUid, peerUid);
                 const existing = await getConversation(dmId);
                 if (existing) {
                     threadId = dmId;

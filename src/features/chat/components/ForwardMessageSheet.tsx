@@ -28,10 +28,19 @@ export const ForwardMessageSheet = forwardRef<BottomSheet, ForwardMessageSheetPr
         const { data: privateData } = usePrivateConversations();
         const { data: channelData } = useChannelConversations();
 
-        const allConversations = [
-            ...(privateData?.pages.flatMap((p) => p.content) ?? []),
-            ...(channelData?.pages.flatMap((p) => p.content) ?? []),
-        ];
+        const allConversations = useMemo(() => {
+            const combined = [
+                ...(privateData?.pages.flatMap((p) => p.content) ?? []),
+                ...(channelData?.pages.flatMap((p) => p.content) ?? []),
+            ];
+
+            return combined
+                .filter((item) => !!item.id)
+                .map((item, index) => ({
+                    id: item.id || `conversation-${index}`,
+                    name: item.name ?? 'Cu?c tr� chuy?n',
+                }));
+        }, [privateData, channelData]);
 
         const toggleSelection = (id: string) => {
             setSelectedIds((prev) => {
@@ -62,7 +71,7 @@ export const ForwardMessageSheet = forwardRef<BottomSheet, ForwardMessageSheetPr
             >
                 <View style={styles.container}>
                     <Text style={[styles.title, { color: colors.text }]}>
-                        Chuyển tiếp tin nhắn
+                        Chuy?n ti?p tin nh?n
                     </Text>
 
                     <View style={[styles.preview, { backgroundColor: colors.chipBackground }]}>
@@ -101,7 +110,7 @@ export const ForwardMessageSheet = forwardRef<BottomSheet, ForwardMessageSheetPr
                     />
 
                     <Button
-                        title={`Chuyển tiếp (${selectedIds.size})`}
+                        title={`Chuy?n ti?p (${selectedIds.size})`}
                         onPress={handleForward}
                         disabled={selectedIds.size === 0}
                         variant="primary"
