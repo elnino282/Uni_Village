@@ -1,41 +1,52 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    Animated,
-    Easing,
-    Image,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  Animated,
+  Easing,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { BorderRadius, Colors, Shadows, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
+import {
+  getItineraryById,
+  updateItinerary,
+} from "../services/itineraryService";
 
 interface Destination {
   id: string;
   name: string;
-  thumbnail: string;
+  thumbnail?: string;
   order: number;
   rating?: number;
   reviewCount?: number;
   distance?: number;
   departureTime?: string;
   time?: string;
+  googlePlaceId?: string;
+  lat?: number;
+  lng?: number;
+  address?: string;
 }
 
 interface TripData {
+  id: string;
   tripName: string;
   startDate: Date;
   startTime: Date;
@@ -50,11 +61,13 @@ export function ItineraryDetailScreen() {
   const insets = useSafeAreaInsets();
 
   const [tripData, setTripData] = useState<TripData>({
-    tripName: "Chuyến đi #4",
+    id: "",
+    tripName: "Chuyến đi",
     startDate: new Date(),
     startTime: new Date(),
     destinations: [],
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -63,68 +76,84 @@ export function ItineraryDetailScreen() {
   const [editTripName, setEditTripName] = useState("");
   const modalOpacity = React.useRef(new Animated.Value(0)).current;
 
-  // Load trip data from AsyncStorage when screen is focused
+  // Load trip data from API when screen is focused
   useFocusEffect(
     useCallback(() => {
       loadTripData();
-    }, [params.tripId])
+    }, [params.tripId]),
   );
 
   const loadTripData = async () => {
     try {
+      setIsLoading(true);
       const tripId = params.tripId as string;
-      
+
       if (tripId) {
-        // Load from AsyncStorage
-        const tripsJson = await AsyncStorage.getItem('@trips');
-        if (tripsJson) {
-          const trips = JSON.parse(tripsJson);
-          const trip = trips.find((t: any) => t.id === tripId);
-          
-          if (trip) {
-            setTripData({
-              tripName: trip.tripName,
-              startDate: new Date(trip.startDate),
-              startTime: new Date(trip.startTime),
-              destinations: trip.destinations || [],
-            });
-            return;
-          }
+        // Load from API
+        const itinerary = await getItineraryById(tripId);
+
+        if (itinerary) {
+          setTripData({
+            id: itinerary.id,
+            tripName: itinerary.title,
+            startDate: new Date(itinerary.startDate),
+            startTime: new Date(itinerary.startDate), // Backend combines date/time
+            destinations: (itinerary.stops || []).map((stop) => ({
+              id: stop.id,
+              name: stop.name,
+              thumbnail: stop.imageUrl,
+              order: stop.order,
+              googlePlaceId: stop.googlePlaceId,
+              lat: stop.lat,
+              lng: stop.lng,
+              address: stop.address,
+            })),
+          });
+          return;
         }
       }
-      
-      // Fallback to params if not found in AsyncStorage
+
+      // Fallback to empty trip
       setTripData({
-        tripName: params.tripName as string || "Chuyến đi #4",
-        startDate: params.startDate ? new Date(params.startDate as string) : new Date(),
-        startTime: params.startTime ? new Date(params.startTime as string) : new Date(),
-        destinations: params.destinations 
-          ? JSON.parse(params.destinations as string) as Destination[]
-          : [],
+        id: tripId || "",
+        tripName: "Chuyến đi",
+        startDate: new Date(),
+        startTime: new Date(),
+        destinations: [],
       });
     } catch (error) {
-      console.error('Failed to load trip data:', error);
+      console.error("Failed to load trip data:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const formatDate = (date: Date) => {
-    const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const days = [
+      "Chủ Nhật",
+      "Thứ Hai",
+      "Thứ Ba",
+      "Thứ Tư",
+      "Thứ Năm",
+      "Thứ Sáu",
+      "Thứ Bảy",
+    ];
     const dayName = days[date.getDay()];
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
     return `${dayName}, ${day}/${month}/${year}`;
   };
 
   const formatTime = (date: Date) => {
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
     return `${hours}:${minutes}`;
   };
 
   const updateTripDateTime = async (newDate: Date, newTime: Date) => {
     try {
-      const tripId = params.tripId as string;
+      const tripId = tripData.id;
       if (!tripId) return;
 
       // Update local state
@@ -134,35 +163,30 @@ export function ItineraryDetailScreen() {
         startTime: newTime,
       });
 
-      // Update AsyncStorage
-      const tripsJson = await AsyncStorage.getItem('@trips');
-      if (tripsJson) {
-        const trips = JSON.parse(tripsJson);
-        const updatedTrips = trips.map((t: any) => 
-          t.id === tripId ? { 
-            ...t, 
-            startDate: newDate.toISOString(), 
-            startTime: newTime.toISOString() 
-          } : t
-        );
-        await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
-      }
+      // Update via API
+      await updateItinerary(tripId, {
+        startDate: newDate,
+        startTime: newTime,
+      });
     } catch (error) {
-      console.error('Failed to update trip date/time:', error);
+      console.error("Failed to update trip date/time:", error);
     }
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       setShowDatePicker(false);
     }
-    if (selectedDate && selectedDate >= new Date(new Date().setHours(0, 0, 0, 0))) {
+    if (
+      selectedDate &&
+      selectedDate >= new Date(new Date().setHours(0, 0, 0, 0))
+    ) {
       updateTripDateTime(selectedDate, tripData.startTime);
     }
   };
 
   const handleTimeChange = (event: any, selectedTime?: Date) => {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       setShowTimePicker(false);
     }
     if (selectedTime) {
@@ -181,31 +205,24 @@ export function ItineraryDetailScreen() {
 
   const handleStartTrip = async () => {
     try {
-      // Get tripId from params
-      const tripId = params.tripId as string;
-      
+      const tripId = tripData.id;
+
       if (!tripId) {
-        console.error('No tripId provided');
+        console.error("No tripId provided");
         return;
       }
 
-      // Update trip status to 'ongoing' in AsyncStorage
-      const tripsJson = await AsyncStorage.getItem('@trips');
-      if (tripsJson) {
-        const trips = JSON.parse(tripsJson);
-        const updatedTrips = trips.map((t: any) => 
-          t.id === tripId ? { ...t, status: 'ongoing' } : t
-        );
-        await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
-      }
+      // Start the trip via API (change status to ONGOING)
+      const { startItinerary } = await import("../services/itineraryService");
+      await startItinerary(tripId);
 
       // Navigate to active trip screen
       router.push({
         pathname: "/(modals)/active-trip" as any,
-        params: { tripId }
+        params: { tripId },
       });
     } catch (error) {
-      console.error('Failed to start trip:', error);
+      console.error("Failed to start trip:", error);
     }
   };
 
@@ -213,53 +230,50 @@ export function ItineraryDetailScreen() {
     try {
       const destinationsList = tripData.destinations
         .map((d, i) => `${i + 1}. ${d.name}`)
-        .join('\n');
-      
-      const message = `🎉 Lịch trình: ${tripData.tripName}\n\n` +
+        .join("\n");
+
+      const message =
+        `🎉 Lịch trình: ${tripData.tripName}\n\n` +
         `📅 Ngày: ${formatDate(tripData.startDate)}\n` +
         `⏰ Giờ: ${formatTime(tripData.startTime)}\n\n` +
         `📍 Điểm đến (${tripData.destinations.length}):\n${destinationsList}\n\n` +
         `Tạo bằng Uni Village App 🚀`;
-      
+
       await Share.share({
         message,
       });
     } catch (error) {
-      console.error('Failed to share:', error);
+      console.error("Failed to share:", error);
     }
   };
 
   const handleSaveTripName = async () => {
     if (!editTripName.trim()) return;
-    
+
     try {
-      const tripId = params.tripId as string;
+      const tripId = tripData.id;
       if (!tripId) return;
 
       // Update local state
       setTripData({ ...tripData, tripName: editTripName.trim() });
 
-      // Update AsyncStorage
-      const tripsJson = await AsyncStorage.getItem('@trips');
-      if (tripsJson) {
-        const trips = JSON.parse(tripsJson);
-        const updatedTrips = trips.map((t: any) => 
-          t.id === tripId ? { ...t, tripName: editTripName.trim() } : t
-        );
-        await AsyncStorage.setItem('@trips', JSON.stringify(updatedTrips));
-      }
-      
+      // Update via API
+      await updateItinerary(tripId, { name: editTripName.trim() });
+
       setShowEditNameModal(false);
     } catch (error) {
-      console.error('Failed to update trip name:', error);
+      console.error("Failed to update trip name:", error);
     }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["bottom"]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["bottom"]}
+    >
       {/* Header with gradient background */}
       <LinearGradient
-        colors={['#3b82f6', '#2563eb']}
+        colors={["#3b82f6", "#2563eb"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top }]}
@@ -268,7 +282,7 @@ export function ItineraryDetailScreen() {
           <Pressable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </Pressable>
-          
+
           <View style={styles.headerCenter}>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>SẮP TỚI</Text>
@@ -283,10 +297,10 @@ export function ItineraryDetailScreen() {
 
         {/* Date and Time */}
         <View style={styles.dateTimeRow}>
-          <Pressable 
+          <Pressable
             style={styles.dateTimeItem}
             onPress={() => {
-              if (Platform.OS === 'ios') {
+              if (Platform.OS === "ios") {
                 setShowDateTimeModal(true);
               } else {
                 setShowDatePicker(true);
@@ -294,13 +308,15 @@ export function ItineraryDetailScreen() {
             }}
           >
             <Ionicons name="calendar-outline" size={16} color="#FFFFFF" />
-            <Text style={styles.dateTimeText}>{formatDate(tripData.startDate)}</Text>
+            <Text style={styles.dateTimeText}>
+              {formatDate(tripData.startDate)}
+            </Text>
             <Ionicons name="create-outline" size={14} color="#FFFFFF" />
           </Pressable>
-          <Pressable 
+          <Pressable
             style={styles.dateTimeItem}
             onPress={() => {
-              if (Platform.OS === 'ios') {
+              if (Platform.OS === "ios") {
                 setShowDateTimeModal(true);
               } else {
                 setShowTimePicker(true);
@@ -308,7 +324,9 @@ export function ItineraryDetailScreen() {
             }}
           >
             <Ionicons name="time-outline" size={16} color="#FFFFFF" />
-            <Text style={styles.dateTimeText}>{formatTime(tripData.startTime)}</Text>
+            <Text style={styles.dateTimeText}>
+              {formatTime(tripData.startTime)}
+            </Text>
             <Ionicons name="create-outline" size={14} color="#FFFFFF" />
           </Pressable>
         </View>
@@ -316,24 +334,46 @@ export function ItineraryDetailScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Starting Point */}
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           <View style={styles.sectionHeader}>
             <Ionicons name="navigate" size={20} color="#4CAF50" />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Điểm xuất phát</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Điểm xuất phát
+            </Text>
           </View>
-          <Text style={[styles.locationText, { color: colors.textSecondary }]}>Vị trí hiện tại</Text>
+          <Text style={[styles.locationText, { color: colors.textSecondary }]}>
+            Vị trí hiện tại
+          </Text>
         </View>
 
         {/* Destinations */}
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 12 }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: colors.text, marginBottom: 12 },
+            ]}
+          >
             Điểm đến ({tripData.destinations.length})
           </Text>
 
           {tripData.destinations.map((dest, index) => (
             <Pressable
               key={dest.id}
-              style={[styles.destinationCard, { borderBottomColor: colors.border }]}
+              style={[
+                styles.destinationCard,
+                { borderBottomColor: colors.border },
+              ]}
             >
               <View style={styles.destinationNumber}>
                 <Text style={styles.destinationNumberText}>{dest.order}</Text>
@@ -346,7 +386,10 @@ export function ItineraryDetailScreen() {
               />
 
               <View style={styles.destinationInfo}>
-                <Text style={[styles.destinationName, { color: colors.text }]} numberOfLines={1}>
+                <Text
+                  style={[styles.destinationName, { color: colors.text }]}
+                  numberOfLines={1}
+                >
                   {dest.name}
                 </Text>
 
@@ -358,7 +401,12 @@ export function ItineraryDetailScreen() {
                         {dest.rating}
                       </Text>
                       {dest.reviewCount && (
-                        <Text style={[styles.reviewText, { color: colors.textSecondary }]}>
+                        <Text
+                          style={[
+                            styles.reviewText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
                           ({dest.reviewCount})
                         </Text>
                       )}
@@ -367,8 +415,17 @@ export function ItineraryDetailScreen() {
 
                   {dest.distance && (
                     <View style={styles.metaItem}>
-                      <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                      <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                      <Ionicons
+                        name="location-outline"
+                        size={14}
+                        color={colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          styles.metaText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         Cách {dest.distance} km
                       </Text>
                     </View>
@@ -376,8 +433,17 @@ export function ItineraryDetailScreen() {
 
                   {dest.departureTime && (
                     <View style={styles.metaItem}>
-                      <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-                      <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                      <Ionicons
+                        name="time-outline"
+                        size={14}
+                        color={colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          styles.metaText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         Xuất phát: {dest.departureTime}
                       </Text>
                     </View>
@@ -391,10 +457,22 @@ export function ItineraryDetailScreen() {
         </View>
 
         {/* Actions Section */}
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 12 }]}>Thao tác</Text>
-          
-          <Pressable 
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: colors.text, marginBottom: 12 },
+            ]}
+          >
+            Thao tác
+          </Text>
+
+          <Pressable
             style={styles.actionRow}
             onPress={() => {
               setEditTripName(tripData.tripName);
@@ -402,13 +480,15 @@ export function ItineraryDetailScreen() {
             }}
           >
             <Ionicons name="create-outline" size={20} color={colors.info} />
-            <Text style={[styles.actionText, { color: colors.text }]}>Đổi tên chuyến đi</Text>
+            <Text style={[styles.actionText, { color: colors.text }]}>
+              Đổi tên chuyến đi
+            </Text>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
           </Pressable>
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          
-          <Pressable 
+
+          <Pressable
             style={styles.actionRow}
             onPress={() => {
               router.push({
@@ -419,31 +499,44 @@ export function ItineraryDetailScreen() {
                   startDate: tripData.startDate.toString(),
                   startTime: tripData.startTime.toString(),
                   existingDestinations: JSON.stringify(tripData.destinations),
-                  isAddingToExisting: 'true',
-                }
+                  isAddingToExisting: "true",
+                },
               });
             }}
           >
             <Ionicons name="add-circle-outline" size={20} color={colors.info} />
-            <Text style={[styles.actionText, { color: colors.text }]}>Thêm địa điểm mới</Text>
+            <Text style={[styles.actionText, { color: colors.text }]}>
+              Thêm địa điểm mới
+            </Text>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
           </Pressable>
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          
+
           <Pressable style={styles.actionRow} onPress={handleShare}>
-            <Ionicons name="share-social-outline" size={20} color={colors.icon} />
-            <Text style={[styles.actionText, { color: colors.text }]}>Chia sẻ lịch trình</Text>
+            <Ionicons
+              name="share-social-outline"
+              size={20}
+              color={colors.icon}
+            />
+            <Text style={[styles.actionText, { color: colors.text }]}>
+              Chia sẻ lịch trình
+            </Text>
             <Ionicons name="chevron-forward" size={20} color={colors.icon} />
           </Pressable>
         </View>
       </ScrollView>
 
       {/* Bottom Button with gradient */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+      <View
+        style={[
+          styles.bottomBar,
+          { backgroundColor: colors.background, borderTopColor: colors.border },
+        ]}
+      >
         <Pressable style={styles.startButtonWrapper} onPress={handleStartTrip}>
           <LinearGradient
-            colors={['#22c55e', '#16a34a']}
+            colors={["#22c55e", "#16a34a"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.startButton}
@@ -455,7 +548,7 @@ export function ItineraryDetailScreen() {
       </View>
 
       {/* Android Date Picker */}
-      {showDatePicker && Platform.OS === 'android' && (
+      {showDatePicker && Platform.OS === "android" && (
         <DateTimePicker
           value={tripData.startDate}
           mode="date"
@@ -466,7 +559,7 @@ export function ItineraryDetailScreen() {
       )}
 
       {/* Android Time Picker */}
-      {showTimePicker && Platform.OS === 'android' && (
+      {showTimePicker && Platform.OS === "android" && (
         <DateTimePicker
           value={tripData.startTime}
           mode="time"
@@ -476,24 +569,24 @@ export function ItineraryDetailScreen() {
       )}
 
       {/* iOS Date & Time Modal */}
-      {showDateTimeModal && Platform.OS === 'ios' && (
+      {showDateTimeModal && Platform.OS === "ios" && (
         <Modal
           visible={showDateTimeModal}
           transparent
           animationType="none"
           onRequestClose={() => setShowDateTimeModal(false)}
         >
-          <Pressable 
+          <Pressable
             style={styles.modalOverlay}
             onPress={() => setShowDateTimeModal(false)}
           >
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.dateTimeModalContent,
-                { 
+                {
                   backgroundColor: colors.card,
                   opacity: modalOpacity,
-                }
+                },
               ]}
               onStartShouldSetResponder={() => true}
             >
@@ -507,7 +600,9 @@ export function ItineraryDetailScreen() {
               </View>
 
               <View style={styles.pickerSection}>
-                <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.pickerLabel, { color: colors.textSecondary }]}
+                >
                   Ngày khởi hành
                 </Text>
                 <DateTimePicker
@@ -522,7 +617,9 @@ export function ItineraryDetailScreen() {
               </View>
 
               <View style={styles.pickerSection}>
-                <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>
+                <Text
+                  style={[styles.pickerLabel, { color: colors.textSecondary }]}
+                >
                   Giờ xuất phát
                 </Text>
                 <DateTimePicker
@@ -553,38 +650,62 @@ export function ItineraryDetailScreen() {
         animationType="fade"
         onRequestClose={() => setShowEditNameModal(false)}
       >
-        <Pressable 
+        <Pressable
           style={styles.modalOverlay}
           onPress={() => setShowEditNameModal(false)}
         >
-          <Pressable style={[styles.editNameModal, { backgroundColor: colors.card }]} onPress={e => e.stopPropagation()}>
-            <Text style={[styles.editNameTitle, { color: colors.text }]}>Đổi tên chuyến đi</Text>
-            
+          <Pressable
+            style={[styles.editNameModal, { backgroundColor: colors.card }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.editNameTitle, { color: colors.text }]}>
+              Đổi tên chuyến đi
+            </Text>
+
             <TextInput
-              style={[styles.textInput, { 
-                backgroundColor: colors.background, 
-                color: colors.text,
-                borderColor: colors.border 
-              }]}
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: colors.background,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
               value={editTripName}
               onChangeText={setEditTripName}
               placeholder="Nhập tên chuyến đi"
               placeholderTextColor={colors.textSecondary}
               autoFocus
             />
-            
+
             <View style={styles.editNameButtons}>
               <Pressable
-                style={[styles.editNameButton, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}
+                style={[
+                  styles.editNameButton,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  },
+                ]}
                 onPress={() => setShowEditNameModal(false)}
               >
-                <Text style={[styles.editNameButtonText, { color: colors.text }]}>Hủy</Text>
+                <Text
+                  style={[styles.editNameButtonText, { color: colors.text }]}
+                >
+                  Hủy
+                </Text>
               </Pressable>
               <Pressable
-                style={[styles.editNameButton, { backgroundColor: colors.info }]}
+                style={[
+                  styles.editNameButton,
+                  { backgroundColor: colors.info },
+                ]}
                 onPress={handleSaveTripName}
               >
-                <Text style={[styles.editNameButtonText, { color: '#FFFFFF' }]}>Lưu</Text>
+                <Text style={[styles.editNameButtonText, { color: "#FFFFFF" }]}>
+                  Lưu
+                </Text>
               </Pressable>
             </View>
           </Pressable>
@@ -762,7 +883,7 @@ const styles = StyleSheet.create({
   },
   startButtonWrapper: {
     borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   startButton: {
     flexDirection: "row",
@@ -779,65 +900,65 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   dateTimeModalContent: {
-    width: '100%',
+    width: "100%",
     maxWidth: 400,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   pickerSection: {
     marginBottom: 16,
   },
   pickerLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
   },
   picker: {
-    width: '100%',
+    width: "100%",
   },
   doneButton: {
     paddingVertical: 14,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   doneButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   editNameModal: {
     borderRadius: 16,
     padding: 24,
-    width: '90%',
+    width: "90%",
     maxWidth: 400,
   },
   editNameTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   textInput: {
     borderWidth: 1,
@@ -848,17 +969,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   editNameButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   editNameButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   editNameButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

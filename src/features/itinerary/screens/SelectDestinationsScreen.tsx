@@ -1,36 +1,39 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    Animated,
-    BackHandler,
-    Easing,
-    Image,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Animated,
+  BackHandler,
+  Easing,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
-    SelectDestinationsMap,
-    SelectDestinationsMapRef,
+  SelectDestinationsMap,
+  SelectDestinationsMapRef,
 } from "@/features/itinerary/components/SelectDestinationsMap";
+import {
+  createItinerary,
+  updateItinerary,
+} from "@/features/itinerary/services/itineraryService";
 import { useNearbyPlaces, useUserLocation } from "@/features/map/hooks";
 import type { MapMarker, MapRegion, Place } from "@/features/map/types";
 import { Colors, useColorScheme } from "@/shared";
@@ -58,6 +61,9 @@ interface SelectDestinationsScreenProps {
     isCheckedIn?: boolean;
     isSkipped?: boolean;
     checkedInAt?: string;
+    googlePlaceId?: string;
+    lat?: number;
+    lng?: number;
   }[];
   isAddingToExisting?: boolean;
   onBack?: () => void;
@@ -94,12 +100,44 @@ export function SelectDestinationsScreen({
     if (
       isAddingToExisting &&
       existingDestinations &&
-      nearbyPlaces.length > 0 &&
+      existingDestinations.length > 0 &&
       !isInitialized
     ) {
+      // Map existing destinations - try to find in nearbyPlaces or create from existing data
       const mapped = existingDestinations
         .map((dest) => {
-          const place = nearbyPlaces.find((p) => p.id === dest.id);
+          // First try to find by googlePlaceId
+          let place = nearbyPlaces.find((p) => p.id === dest.googlePlaceId);
+
+          // If not found by googlePlaceId, try by coordinates (within ~100m)
+          if (!place && dest.lat && dest.lng) {
+            place = nearbyPlaces.find((p) => {
+              const latDiff = Math.abs(p.lat - (dest.lat || 0));
+              const lngDiff = Math.abs(p.lng - (dest.lng || 0));
+              return latDiff < 0.001 && lngDiff < 0.001; // ~100m tolerance
+            });
+          }
+
+          // If not found by name
+          if (!place) {
+            place = nearbyPlaces.find(
+              (p) => p.name.toLowerCase() === dest.name.toLowerCase(),
+            );
+          }
+
+          // If still not found but we have the data, create a virtual place from existing data
+          if (!place && dest.lat && dest.lng) {
+            place = {
+              id: dest.googlePlaceId || dest.id,
+              name: dest.name,
+              lat: dest.lat,
+              lng: dest.lng,
+              address: "",
+              thumbnail: dest.thumbnail,
+              category: "other" as const,
+            };
+          }
+
           if (!place) return null;
 
           return {
@@ -119,7 +157,12 @@ export function SelectDestinationsScreen({
       setSelectedDestinations(mapped);
       setIsInitialized(true);
     }
-  }, [isAddingToExisting, existingDestinations, nearbyPlaces.length, isInitialized]);
+  }, [
+    isAddingToExisting,
+    existingDestinations,
+    nearbyPlaces.length,
+    isInitialized,
+  ]);
 
   // Store initial count to track if user made changes
   const initialDestinationCount = useRef(existingDestinations?.length || 0);
@@ -593,65 +636,57 @@ export function SelectDestinationsScreen({
 
                   try {
                     if (isAddingToExisting && tripId) {
-                      // Update existing trip
-                      const tripsJson = await AsyncStorage.getItem("@trips");
-                      const trips = tripsJson ? JSON.parse(tripsJson) : [];
-
-                      const tripIndex = trips.findIndex(
-                        (t: any) => t.id === tripId,
+                      // Update existing trip via API with new stops
+                      const googlePlaceStops = selectedDestinations.map(
+                        (d, index) => ({
+                          googlePlaceId: d.place.id, // Google Place ID (string)
+                          placeName: d.place.name,
+                          address: d.place.address || "",
+                          latitude: d.place.lat,
+                          longitude: d.place.lng,
+                          imageUrl: d.place.thumbnail || "",
+                          sequenceOrder: index + 1,
+                        }),
                       );
-                      if (tripIndex !== -1) {
-                        trips[tripIndex].destinations = destinationsData;
-                        await AsyncStorage.setItem(
-                          "@trips",
-                          JSON.stringify(trips),
-                        );
 
-                        // Navigate back to itinerary detail
-                        router.back();
-                      }
+                      await updateItinerary(tripId, {
+                        name: tripData?.tripName,
+                        startDate: tripData?.startDate,
+                        startTime: tripData?.startTime,
+                        googlePlaceStops,
+                      });
+
+                      // Navigate back to itinerary detail
+                      router.back();
                     } else {
-                      // Create new trip
-                      const newTripId = Date.now().toString();
-                      const newTrip = {
-                        id: newTripId,
-                        tripName: tripData?.tripName || "Chuyến đi #4",
-                        startDate:
-                          tripData?.startDate?.toISOString() ||
-                          new Date().toISOString(),
-                        startTime:
-                          tripData?.startTime?.toISOString() ||
-                          new Date().toISOString(),
-                        destinations: destinationsData,
-                        createdAt: new Date().toISOString(),
-                        status: "upcoming" as const,
-                      };
-
-                      // Get existing trips
-                      const tripsJson = await AsyncStorage.getItem("@trips");
-                      const trips = tripsJson ? JSON.parse(tripsJson) : [];
-
-                      // Add new trip
-                      trips.push(newTrip);
-
-                      // Save back to AsyncStorage
-                      await AsyncStorage.setItem(
-                        "@trips",
-                        JSON.stringify(trips),
+                      // Create new trip with Google Place stops
+                      const now = new Date();
+                      const googlePlaceStops = selectedDestinations.map(
+                        (d, index) => ({
+                          googlePlaceId: d.place.id, // Google Place ID (string)
+                          placeName: d.place.name,
+                          address: d.place.address || "",
+                          latitude: d.place.lat,
+                          longitude: d.place.lng,
+                          imageUrl: d.place.thumbnail || "",
+                          sequenceOrder: index + 1,
+                        }),
                       );
+
+                      const newTrip = await createItinerary({
+                        name: tripData?.tripName || "Chuyến đi mới",
+                        startDate: tripData?.startDate || now,
+                        startTime: tripData?.startTime || now,
+                        googlePlaceStops,
+                      });
 
                       // Navigate to success screen with tripId
                       router.replace({
                         pathname: "/(modals)/itinerary-success",
                         params: {
-                          tripId: newTripId,
-                          tripName: tripData?.tripName || "Chuyến đi #4",
-                          startDate:
-                            tripData?.startDate?.toISOString() ||
-                            new Date().toISOString(),
-                          startTime:
-                            tripData?.startTime?.toISOString() ||
-                            new Date().toISOString(),
+                          tripId: newTrip.id,
+                          tripName: newTrip.title,
+                          startDate: newTrip.startDate,
                           destinations: JSON.stringify(destinationsData),
                         },
                       });

@@ -1,5 +1,4 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -19,6 +18,7 @@ import {
 
 import { BorderRadius, Colors, Shadows, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
+import { copyItinerary } from "../services/itineraryService";
 
 interface SharedDestination {
   id: string;
@@ -88,34 +88,12 @@ export function SharedItineraryDetailScreen() {
     setIsSaving(true);
 
     try {
-      const newTripId = Date.now().toString();
-      const now = new Date();
-
-      const newTrip = {
-        id: newTripId,
-        tripName: tripData.tripName,
-        startDate: now.toISOString(),
-        startTime: now.toISOString(),
-        destinations: (tripData.destinations || []).map((dest, index) => ({
-          ...dest,
-          id: `${newTripId}-dest-${index}`,
-          order: index + 1,
-          isCheckedIn: false,
-          isSkipped: false,
-        })),
-        status: "upcoming",
-        createdAt: now.toISOString(),
-        copiedFrom: tripData.id,
-      };
-
-      const tripsJson = await AsyncStorage.getItem("@trips");
-      const trips = tripsJson ? JSON.parse(tripsJson) : [];
-      trips.unshift(newTrip);
-      await AsyncStorage.setItem("@trips", JSON.stringify(trips));
+      // Gọi API copyItinerary để copy chuyến đi từ người khác
+      const copiedTrip = await copyItinerary(tripData.id);
 
       Alert.alert(
         "Thành công! 🎉",
-        `Đã thêm "${newTrip.tripName}" vào danh sách chuyến đi của bạn.`,
+        `Đã thêm "${copiedTrip.title}" vào danh sách chuyến đi của bạn.`,
         [
           {
             text: "Xem ngay",
@@ -124,7 +102,7 @@ export function SharedItineraryDetailScreen() {
               setTimeout(() => {
                 router.push({
                   pathname: "/(modals)/itinerary-detail",
-                  params: { tripId: newTripId },
+                  params: { tripId: copiedTrip.id },
                 });
               }, 300);
             },

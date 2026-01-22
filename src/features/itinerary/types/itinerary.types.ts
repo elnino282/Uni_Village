@@ -16,38 +16,66 @@ export interface TourStopResponse {
   tourId: number;
   placeId: number;
   placeName: string;
-  placeImageUrl?: string;
-  order: number;
-  visitTime?: string;
-  isCheckedIn: boolean;
-  isSkipped: boolean;
-  checkedInAt?: string;
-  lat?: number;
-  lng?: number;
+  sequenceOrder: number;
+  note?: string;
+  // Place details (from PlaceResponse)
+  place?: {
+    id: number;
+    googlePlaceId?: string;
+    name: string;
+    imageUrl?: string;
+    latitude?: number;
+    longitude?: number;
+    addressDetail?: string;
+  };
 }
 
 export interface TourResponse {
   id: number;
   userId: number;
-  tourName: string;
+  userName?: string;
+  name: string; // Backend uses 'name' instead of 'tourName'
+  description?: string;
   startDate: string; // ISO datetime
   startTime: string; // ISO datetime
+  endTime?: string;
   status: TourStatus;
+  sharedAsPost?: boolean;
+  originalTourId?: number;
   stops: TourStopResponse[];
+  staticMapUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface TourRequest {
-  tourName: string;
+  name: string; // Backend uses 'name' instead of 'tourName'
+  description?: string;
   startDate: string; // ISO datetime
   startTime: string; // ISO datetime
+  endTime?: string;
+  stops?: TourStopRequest[]; // Optional stops with database Place IDs
+  googlePlaceStops?: TourStopWithGooglePlaceRequest[]; // Stops from Google Maps
 }
 
 export interface TourStopRequest {
   placeId: number;
-  order: number;
-  visitTime?: string;
+  sequenceOrder?: number;
+  note?: string;
+}
+
+/**
+ * Request for creating TourStop with Google Place data
+ */
+export interface TourStopWithGooglePlaceRequest {
+  googlePlaceId: string;
+  placeName: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  imageUrl?: string;
+  sequenceOrder?: number;
+  note?: string;
 }
 
 export interface CheckInRequest {
@@ -106,12 +134,20 @@ export interface SuggestedItinerary {
 export interface ItineraryStop {
   id: string;
   name: string;
+  /** Google Place ID for matching with map places */
+  googlePlaceId?: string;
   /** Duration in minutes at this stop */
   durationMinutes: number;
   /** Optional image URL for the stop */
   imageUrl?: string;
   /** Order in the itinerary */
   order: number;
+  /** Latitude */
+  lat?: number;
+  /** Longitude */
+  lng?: number;
+  /** Address */
+  address?: string;
 }
 
 export interface Itinerary {

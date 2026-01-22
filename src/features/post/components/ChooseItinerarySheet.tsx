@@ -3,6 +3,8 @@
  * Bottom sheet for selecting an Itinerary when creating a post
  */
 
+import { fetchItineraries } from "@/features/itinerary/services/itineraryService";
+import type { Itinerary } from "@/features/itinerary/types/itinerary.types";
 import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -11,7 +13,6 @@ import BottomSheet, {
   BottomSheetFlatList,
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   forwardRef,
   useCallback,
@@ -73,47 +74,39 @@ export const ChooseItinerarySheet = forwardRef<
   );
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load trips from AsyncStorage
+  // Load trips from API
   const loadTrips = useCallback(async () => {
     setIsLoading(true);
     try {
-      const tripsJson = await AsyncStorage.getItem("@trips");
-      if (tripsJson) {
-        const trips = JSON.parse(tripsJson);
-        const mappedItineraries: ItineraryWithStatus[] = trips.map(
-          (trip: any) => {
-            const startDate = new Date(trip.startDate);
-            const formattedDate = `${String(startDate.getDate()).padStart(2, "0")}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${startDate.getFullYear()}`;
-            const startTime = new Date(trip.startTime);
-            const formattedTime = `${String(startTime.getHours()).padStart(2, "0")}:${String(startTime.getMinutes()).padStart(2, "0")}`;
+      const itineraries = await fetchItineraries();
+      const mappedItineraries: ItineraryWithStatus[] = itineraries.map(
+        (itinerary: Itinerary) => {
+          const startDate = new Date(itinerary.startDate);
+          const formattedDate = `${String(startDate.getDate()).padStart(2, "0")}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${startDate.getFullYear()}`;
 
-            const status = trip.status || "upcoming";
-            const badgeStyle = getStatusBadgeStyle(status);
+          const status = itinerary.status || "upcoming";
+          const badgeStyle = getStatusBadgeStyle(status);
 
-            return {
-              id: trip.id,
-              title: trip.tripName,
-              date: formattedDate,
-              timeRange: formattedTime,
-              area: "TP.HCM",
-              stopsCount: trip.destinations?.length || 0,
-              tags: [badgeStyle.label],
-              stops: (trip.destinations || []).slice(0, 3).map((dest: any) => ({
-                id: dest.id,
-                time: dest.time || "",
-                name: dest.name,
-                thumbnail:
-                  dest.thumbnail || dest.placeImageUrl || dest.imageUrl,
-              })),
-              isSaved: false,
-              status: status,
-            };
-          },
-        );
-        setAllItineraries(mappedItineraries);
-      } else {
-        setAllItineraries([]);
-      }
+          return {
+            id: itinerary.id,
+            title: itinerary.title,
+            date: formattedDate,
+            timeRange: "",
+            area: itinerary.locations?.[0] || "Việt Nam",
+            stopsCount: itinerary.stops?.length || 0,
+            tags: [badgeStyle.label],
+            stops: (itinerary.stops || []).slice(0, 3).map((stop) => ({
+              id: stop.id,
+              time: "",
+              name: stop.name,
+              thumbnail: stop.imageUrl,
+            })),
+            isSaved: false,
+            status: status,
+          };
+        },
+      );
+      setAllItineraries(mappedItineraries);
     } catch (error) {
       console.error("Failed to load trips:", error);
       setAllItineraries([]);
