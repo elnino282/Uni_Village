@@ -1,11 +1,19 @@
 import { SaveSuccessModal } from "@/components/SaveSuccessModal";
+import { ReportModal } from "@/components/ReportModal";
+import { ReportSuccessModal } from "@/components/ReportSuccessModal";
 import { EditPrivacySheet } from "@/features/community/components/EditPrivacySheet";
-import { useSavePost } from "@/features/community/hooks";
-import type { PostVisibility } from "@/features/community/types";
+import { PostCard } from "@/features/community/components/PostCard";
+import { PostOverflowMenu } from "@/features/community/components/PostOverflowMenu";
+import { PostOwnerMenu } from "@/features/community/components/PostOwnerMenu";
+import { useSavePost, useBlockPost, useReportPost } from "@/features/community/hooks";
+import type { PostVisibility, CommunityPost, PostLocation } from "@/features/community/types";
 import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
+import { useReportedPostsStore } from "@/shared/stores";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { showErrorToast } from "@/shared/utils";
+import { PostLocationDetailSheet } from "@/shared/components/post";
+import { PostType, Visibility } from "@/shared/types/backend.types";
 import { Href, router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -29,8 +37,6 @@ import { ProfileActionButtons } from "./ProfileActionButtons";
 import { ProfileEmptyPostCard } from "./ProfileEmptyPostCard";
 import { ProfileHeaderIcons } from "./ProfileHeaderIcons";
 import { ProfileInfo } from "./ProfileInfo";
-import { ProfilePostCard } from "./ProfilePostCard";
-import { ProfilePostMenu } from "./ProfilePostMenu";
 import { ProfileShareSheet } from "./ProfileShareSheet";
 import { ProfileTabKey, ProfileTabs } from "./ProfileTabs";
 
@@ -41,11 +47,17 @@ export function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<ProfileTabKey>("my-posts");
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
   const [isEditPrivacyOpen, setIsEditPrivacyOpen] = useState(false);
   const [selectedPostVisibility, setSelectedPostVisibility] =
     useState<PostVisibility>("public");
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [lastSaveResult, setLastSaveResult] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isReportSuccessModalOpen, setIsReportSuccessModalOpen] = useState(false);
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(null);
+  const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
 
   // Fetch current user's profile
   const { profile, isLoading: isProfileLoading } = useMyProfile();
@@ -69,6 +81,9 @@ export function ProfileScreen() {
   const { mutate: deletePost } = useDeletePost();
   const { mutate: updatePost } = useUpdatePost();
   const { mutate: likePost } = useProfileLikePost();
+  const { mutate: reportPost } = useReportPost();
+  const { mutate: blockPost } = useBlockPost();
+  const addReportedPost = useReportedPostsStore((state) => state.addReportedPost);
 
   // Profile share sheet
   const shareSheet = useProfileShareSheet({
@@ -102,13 +117,34 @@ export function ProfileScreen() {
     router.push("/post/create" as Href);
   };
 
-  const handleMenuPress = useCallback((postId: string) => {
-    setSelectedPostId(postId);
-    setIsMenuOpen(true);
-  }, []);
+  const handleMenuPress = useCallback(
+    (postId: string) => {
+      const post = posts.find((p) => p.id === postId);
+      if (!post) return;
+
+      // Check if post is owned by current user
+      const isOwner = profile?.userId && String(post.author.id) === String(profile.userId);
+
+      setSelectedPostId(postId);
+      if (isOwner) {
+        const visibility: PostVisibility =
+          post.visibility === "PUBLIC"
+            ? "public"
+            : post.visibility === "PRIVATE"
+              ? "private"
+              : "friends";
+        setSelectedPostVisibility(visibility);
+        setIsOwnerMenuOpen(true);
+      } else {
+        setIsMenuOpen(true);
+      }
+    },
+    [posts, profile?.userId]
+  );
 
   const handleCloseMenu = useCallback(() => {
     setIsMenuOpen(false);
+    setIsOwnerMenuOpen(false);
     setSelectedPostId(null);
   }, []);
 
@@ -174,21 +210,24 @@ export function ProfileScreen() {
   }, []);
 
   const handleUpdateVisibility = useCallback(
-    (visibility: PostVisibility) => {
-      if (!selectedPostId) return;
+    (postId: string, visibility: PostVisibility) => {
+      const post = posts.find((p) => p.id === postId);
+      if (!post) return;
 
       const backendVisibility =
         visibility === "public"
-          ? "PUBLIC"
+          ? Visibility.PUBLIC
           : visibility === "private"
-            ? "PRIVATE"
-            : "FRIENDS";
+            ? Visibility.PRIVATE
+            : Visibility.FRIENDS;
 
       updatePost(
         {
-          postId: Number(selectedPostId),
-          postType: "EXPERIENCE",
-          visibility: backendVisibility,
+          postId: Number(postId),
+          data: {
+            postType: PostType.EXPERIENCE,
+            visibility: backendVisibility,
+          },
         },
         {
           onSuccess: () => {
@@ -200,7 +239,7 @@ export function ProfileScreen() {
         }
       );
     },
-    [selectedPostId, updatePost]
+    [posts, updatePost]
   );
 
   const handleLikePost = useCallback(
@@ -214,16 +253,74 @@ export function ProfileScreen() {
     [likePost]
   );
 
-  const handleCommentPress = useCallback((postId: string) => {
-    router.push({ pathname: "/post/detail", params: { postId } } as any);
+  const handleCommentPress = useCallback(
+    (postId: string) => {
+      router.push(`/post/${postId}` as any);
+    },
+    [router]
+  );
+
+  const handleLocationPress = useCallback((location: PostLocation) => {
+    setSelectedLocation(location);
+    setIsLocationSheetOpen(true);
   }, []);
 
-  const handleSharePost = useCallback((postId: string) => {
-    // TODO: Implement share post functionality
-    Alert.alert("Chia sẻ", "Chức năng chia sẻ sẽ được cập nhật.");
+  const handleCloseLocationSheet = useCallback(() => {
+    setIsLocationSheetOpen(false);
+    setSelectedLocation(null);
   }, []);
 
-  const handleDeletePost = useCallback(
+  const handleAvatarPress = useCallback(
+    (authorId: string) => {
+      if (authorId && authorId !== String(profile?.userId)) {
+        router.push(`/profile/${authorId}` as any);
+      }
+    },
+    [router, profile?.userId]
+  );
+
+  const handleReportPost = useCallback((postId: string) => {
+    setReportTargetId(postId);
+    setIsReportModalOpen(true);
+    setIsMenuOpen(false);
+  }, []);
+
+  const handleSubmitReport = useCallback(
+    (reason: string) => {
+      if (reportTargetId) {
+        reportPost(
+          { postId: reportTargetId, reason },
+          {
+            onSuccess: () => {
+              setIsReportModalOpen(false);
+              setIsReportSuccessModalOpen(true);
+              addReportedPost(reportTargetId);
+              refetchPosts();
+            },
+            onError: () => {
+              setIsReportModalOpen(false);
+              setReportTargetId(null);
+            },
+          }
+        );
+      }
+    },
+    [reportTargetId, reportPost, addReportedPost, refetchPosts]
+  );
+
+  const handleBlockPost = useCallback(
+    (postId: string) => {
+      blockPost(postId, {
+        onSuccess: () => {
+          setIsMenuOpen(false);
+          refetchPosts();
+        },
+      });
+    },
+    [blockPost, refetchPosts]
+  );
+
+  const handleMoveToTrash = useCallback(
     (postId: string) => {
       Alert.alert("Xóa bài viết", "Bạn có chắc chắn muốn xóa bài viết này?", [
         { text: "Hủy", style: "cancel" },
@@ -247,15 +344,26 @@ export function ProfileScreen() {
   );
 
   const renderPostItem = useCallback(
-    ({ item }: { item: ProfilePost }) => (
-      <ProfilePostCard
-        post={item}
-        onMenuPress={handleMenuPress}
-        onLikePress={handleLikePost}
-        onCommentPress={handleCommentPress}
-      />
-    ),
-    [handleMenuPress, handleLikePost, handleCommentPress]
+    ({ item }: { item: ProfilePost }) => {
+      const communityPost = mapProfilePostToCommunityPost(item);
+      return (
+        <PostCard
+          post={communityPost}
+          onMenuPress={handleMenuPress}
+          onLikePress={handleLikePost}
+          onCommentPress={handleCommentPress}
+          onLocationPress={handleLocationPress}
+          onAvatarPress={handleAvatarPress}
+        />
+      );
+    },
+    [
+      handleMenuPress,
+      handleLikePost,
+      handleCommentPress,
+      handleLocationPress,
+      handleAvatarPress,
+    ]
   );
 
   const keyExtractor = useCallback((item: ProfilePost) => item.id, []);
@@ -333,18 +441,25 @@ export function ProfileScreen() {
             />
           )}
 
-          {/* Post Menu */}
-          <ProfilePostMenu
+          {/* Post Owner Menu - for my posts */}
+          <PostOwnerMenu
+            isOpen={isOwnerMenuOpen}
+            onClose={handleCloseMenu}
+            postId={selectedPostId ?? ""}
+            onSave={handleSavePost}
+            onEditPrivacy={handleEditPrivacy}
+            onEditPost={handleEditPost}
+            onMoveToTrash={handleMoveToTrash}
+          />
+
+          {/* Post Overflow Menu - for other users' posts (in favorites tab) */}
+          <PostOverflowMenu
             isOpen={isMenuOpen}
             onClose={handleCloseMenu}
             postId={selectedPostId ?? ""}
-            tabType={activeTab}
-            onUnsave={handleUnsavePost}
             onSave={handleSavePost}
-            onEditPrivacy={handleEditPrivacy}
-            onEdit={handleEditPost}
-            onDelete={handleDeletePost}
-            onShare={handleSharePost}
+            onReport={handleReportPost}
+            onBlock={handleBlockPost}
           />
 
           {/* Edit Privacy Sheet */}
@@ -353,7 +468,30 @@ export function ProfileScreen() {
             onClose={handleCloseEditPrivacy}
             postId={selectedPostId ?? ""}
             currentVisibility={selectedPostVisibility}
-            onSave={(_, visibility) => handleUpdateVisibility(visibility)}
+            onSave={handleUpdateVisibility}
+          />
+
+          {/* Location Detail Sheet */}
+          <PostLocationDetailSheet
+            isOpen={isLocationSheetOpen}
+            location={selectedLocation}
+            onClose={handleCloseLocationSheet}
+          />
+
+          {/* Report Modal */}
+          <ReportModal
+            visible={isReportModalOpen}
+            onClose={() => {
+              setIsReportModalOpen(false);
+              setReportTargetId(null);
+            }}
+            onSubmit={handleSubmitReport}
+          />
+
+          {/* Report Success Modal */}
+          <ReportSuccessModal
+            visible={isReportSuccessModalOpen}
+            onClose={() => setIsReportSuccessModalOpen(false)}
           />
 
           {/* Save Success Modal */}

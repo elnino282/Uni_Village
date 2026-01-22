@@ -4,7 +4,7 @@ export type {
   ImagePickerResult,
   UseImagePickerOptions,
 } from "./useImagePicker";
-export { myPostsKeys, useMyPosts, useProfileLikePost } from "./useMyPosts";
+export { myPostsKeys, useMyPosts, useProfileLikePost, mapProfilePostToCommunityPost } from './useMyPosts';
 export { profileKeys, useMyProfile, useProfile } from "./useProfile";
 export { profilePostsKeys, useProfilePosts } from "./useProfilePosts";
 export { useProfileShareSheet } from "./useProfileShareSheet";

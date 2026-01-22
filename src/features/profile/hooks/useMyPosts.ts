@@ -43,6 +43,41 @@ function mapPostResponseToProfilePost(post: PostResponse): ProfilePost {
   };
 }
 
+/**
+ * Convert ProfilePost to CommunityPost format for PostCard compatibility
+ */
+export function mapProfilePostToCommunityPost(post: ProfilePost): CommunityPost {
+  // Map visibility: PUBLIC -> public, PRIVATE -> private
+  let visibility: "public" | "private" | "friends" = "public";
+  if (post.visibility) {
+    const v = post.visibility.toUpperCase();
+    if (v === "PRIVATE") visibility = "private";
+    else if (v === "FRIENDS") visibility = "friends";
+  }
+
+  return {
+    id: post.id,
+    author: {
+      id: post.author.id,
+      displayName: post.author.name,
+      avatarUrl: post.author.avatarUrl,
+    },
+    content: post.content,
+    imageUrl: post.imageUrl,
+    locations: post.locations.map(loc => ({
+      id: loc.id,
+      name: loc.name,
+    })),
+    likesCount: post.reactions.likes,
+    commentsCount: post.reactions.comments,
+    sharesCount: post.reactions.shares,
+    isLiked: post.reactions.isLiked ?? false,
+    createdAt: post.createdAt,
+    updatedAt: post.createdAt, // Use createdAt as fallback
+    visibility,
+  };
+}
+
 export function useMyPosts(tab: ProfileTabKey = "my-posts") {
   return useQuery<ProfilePost[], Error>({
     queryKey: myPostsKeys.list(tab),
