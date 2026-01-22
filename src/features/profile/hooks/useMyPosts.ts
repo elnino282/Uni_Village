@@ -2,6 +2,7 @@
  * useMyPosts Hook - Fetches current user's posts and saved posts for profile
  */
 
+import type { CommunityPost } from "@/features/community/types";
 import { postsApi } from "@/features/post/api";
 import { useLikePost as useRealLikePost } from "@/features/post/hooks";
 import type { PostResponse } from "@/features/post/types";

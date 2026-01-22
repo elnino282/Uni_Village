@@ -6,35 +6,36 @@ import { PostCard } from "@/features/community/components/PostCard";
 import { PostOverflowMenu } from "@/features/community/components/PostOverflowMenu";
 import { PostOwnerMenu } from "@/features/community/components/PostOwnerMenu";
 import {
-  useBlockPost,
-  useReportPost,
-  useSavePost,
+    useBlockPost,
+    useReportPost,
+    useSavePost,
 } from "@/features/community/hooks";
+import { useReportedPostsStore } from "@/features/community/services/reportedPostsStore";
 import type { PostLocation, PostVisibility } from "@/features/community/types";
 import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
 import { PostLocationDetailSheet } from "@/shared/components/post";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
-import { useReportedPostsStore } from "@/shared/stores";
 import { PostType, Visibility } from "@/shared/types/backend.types";
 import { showErrorToast } from "@/shared/utils";
 import { Href, router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    StyleSheet,
+    View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { s, vs } from "react-native-size-matters";
 import {
-  useMyPosts,
-  useMyProfile,
-  useProfileLikePost,
-  useProfileShareSheet,
+    mapProfilePostToCommunityPost,
+    useMyPosts,
+    useMyProfile,
+    useProfileLikePost,
+    useProfileShareSheet,
 } from "../hooks";
 import type { ProfilePost } from "../types";
 import { ProfileActionButtons } from "./ProfileActionButtons";
@@ -254,7 +255,7 @@ export function ProfileScreen() {
 
   const handleLikePost = useCallback(
     (postId: string) => {
-      likePost(Number(postId), {
+      likePost(postId, {
         onError: () => {
           showErrorToast("Không thể thích bài viết");
         },
@@ -496,12 +497,14 @@ export function ProfileScreen() {
               setReportTargetId(null);
             }}
             onSubmit={handleSubmitReport}
+            targetType="post"
           />
 
           {/* Report Success Modal */}
           <ReportSuccessModal
             visible={isReportSuccessModalOpen}
             onClose={() => setIsReportSuccessModalOpen(false)}
+            targetType="post"
           />
 
           {/* Save Success Modal */}
