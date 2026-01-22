@@ -5,8 +5,9 @@
 
 import { EmptyState, Spinner } from "@/shared/components";
 import { Colors } from "@/shared/constants";
+import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
-import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { RefreshControl, StyleSheet, View } from "react-native";
 import { useFeed } from "../hooks/useFeed";
 import { FeedCard } from "./FeedCard";
 
@@ -29,8 +30,10 @@ export function FeedList() {
   }
 
   return (
-    <FlatList
+    <FlashList
       data={feedItems}
+      // @ts-ignore: estimatedItemSize is missing in the type definition of the installed version
+      estimatedItemSize={250}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
         <FeedCard

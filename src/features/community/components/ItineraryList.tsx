@@ -1,5 +1,5 @@
 import { Href, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { useItineraries } from '@/features/itinerary/hooks/useItineraries';
@@ -29,11 +29,17 @@ export function ItineraryList({ searchQuery }: ItineraryListProps) {
     };
 
     // Filter by search query
-    const filteredItineraries = itineraries.filter((item) =>
-        searchQuery
-            ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.locations?.some((loc) => loc.toLowerCase().includes(searchQuery.toLowerCase()))
-            : true
+    const filteredItineraries = useMemo(
+        () =>
+            itineraries.filter((item) =>
+                searchQuery
+                    ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      item.locations?.some((loc) =>
+                          loc.toLowerCase().includes(searchQuery.toLowerCase())
+                      )
+                    : true
+            ),
+        [itineraries, searchQuery]
     );
 
     const renderItem = ({ item }: { item: Itinerary }) => (

@@ -6,7 +6,7 @@
 import BottomSheet from "@gorhom/bottom-sheet";
 import * as ImagePicker from "expo-image-picker";
 import { router, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 
@@ -144,6 +144,9 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const colors = Colors[colorScheme];
   const routerInstance = useRouter();
 
+  // State for attachments
+  const [attachments, setAttachments] = useState<ImagePicker.ImagePickerAsset[]>([]);
+
   // Bottom sheet refs
   const itinerarySheetRef = useRef<BottomSheet>(null);
   const addMemberSheetRef = useRef<AddMemberBottomSheetRef>(null);
@@ -203,29 +206,63 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
         return;
       }
 
-      try {
-        const message = await sendMessageHybrid({
-          threadId,
-          text,
-          recipientId: otherUserId ?? undefined,
-          senderInfo: {
-            id: user.id,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
-          },
+      // Handle sending attachments
+      if (attachments.length > 0) {
+        // Create a promise array for all image uploads
+        const uploadPromises = attachments.map(asset => {
+          const fileName = asset.fileName || `image_${Date.now()}.jpg`;
+          const fileType = asset.mimeType || 'image/jpeg';
+
+          return sendImage(
+            threadId,
+            {
+              uri: asset.uri,
+              name: fileName,
+              type: fileType,
+            },
+            {
+              id: user.id!,
+              displayName: user.displayName,
+              avatarUrl: user.avatarUrl,
+            },
+            text, // Pass caption if provided
+          );
         });
 
-        // If we were on a virtual thread and created a real conversation, redirect to it
-        // This ensures WebSocket events (which use the real ID) are received correctly
-        if (isVirtualThreadId(threadId) && message.conversationId && message.conversationId !== threadId) {
-          console.log(`[ChatThread] Redirecting from virtual thread ${threadId} to ${message.conversationId}`);
-          routerInstance.replace(`/chat/${message.conversationId}`);
+        // Execute all promises
+        try {
+          await Promise.all(uploadPromises);
+          setAttachments([]); // Clear attachments after sending
+        } catch (error) {
+          console.error('[ChatThread] Failed to send one or more images:', error);
+          Alert.alert("Error", "Failed to send one or more images");
         }
-      } catch (error) {
-        console.error('[ChatThread] Failed to send message:', error);
+      } else {
+        // Handle sending text message
+        try {
+          const message = await sendMessageHybrid({
+            threadId,
+            text,
+            recipientId: otherUserId ?? undefined,
+            senderInfo: {
+              id: user.id,
+              displayName: user.displayName,
+              avatarUrl: user.avatarUrl,
+            },
+          });
+
+          // If we were on a virtual thread and created a real conversation, redirect to it
+          // This ensures WebSocket events (which use the real ID) are received correctly
+          if (isVirtualThreadId(threadId) && message.conversationId && message.conversationId !== threadId) {
+            console.log(`[ChatThread] Redirecting from virtual thread ${threadId} to ${message.conversationId}`);
+            routerInstance.replace(`/chat/${message.conversationId}`);
+          }
+        } catch (error) {
+          console.error('[ChatThread] Failed to send message:', error);
+        }
       }
     },
-    [sendMessageHybrid, threadId]
+    [sendMessageHybrid, threadId, attachments, sendImage]
   );
 
   const handleImagePress = useCallback(async () => {
@@ -233,37 +270,21 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
+        allowsMultipleSelection: true,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        const user = useAuthStore.getState().user;
-
-        if (!user || !user.id) return;
-
-        // Extract name and type if missing
-        const fileName = asset.fileName || `image_${Date.now()}.jpg`;
-        const fileType = asset.mimeType || 'image/jpeg';
-
-        await sendImage(
-          threadId,
-          {
-            uri: asset.uri,
-            name: fileName,
-            type: fileType,
-          },
-          {
-            id: user.id,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
-          }
-        );
+      if (!result.canceled && result.assets) {
+        setAttachments(prev => [...prev, ...result.assets]);
       }
     } catch (error) {
       console.error("Failed to pick image:", error);
       Alert.alert("Error", "Failed to select image");
     }
-  }, [sendImage, threadId]);
+  }, []);
+
+  const handleRemoveAttachment = useCallback((uri: string) => {
+    setAttachments(prev => prev.filter(a => a.uri !== uri));
+  }, []);
 
   const handleCalendarPress = useCallback(() => {
     // Open itinerary share sheet
@@ -461,6 +482,8 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
           onImagePress={handleImagePress}
           onCalendarPress={handleCalendarPress}
           isSending={false}
+          attachments={attachments}
+          onRemoveAttachment={handleRemoveAttachment}
         />
       </KeyboardAvoidingView>
 

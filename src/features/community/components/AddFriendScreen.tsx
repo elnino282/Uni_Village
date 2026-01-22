@@ -48,8 +48,7 @@ export function AddFriendScreen() {
   };
 
   const handleScanQR = () => {
-    // TODO: Navigate to QR scanner
-    console.log('Open QR scanner');
+    router.push('/profile/qr-scan');
   };
 
   const handleViewSentRequests = () => {
