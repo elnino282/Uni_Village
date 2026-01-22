@@ -1,15 +1,21 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { ItineraryShareCard } from '@/features/itinerary/components/ItineraryShareCard';
-import { ChannelInviteCard } from '@/shared/components/channel';
-import { PostActionRow } from '@/shared/components/post';
-import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
-import { useColorScheme } from '@/shared/hooks';
-import type { CommunityPost, PostLocation } from '../types';
-import { PostHeader } from './PostHeader';
-import { PostLocations } from './PostLocations';
-import { PostMedia } from './PostMedia';
+import { ItineraryShareCard } from "@/features/itinerary/components/ItineraryShareCard";
+import { ChannelInviteCard } from "@/shared/components/channel";
+import { PostActionRow } from "@/shared/components/post";
+import {
+    BorderRadius,
+    Colors,
+    Shadows,
+    Spacing,
+    Typography,
+} from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
+import type { CommunityPost, PostLocation } from "../types";
+import { PostHeader } from "./PostHeader";
+import { PostLocations } from "./PostLocations";
+import { PostMedia } from "./PostMedia";
 
 interface PostCardProps {
   post: CommunityPost;
@@ -19,17 +25,24 @@ interface PostCardProps {
   onSharePress?: (postId: string) => void;
   onLocationPress?: (location: PostLocation) => void;
   onPress?: (postId: string) => void;
+  onAvatarPress?: (authorId: string) => void;
   onViewItineraryDetails?: () => void;
   onOpenItinerary?: () => void;
   onMessage?: () => void;
 }
 
-function TagChips({ tags, colors }: { tags: string[]; colors: { actionBlue: string } }) {
+function TagChips({
+  tags,
+  colors,
+}: {
+  tags: string[];
+  colors: { actionBlue: string };
+}) {
   if (!tags || tags.length === 0) return null;
   return (
     <View style={tagStyles.container}>
       <Text style={[tagStyles.text, { color: colors.actionBlue }]}>
-        {tags.join(' • ')}
+        {tags.join(" • ")}
       </Text>
     </View>
   );
@@ -54,6 +67,7 @@ export function PostCard({
   onSharePress,
   onLocationPress,
   onPress,
+  onAvatarPress,
   onViewItineraryDetails,
   onOpenItinerary,
   onMessage,
@@ -92,6 +106,7 @@ export function PostCard({
         author={post.author}
         createdAt={post.createdAt}
         onMenuPress={() => onMenuPress(post.id)}
+        onAvatarPress={() => onAvatarPress?.(post.author.id)}
       />
 
       {post.tags && post.tags.length > 0 && (
@@ -107,15 +122,13 @@ export function PostCard({
       {post.itineraryShare && (
         <ItineraryShareCard
           itinerary={post.itineraryShare}
-          onViewDetails={onViewItineraryDetails || (() => { })}
-          onOpenItinerary={onOpenItinerary || (() => { })}
+          onViewDetails={onViewItineraryDetails || (() => {})}
+          onOpenItinerary={onOpenItinerary || (() => {})}
           onMessage={onMessage}
         />
       )}
 
-      {post.channelInvite && (
-        <ChannelInviteCard invite={post.channelInvite} />
-      )}
+      {post.channelInvite && <ChannelInviteCard invite={post.channelInvite} />}
 
       {post.imageUrl && <PostMedia imageUrl={post.imageUrl} />}
 
@@ -144,7 +157,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     marginHorizontal: Spacing.screenPadding,
     marginBottom: Spacing.md,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   contentContainer: {
     paddingHorizontal: Spacing.cardPadding,

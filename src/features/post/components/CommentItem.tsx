@@ -3,15 +3,16 @@
  * Single comment with bubble style, supports replies (nested)
  */
 
-import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { MaterialIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import React, { useCallback } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { Avatar } from '@/shared/components/ui';
-import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
-import { useColorScheme } from '@/shared/hooks';
-import type { Comment } from '../types';
-import { formatTimeAgo } from '../utils/formatTime';
+import { Avatar } from "@/shared/components/ui";
+import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
+import type { Comment } from "../types";
+import { formatTimeAgo } from "../utils/formatTime";
 
 interface CommentItemProps {
   comment: Comment;
@@ -31,16 +32,25 @@ export function CommentItem({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
-  const bubbleColor = isReply ? colors.commentBubbleReply : colors.commentBubble;
+  const bubbleColor = isReply
+    ? colors.commentBubbleReply
+    : colors.commentBubble;
   const avatarSize = isReply ? 28 : 36;
+
+  const handleAvatarPress = useCallback(() => {
+    if (comment.author.id) {
+      router.push(`/profile/${comment.author.id}`);
+    }
+  }, [comment.author.id]);
 
   return (
     <View style={[styles.container, isReply && styles.replyContainer]}>
       {/* Avatar */}
       <Avatar
-        size={isReply ? 'sm' : 'md'}
+        size={isReply ? "sm" : "md"}
         source={comment.author.avatarUrl}
         name={comment.author.displayName}
+        onPress={handleAvatarPress}
         style={[
           styles.avatar,
           {
@@ -65,7 +75,9 @@ export function CommentItem({
             </Text>
           </View>
           {/* Content */}
-          <Text style={[styles.content, { color: colors.text }]}>{comment.content}</Text>
+          <Text style={[styles.content, { color: colors.text }]}>
+            {comment.content}
+          </Text>
         </View>
 
         {/* Actions row */}
@@ -77,14 +89,18 @@ export function CommentItem({
             activeOpacity={0.7}
           >
             <MaterialIcons
-              name={comment.isLiked ? 'favorite' : 'favorite-border'}
+              name={comment.isLiked ? "favorite" : "favorite-border"}
               size={14}
               color={comment.isLiked ? colors.heartLiked : colors.textSecondary}
             />
             <Text
               style={[
                 styles.actionText,
-                { color: comment.isLiked ? colors.heartLiked : colors.textSecondary },
+                {
+                  color: comment.isLiked
+                    ? colors.heartLiked
+                    : colors.textSecondary,
+                },
               ]}
             >
               {comment.likesCount ?? 0}
@@ -99,10 +115,16 @@ export function CommentItem({
                 onPress={() => onReplyPress?.(comment.id)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.actionText, { color: colors.textSecondary }]}>Trả lời</Text>
+                <Text
+                  style={[styles.actionText, { color: colors.textSecondary }]}
+                >
+                  Trả lời
+                </Text>
               </TouchableOpacity>
 
-              <Text style={[styles.dot, { color: colors.separatorDot }]}>•</Text>
+              <Text style={[styles.dot, { color: colors.separatorDot }]}>
+                •
+              </Text>
             </>
           )}
 
@@ -117,7 +139,9 @@ export function CommentItem({
             onPress={() => onReportPress?.(comment.id)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.actionText, { color: colors.textSecondary }]}>Báo cáo</Text>
+            <Text style={[styles.actionText, { color: colors.textSecondary }]}>
+              Báo cáo
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -142,7 +166,7 @@ export function CommentItem({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.sm, // 8px
     paddingHorizontal: Spacing.cardPadding - 4, // 12px
     paddingTop: Spacing.cardPadding - 4, // 12px
@@ -152,7 +176,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm, // 8px
   },
   avatar: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0,
     shadowRadius: 0,
@@ -170,12 +194,12 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: BorderRadius.xl, // 16px
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   authorName: {
-    fontSize: Typography.sizes['13'], // 13px
+    fontSize: Typography.sizes["13"], // 13px
     fontWeight: Typography.weights.bold,
     lineHeight: 19.5,
   },
@@ -185,28 +209,28 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   content: {
-    fontSize: Typography.sizes['13'], // 13px
+    fontSize: Typography.sizes["13"], // 13px
     fontWeight: Typography.weights.normal,
     lineHeight: 21.125,
     marginTop: 2,
   },
   actionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.md, // 16px
     paddingLeft: Spacing.cardPadding - 4, // 12px
     paddingTop: Spacing.sm, // 8px
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   actionText: {
     fontSize: Typography.sizes.sm, // 12px
     fontWeight: Typography.weights.normal,
     lineHeight: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   dot: {
     fontSize: Typography.sizes.sm, // 12px

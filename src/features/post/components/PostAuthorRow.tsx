@@ -3,18 +3,20 @@
  * Author info with avatar, online indicator, name, badge, and timestamp
  */
 
-import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { MaterialIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import React, { useCallback } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { formatRelativeTime } from '@/shared/utils';
+import { formatRelativeTime } from "@/shared/utils";
 
-import { Avatar } from '@/shared/components/ui';
-import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
-import { useColorScheme } from '@/shared/hooks';
-import type { PostVisibility } from '../types';
+import { Avatar } from "@/shared/components/ui";
+import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
+import type { PostVisibility } from "../types";
 
 interface PostAuthorRowProps {
+  authorId?: number;
   authorName?: string;
   authorAvatarUrl?: string;
   createdAt?: string;
@@ -23,12 +25,13 @@ interface PostAuthorRowProps {
 }
 
 const VISIBILITY_LABELS: Record<PostVisibility, string> = {
-  public: 'Công khai',
-  friends: 'Bạn bè',
-  private: 'Riêng tư',
+  public: "Công khai",
+  friends: "Bạn bè",
+  private: "Riêng tư",
 };
 
 export function PostAuthorRow({
+  authorId,
   authorName,
   authorAvatarUrl,
   createdAt,
@@ -37,6 +40,12 @@ export function PostAuthorRow({
 }: PostAuthorRowProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
+
+  const handleAvatarPress = useCallback(() => {
+    if (authorId) {
+      router.push(`/profile/${authorId}`);
+    }
+  }, [authorId]);
 
   return (
     <View style={styles.container}>
@@ -47,6 +56,7 @@ export function PostAuthorRow({
           source={authorAvatarUrl}
           name={authorName}
           style={styles.avatar}
+          onPress={handleAvatarPress}
         />
       </View>
 
@@ -58,10 +68,10 @@ export function PostAuthorRow({
           </Text>
         </View>
         <Text style={[styles.meta, { color: colors.textSecondary }]}>
-          {createdAt ? formatRelativeTime(createdAt) : ''} • {visibility ? VISIBILITY_LABELS[visibility] : ''}
+          {createdAt ? formatRelativeTime(createdAt) : ""} •{" "}
+          {visibility ? VISIBILITY_LABELS[visibility] : ""}
         </Text>
       </View>
-
 
       {/* Menu button */}
       <TouchableOpacity
@@ -69,7 +79,11 @@ export function PostAuthorRow({
         onPress={onMenuPress}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <MaterialIcons name="more-horiz" size={20} color={colors.textSecondary} />
+        <MaterialIcons
+          name="more-horiz"
+          size={20}
+          color={colors.textSecondary}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -77,20 +91,20 @@ export function PostAuthorRow({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.cardPadding - 4, // 12px
     paddingVertical: Spacing.sm,
   },
   avatarContainer: {
-    position: 'relative',
+    position: "relative",
   },
   avatar: {
     borderWidth: 2,
-    borderColor: '#dbeafe',
+    borderColor: "#dbeafe",
   },
   onlineIndicator: {
-    position: 'absolute',
+    position: "absolute",
     width: 14,
     height: 14,
     borderRadius: BorderRadius.full,
@@ -103,12 +117,12 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm + 2, // 10px gap
   },
   nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   name: {
-    fontSize: Typography.sizes['15'], // 15px
+    fontSize: Typography.sizes["15"], // 15px
     fontWeight: Typography.weights.bold,
     lineHeight: 22.5,
   },
@@ -123,7 +137,7 @@ const styles = StyleSheet.create({
   menuButton: {
     width: 20,
     height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

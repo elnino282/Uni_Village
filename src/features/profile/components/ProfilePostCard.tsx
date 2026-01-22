@@ -1,16 +1,22 @@
 /**
  * ProfilePostCard Component
  */
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Avatar } from '@/shared/components/ui';
-import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
-import { useColorScheme } from '@/shared/hooks';
+import { Avatar } from "@/shared/components/ui";
+import {
+    BorderRadius,
+    Colors,
+    Shadows,
+    Spacing,
+    Typography,
+} from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
 
-import type { ProfilePost } from '../types';
+import type { ProfilePost } from "../types";
 
 interface ProfilePostCardProps {
   post: ProfilePost;
@@ -22,7 +28,7 @@ function formatTimeAgo(dateString: string): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (diffInSeconds < 60) return 'Vừa xong';
+  if (diffInSeconds < 60) return "Vừa xong";
 
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
@@ -47,8 +53,15 @@ export function ProfilePostCard({ post, onMenuPress }: ProfilePostCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
-  const likeIcon = post.reactions.isLiked ? 'heart' : 'heart-outline';
-  const likeColor = post.reactions.isLiked ? colors.heartLiked : colors.textSecondary;
+  // Early return if post data is invalid
+  if (!post || !post.reactions) {
+    return null;
+  }
+
+  const likeIcon = post.reactions.isLiked ? "heart" : "heart-outline";
+  const likeColor = post.reactions.isLiked
+    ? colors.heartLiked
+    : colors.textSecondary;
 
   return (
     <View
@@ -78,7 +91,11 @@ export function ProfilePostCard({ post, onMenuPress }: ProfilePostCardProps) {
           accessibilityLabel="Tùy chọn bài viết"
           accessibilityRole="button"
         >
-          <Ionicons name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
+          <Ionicons
+            name="ellipsis-horizontal"
+            size={18}
+            color={colors.textSecondary}
+          />
         </Pressable>
       </View>
 
@@ -108,8 +125,17 @@ export function ProfilePostCard({ post, onMenuPress }: ProfilePostCardProps) {
                 },
               ]}
             >
-              <Ionicons name="location" size={14} color={colors.locationChipText} />
-              <Text style={[styles.locationText, { color: colors.locationChipText }]}>
+              <Ionicons
+                name="location"
+                size={14}
+                color={colors.locationChipText}
+              />
+              <Text
+                style={[
+                  styles.locationText,
+                  { color: colors.locationChipText },
+                ]}
+              >
                 {location.name}
               </Text>
             </View>
@@ -125,15 +151,25 @@ export function ProfilePostCard({ post, onMenuPress }: ProfilePostCardProps) {
           </Text>
         </View>
         <View style={styles.reactionItem}>
-          <Ionicons name="chatbubble-outline" size={18} color={colors.textSecondary} />
+          <Ionicons
+            name="chatbubble-outline"
+            size={18}
+            color={colors.textSecondary}
+          />
           <Text style={[styles.reactionText, { color: colors.textSecondary }]}>
             {post.reactions.comments}
           </Text>
         </View>
-        {typeof post.reactions.shares === 'number' && (
+        {typeof post.reactions.shares === "number" && (
           <View style={styles.reactionItem}>
-            <Ionicons name="paper-plane-outline" size={18} color={colors.textSecondary} />
-            <Text style={[styles.reactionText, { color: colors.textSecondary }]}>
+            <Ionicons
+              name="paper-plane-outline"
+              size={18}
+              color={colors.textSecondary}
+            />
+            <Text
+              style={[styles.reactionText, { color: colors.textSecondary }]}
+            >
               {post.reactions.shares}
             </Text>
           </View>
@@ -148,12 +184,12 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.screenPadding,
     marginBottom: Spacing.md,
     borderRadius: BorderRadius.xl,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.cardPadding,
     paddingTop: Spacing.cardPadding,
     gap: Spacing.sm,
@@ -173,8 +209,8 @@ const styles = StyleSheet.create({
   menuButton: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   content: {
     paddingHorizontal: Spacing.cardPadding,
@@ -183,20 +219,20 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   media: {
-    width: '100%',
+    width: "100%",
     height: 200,
     marginTop: Spacing.sm,
   },
   locations: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.xs,
     paddingHorizontal: Spacing.cardPadding,
     paddingTop: Spacing.sm,
   },
   locationChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
@@ -208,14 +244,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   reactions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.md,
     paddingHorizontal: Spacing.cardPadding,
     paddingVertical: Spacing.md,
   },
   reactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   reactionText: {

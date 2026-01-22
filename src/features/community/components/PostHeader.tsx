@@ -1,41 +1,49 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { MaterialIcons } from "@expo/vector-icons";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { Avatar } from '@/shared/components/ui';
-import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
-import { useColorScheme } from '@/shared/hooks';
-import type { PostAuthor } from '../types';
-import { formatTimeAgo } from '../utils/formatTime';
+import { Avatar } from "@/shared/components/ui";
+import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
+import type { PostAuthor } from "../types";
+import { formatTimeAgo } from "../utils/formatTime";
 
 interface PostHeaderProps {
   author: PostAuthor;
   createdAt: string;
   onMenuPress: () => void;
+  onAvatarPress?: () => void;
 }
 
 /**
  * Post header with avatar, author name, timestamp, and menu button
  */
-export function PostHeader({ author, createdAt, onMenuPress }: PostHeaderProps) {
+export function PostHeader({
+  author,
+  createdAt,
+  onMenuPress,
+  onAvatarPress,
+}: PostHeaderProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
   return (
     <View style={styles.container}>
-      <Avatar
-        size="md"
-        source={author.avatarUrl}
-        name={author.displayName}
-      />
-      <View style={styles.info}>
-        <Text style={[styles.name, { color: colors.text }]}>
-          {author.displayName}
-        </Text>
-        <Text style={[styles.timestamp, { color: colors.textSecondary }]}>
-          • {formatTimeAgo(createdAt)}
-        </Text>
-      </View>
+      <TouchableOpacity
+        onPress={onAvatarPress}
+        activeOpacity={0.8}
+        style={styles.avatarSection}
+      >
+        <Avatar size="md" source={author.avatarUrl} name={author.displayName} />
+        <View style={styles.info}>
+          <Text style={[styles.name, { color: colors.text }]}>
+            {author.displayName}
+          </Text>
+          <Text style={[styles.timestamp, { color: colors.textSecondary }]}>
+            • {formatTimeAgo(createdAt)}
+          </Text>
+        </View>
+      </TouchableOpacity>
       <TouchableOpacity
         style={styles.menuButton}
         onPress={onMenuPress}
@@ -53,11 +61,17 @@ export function PostHeader({ author, createdAt, onMenuPress }: PostHeaderProps) 
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.cardPadding,
     paddingTop: Spacing.cardPadding,
+  },
+  avatarSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
   },
   info: {
     flex: 1,
@@ -76,7 +90,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: BorderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
