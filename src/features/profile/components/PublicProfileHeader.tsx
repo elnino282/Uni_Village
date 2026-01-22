@@ -3,7 +3,7 @@
  */
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Avatar } from "@/shared/components/ui";
 import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
@@ -14,12 +14,14 @@ import type { PublicProfile } from "../types";
 interface PublicProfileHeaderProps {
   profile: PublicProfile;
   onMessagePress?: () => void;
+  onReportPress?: () => void;
   isOwnProfile?: boolean;
 }
 
 export function PublicProfileHeader({
   profile,
   onMessagePress,
+  onReportPress,
   isOwnProfile,
 }: PublicProfileHeaderProps) {
   const colorScheme = useColorScheme();
@@ -34,9 +36,30 @@ export function PublicProfileHeader({
           size="xl"
         />
         <View style={styles.info}>
-          <Text style={[styles.name, { color: colors.textPrimary }]}>
-            {profile.displayName}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={[styles.name, { color: colors.textPrimary }]}>
+              {profile.displayName}
+            </Text>
+            {/* Report button for other users */}
+            {!isOwnProfile && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.reportButton,
+                  pressed && styles.pressed,
+                ]}
+                onPress={onReportPress}
+                accessibilityLabel="Báo cáo người dùng"
+                accessibilityRole="button"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name="flag-outline"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            )}
+          </View>
           <Text style={[styles.handle, { color: colors.textSecondary }]}>
             @{profile.username}
           </Text>
@@ -47,6 +70,34 @@ export function PublicProfileHeader({
           ) : null}
         </View>
       </View>
+
+      {/* Interests/Sở thích */}
+      {profile.interests && profile.interests.length > 0 && (
+        <View style={styles.interestsContainer}>
+          <Text style={[styles.interestsLabel, { color: colors.textSecondary }]}>
+            Sở thích
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.interestsScrollContent}
+          >
+            {profile.interests.map((interest, index) => (
+              <View
+                key={`${interest}-${index}`}
+                style={[
+                  styles.interestChip,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+              >
+                <Text style={[styles.interestText, { color: colors.textPrimary }]}>
+                  {interest}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Hide message button when viewing own profile */}
       {!isOwnProfile && (
@@ -82,10 +133,20 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   name: {
     fontSize: Typography.sizes.xl,
     fontWeight: Typography.weights.semibold,
     lineHeight: 28,
+    flex: 1,
+  },
+  reportButton: {
+    padding: Spacing.xs,
+    marginLeft: Spacing.sm,
   },
   handle: {
     fontSize: Typography.sizes.md,
@@ -96,6 +157,25 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.md,
     lineHeight: 22,
     marginTop: Spacing.sm,
+  },
+  interestsContainer: {
+    marginTop: Spacing.md,
+  },
+  interestsLabel: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.medium,
+    marginBottom: Spacing.xs,
+  },
+  interestsScrollContent: {
+    gap: Spacing.xs,
+  },
+  interestChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  interestText: {
+    fontSize: Typography.sizes.sm,
   },
   messageButton: {
     marginTop: Spacing.md,

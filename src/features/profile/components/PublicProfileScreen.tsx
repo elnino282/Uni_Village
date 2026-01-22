@@ -15,7 +15,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ReportModal } from "@/components/ReportModal";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useReportUser } from "@/features/post/hooks/useReports";
 import { Colors, Spacing, Typography } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 
@@ -35,6 +37,7 @@ export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
   const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<PublicProfileTab>("posts");
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const {
     data: profile,
@@ -49,6 +52,9 @@ export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
   // Check if viewing own profile to hide message button
   const currentUser = useAuthStore((state) => state.user);
   const isOwnProfile = currentUser?.id === userId;
+
+  // Report user mutation
+  const { mutate: reportUser, isPending: isReporting } = useReportUser();
 
   const handleBack = useCallback(() => {
     router.back();
@@ -72,6 +78,27 @@ export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
       router.push(`/chat/${userId}`);
     }
   }, [userId]);
+
+  const handleReportPress = useCallback(() => {
+    setIsReportModalOpen(true);
+  }, []);
+
+  const handleReportSubmit = useCallback(
+    (reason: string) => {
+      reportUser(
+        { userId: String(userId), reason },
+        {
+          onSuccess: () => {
+            setIsReportModalOpen(false);
+          },
+          onError: () => {
+            setIsReportModalOpen(false);
+          },
+        }
+      );
+    },
+    [userId, reportUser]
+  );
 
   const handleMenuPress = useCallback((postId: string) => {
     console.log("Post menu pressed:", postId);
@@ -207,11 +234,13 @@ export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
             <PublicProfileHeader
               profile={profile}
               onMessagePress={handleMessage}
+              onReportPress={handleReportPress}
               isOwnProfile={isOwnProfile}
             />
             <PublicProfileTabs
               activeTab={activeTab}
               onTabChange={setActiveTab}
+              isOwnProfile={isOwnProfile}
             />
           </View>
         }
@@ -229,6 +258,15 @@ export function PublicProfileScreen({ userId }: PublicProfileScreenProps) {
           )
         }
         showsVerticalScrollIndicator={false}
+      />
+
+      {/* Report User Modal */}
+      <ReportModal
+        visible={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        onSubmit={handleReportSubmit}
+        targetType="user"
+        isLoading={isReporting}
       />
     </View>
   );

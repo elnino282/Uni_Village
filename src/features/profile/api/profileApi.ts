@@ -127,8 +127,8 @@ export const profileApi = {
         size = 20
     ): Promise<PaginatedResponse<ProfilePost>> => {
         const response = await apiClient.get<ApiResponse<PaginatedResponse<ProfilePost>>>(
-            API_ENDPOINTS.POSTS.LIST,
-            { params: { userId, page, size } }
+            API_ENDPOINTS.POSTS.BY_USER(userId),
+            { params: { page, size } }
         );
         return response.result;
     },

@@ -3,6 +3,11 @@
  */
 
 /**
+ * Channel category enum
+ */
+export type ChannelCategory = 'TRAVEL' | 'COURSE' | 'FOOD' | 'PHOTOGRAPHY' | 'READING' | 'OTHER';
+
+/**
  * Channel invite data for embedding in posts
  */
 export interface ChannelInvite {
@@ -28,12 +33,17 @@ export interface ChannelMember {
  */
 export interface ChannelInfo {
     id: string;
+    channelId?: number; // Numeric channel ID for API calls
     name: string;
     emoji?: string;
     description: string;
     memberCount: number;
     iconUrl?: string;
     previewImageUrl?: string;
+    category?: ChannelCategory;
+    inviteCode?: string;
+    allowSharing?: boolean;
+    isAdmin?: boolean; // Whether current user is admin
     creator: {
         id: string;
         displayName: string;

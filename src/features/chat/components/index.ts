@@ -5,11 +5,12 @@ export { ChatComposer } from './ChatComposer';
 export { ChatHeader } from './ChatHeader';
 export { ChatThreadScreen } from './ChatThreadScreen';
 export { ConnectionStatusBanner } from './ConnectionStatusBanner';
-export { ItineraryShareSheet } from './ItineraryShareSheet';
 export { ImageMessageBubble } from './ImageMessageBubble';
+export { ItineraryShareSheet } from './ItineraryShareSheet';
 export { MessageBubble } from './MessageBubble';
 export { MessageList } from './MessageList';
 export { SharedCardMessage } from './SharedCardMessage';
+export { SystemMessageBubble } from './SystemMessageBubble';
 // Group chat components
 export { AddMemberBottomSheet } from './AddMemberBottomSheet';
 export type { AddMemberBottomSheetRef } from './AddMemberBottomSheet';

@@ -1,15 +1,19 @@
-import { useAuthStore } from "@/features/auth";
-import { useMyProfile } from "@/features/profile";
-import { useFocusEffect, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Href, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+import { useAuthStore } from "@/features/auth";
+import { useMyProfile } from "@/features/profile";
 
 import { ReportModal } from "@/components/ReportModal";
 import { ReportSuccessModal } from "@/components/ReportSuccessModal";
@@ -472,22 +476,72 @@ export function CommunityScreen() {
                 />
               }
               ListEmptyComponent={
-                <EmptyState
-                  title={
-                    contentFilterTab === "itineraries"
-                      ? "Chưa có lịch trình"
-                      : contentFilterTab === "channels"
-                        ? "Chưa có Channel"
-                        : "Chưa có bài viết"
-                  }
-                  message={
-                    contentFilterTab === "itineraries"
-                      ? "Tạo lịch trình đầu tiên của bạn"
-                      : contentFilterTab === "channels"
-                        ? "Tạo hoặc tham gia Channel"
-                        : "Hãy chia sẻ trải nghiệm của bạn"
-                  }
-                />
+                <View>
+                  <EmptyState
+                    title={
+                      contentFilterTab === "itineraries"
+                        ? "Chưa có lịch trình"
+                        : contentFilterTab === "channels"
+                          ? "Chưa có Channel"
+                          : "Chưa có bài viết"
+                    }
+                    message={
+                      contentFilterTab === "itineraries"
+                        ? "Tạo lịch trình đầu tiên của bạn"
+                        : contentFilterTab === "channels"
+                          ? "Tạo hoặc tham gia Channel"
+                          : "Hãy chia sẻ trải nghiệm của bạn"
+                    }
+                  />
+                  {contentFilterTab === "channels" && (
+                    <TouchableOpacity
+                      style={[
+                        styles.discoverButton,
+                        { backgroundColor: colors.actionBlue },
+                      ]}
+                      onPress={() => router.push("/channel/discover" as Href)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="compass-outline" size={20} color="#FFFFFF" />
+                      <Text style={styles.discoverButtonText}>
+                        Khám phá Channels công khai
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              }
+              ListHeaderComponent={
+                contentFilterTab === "channels" ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.discoverHeader,
+                      { backgroundColor: colors.background },
+                    ]}
+                    onPress={() => router.push("/channel/discover" as Href)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.discoverHeaderLeft}>
+                      <Ionicons
+                        name="compass-outline"
+                        size={22}
+                        color={colors.actionBlue}
+                      />
+                      <Text
+                        style={[
+                          styles.discoverHeaderText,
+                          { color: colors.textPrimary },
+                        ]}
+                      >
+                        Khám phá Channels công khai
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                ) : null
               }
             />
 
@@ -578,5 +632,40 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     textAlign: "center",
+  },
+  discoverButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: 24,
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  discoverButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  discoverHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginHorizontal: Spacing.screenPadding,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: 12,
+  },
+  discoverHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  discoverHeaderText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

@@ -30,8 +30,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Spinner } from '@/shared/components/ui';
 import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
+import { showErrorToast, showSuccessToast } from '@/shared/utils';
 
-import { useAddMembers, useSearchUsers } from '../hooks';
+import { useAddChannelMembers, useSearchUsers } from '../hooks';
 import type { UserPreview } from '../types';
 import { SelectableUserRow } from './SelectableUserRow';
 import { SelectedMemberChip } from './SelectedMemberChip';
@@ -42,6 +43,7 @@ export interface AddMemberBottomSheetRef {
 }
 
 interface AddMemberBottomSheetProps {
+  channelId?: number;
   threadId: string;
   groupName: string;
   onMembersAdded?: (users: UserPreview[]) => void;
@@ -53,7 +55,7 @@ interface AddMemberBottomSheetProps {
 export const AddMemberBottomSheet = forwardRef<
   AddMemberBottomSheetRef,
   AddMemberBottomSheetProps
->(function AddMemberBottomSheet({ threadId, groupName, onMembersAdded }, ref) {
+>(function AddMemberBottomSheet({ channelId, threadId, groupName, onMembersAdded }, ref) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
@@ -66,7 +68,7 @@ export const AddMemberBottomSheet = forwardRef<
   // Hooks
   const { data: suggestedUsers = [], isLoading: isLoadingUsers } =
     useSearchUsers(searchQuery);
-  const { mutate: addMembers, isPending: isAdding } = useAddMembers();
+  const { mutate: addChannelMembers, isPending: isAdding } = useAddChannelMembers();
 
   // Snap points: 75% height
   const snapPoints = useMemo(() => ['75%'], []);
@@ -117,18 +119,27 @@ export const AddMemberBottomSheet = forwardRef<
   }, []);
 
   const handleAddMembers = useCallback(() => {
-    if (selectedUsers.length === 0) return;
+    if (selectedUsers.length === 0 || !channelId) return;
 
-    addMembers(
-      { threadId, users: selectedUsers },
+    addChannelMembers(
+      { 
+        channelId, 
+        data: { userIds: selectedUsers.map(u => u.id) } 
+      },
       {
         onSuccess: () => {
+          const memberNames = selectedUsers.map(u => u.displayName).join(', ');
+          showSuccessToast(`Đã thêm ${memberNames} vào nhóm`);
           onMembersAdded?.(selectedUsers);
           handleClose();
         },
+        onError: (error) => {
+          console.error('Failed to add members:', error);
+          showErrorToast('Không thể thêm thành viên. Vui lòng thử lại.');
+        },
       }
     );
-  }, [addMembers, threadId, selectedUsers, onMembersAdded, handleClose]);
+  }, [addChannelMembers, channelId, selectedUsers, onMembersAdded, handleClose]);
 
   // Button text
   const buttonText =
@@ -259,11 +270,11 @@ export const AddMemberBottomSheet = forwardRef<
               styles.addButton,
               {
                 backgroundColor:
-                  selectedUsers.length > 0 ? colors.fabBlue : colors.chipBackground,
+                  selectedUsers.length > 0 && channelId ? colors.fabBlue : colors.chipBackground,
               },
             ]}
             onPress={handleAddMembers}
-            disabled={selectedUsers.length === 0 || isAdding}
+            disabled={selectedUsers.length === 0 || isAdding || !channelId}
           >
             {isAdding ? (
               <Spinner size="sm" />

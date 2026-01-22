@@ -11,12 +11,12 @@ export type ThreadType = 'dm' | 'group';
 /**
  * Message sender type
  */
-export type MessageSender = 'me' | 'other';
+export type MessageSender = 'me' | 'other' | 'system';
 
 /**
  * Message type discriminator
  */
-export type MessageType = 'text' | 'sharedCard' | 'image';
+export type MessageType = 'text' | 'sharedCard' | 'image' | 'system';
 
 /**
  * Message delivery status
@@ -82,9 +82,17 @@ export interface ImageMessage extends BaseMessage {
 }
 
 /**
+ * System message (e.g., "X added Y to the group")
+ */
+export interface SystemMessage extends BaseMessage {
+  type: 'system';
+  text: string;
+}
+
+/**
  * Union type for all message types
  */
-export type Message = TextMessage | SharedCardMessage | ImageMessage;
+export type Message = TextMessage | SharedCardMessage | ImageMessage | SystemMessage;
 
 /**
  * Chat thread peer information
@@ -135,6 +143,7 @@ export interface GroupThread extends Omit<ChatThread, 'peer' | 'onlineStatus' | 
   avatarUrl?: string;
   memberCount: number;
   onlineCount: number;
+  channelId?: number;
   pinnedMessage?: PinnedMessage;
 }
 
