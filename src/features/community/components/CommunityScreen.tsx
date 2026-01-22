@@ -3,11 +3,11 @@ import { useMyProfile } from "@/features/profile";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    View,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -19,27 +19,27 @@ import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.ty
 import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
 import type { CreatePostTab } from "@/features/post/types/createPost.types";
 import {
-    EmptyState,
-    ErrorMessage,
-    LoadingScreen,
+  EmptyState,
+  ErrorMessage,
+  LoadingScreen,
 } from "@/shared/components/feedback";
 import { PostLocationDetailSheet } from "@/shared/components/post";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { PostType, Visibility } from "@/shared/types/backend.types";
 import {
-    useBlockPost,
-    useCommunityPosts,
-    useLikePost,
-    useReportPost,
-    useSavePost,
+  useBlockPost,
+  useCommunityPosts,
+  useLikePost,
+  useReportPost,
+  useSavePost,
 } from "../hooks";
 import type {
-    CommunityPost,
-    CommunityTab,
-    ContentFilterTab,
-    PostLocation,
-    PostVisibility,
+  CommunityPost,
+  CommunityTab,
+  ContentFilterTab,
+  PostLocation,
+  PostVisibility,
 } from "../types";
 
 import { CommunityFAB } from "./CommunityFAB";
@@ -51,6 +51,38 @@ import { MessagesTab } from "./MessagesTab";
 import { PostCard } from "./PostCard";
 import { PostOverflowMenu } from "./PostOverflowMenu";
 import { PostOwnerMenu } from "./PostOwnerMenu";
+
+// Helper function to check if content has embedded itinerary
+const hasEmbeddedItinerary = (content: string): boolean => {
+  return content.includes('[ITINERARY_SHARE]');
+};
+
+// Helper function to parse embedded itinerary data from content
+const parseEmbeddedItinerary = (content: string) => {
+  const match = content.match(/\[ITINERARY_SHARE\](.*?)\[\/ITINERARY_SHARE\]/s);
+  if (match) {
+    try {
+      const tripData = JSON.parse(match[1]);
+      return {
+        id: tripData.id || String(Date.now()),
+        tripName: tripData.title || 'Lịch trình',
+        startDate: tripData.date || new Date().toISOString(),
+        startTime: tripData.timeRange || new Date().toISOString(),
+        area: tripData.area || 'TP.HCM',
+        destinations: (tripData.stops || []).map((stop: any, index: number) => ({
+          id: stop.id || String(index),
+          name: stop.name,
+          thumbnail: stop.thumbnail || stop.placeImageUrl || stop.imageUrl || '',
+          time: stop.time || '',
+          order: index + 1,
+        })),
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
 
 export function CommunityScreen() {
   const colorScheme = useColorScheme();
@@ -330,10 +362,30 @@ export function CommunityScreen() {
     []
   );
 
-  const handleOpenItinerary = useCallback((itinerary: ItineraryShareData) => {
-    setSelectedItinerary(itinerary);
-    setIsSheetVisible(true);
-  }, []);
+  const handleOpenItinerary = useCallback((itineraryData: any) => {
+    // Navigate to SharedItineraryDetailScreen with the itinerary data
+    // Build trip data for SharedItineraryDetailScreen
+    const tripData = itineraryData.originalTripData || {
+      id: itineraryData.id || String(Date.now()),
+      tripName: itineraryData.dayLabel || itineraryData.title || 'Lịch trình',
+      startDate: itineraryData.date || new Date().toISOString(),
+      startTime: itineraryData.timeRange || new Date().toISOString(),
+      area: 'TP.HCM',
+      destinations: (itineraryData.stops || []).map((stop: any, index: number) => ({
+        id: stop.id || String(index),
+        name: stop.name,
+        thumbnail: stop.thumbnail || '',
+        time: stop.time || '',
+        address: stop.address || '',
+        order: index + 1,
+      })),
+    };
+    
+    router.push({
+      pathname: '/(modals)/shared-itinerary',
+      params: { tripData: JSON.stringify(tripData) },
+    } as any);
+  }, [router]);
 
   const handleCloseSheet = useCallback(() => {
     setIsSheetVisible(false);
@@ -358,16 +410,7 @@ export function CommunityScreen() {
         onCommentPress={handleCommentPress}
         onLocationPress={handleLocationPress}
         onAvatarPress={handleAvatarPress}
-        onViewItineraryDetails={
-          item.itineraryShare
-            ? () => handleViewItineraryDetails(item.itineraryShare!)
-            : undefined
-        }
-        onOpenItinerary={
-          item.itineraryShare
-            ? () => handleOpenItinerary(item.itineraryShare!)
-            : undefined
-        }
+        onOpenItinerary={handleOpenItinerary}
       />
     ),
     [
@@ -376,7 +419,6 @@ export function CommunityScreen() {
       handleCommentPress,
       handleLocationPress,
       handleAvatarPress,
-      handleViewItineraryDetails,
       handleOpenItinerary,
     ]
   );
@@ -396,14 +438,18 @@ export function CommunityScreen() {
 
   // Then filter by content type based on active chip
   const filteredPosts = searchFilteredPosts.filter((post) => {
+    // Check for embedded itinerary in content
+    const hasEmbedded = hasEmbeddedItinerary(post.content || '');
+    
     switch (contentFilterTab) {
       case "itineraries":
-        return !!post.itineraryShare;
+        // Show posts with itineraryShare OR embedded itinerary in content
+        return !!post.itineraryShare || hasEmbedded;
       case "channels":
         return !!post.channelInvite;
       default:
-        // 'posts' = only pure posts (no itinerary, no channel)
-        return !post.itineraryShare && !post.channelInvite;
+        // 'posts' = show all posts (both with and without itinerary)
+        return true;
     }
   });
 
