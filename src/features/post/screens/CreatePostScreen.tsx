@@ -255,9 +255,17 @@ export function CreatePostScreen({ initialTab = 'post', postId }: CreatePostScre
                     files: selectedFiles,
                     locations: selectedLocations.length > 0 ? selectedLocations : undefined,
                 });
-            } else {
+            } else if (activeTab === 'itinerary' && selectedItinerary) {
+                // Post itinerary with tourId
+                createRealPost({
+                    content: itineraryContent || `Chia sẻ lịch trình: ${selectedItinerary.title}`,
+                    postType: PostType.EXPERIENCE,
+                    visibility: postVisibility === 'public' ? Visibility.PUBLIC : Visibility.PRIVATE,
+                    tourId: selectedItinerary.id,
+                });
+            } else if (activeTab === 'channel' && selectedChannel) {
                 await createCommunityPost({
-                    content: activeTab === 'channel' ? channelContent : itineraryContent,
+                    content: channelContent,
                     visibility: 'public',
                 });
             }

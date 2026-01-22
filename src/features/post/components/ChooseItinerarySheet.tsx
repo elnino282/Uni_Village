@@ -13,22 +13,46 @@ import BottomSheet, {
 } from '@gorhom/bottom-sheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import {
     ItineraryForSelection,
 } from '../types/createPost.types';
-import { SegmentedTabs, TabItem } from './SegmentedTabs';
 
-type ItinerarySubTab = 'mine' | 'saved';
+type StatusFilter = 'all' | 'upcoming' | 'ongoing' | 'completed';
 
-const ITINERARY_TABS: TabItem<ItinerarySubTab>[] = [
-    { key: 'mine', label: 'Của tôi' },
-    { key: 'saved', label: 'Đã lưu' },
+interface StatusFilterOption {
+    key: StatusFilter;
+    label: string;
+    color: string;
+    bgColor: string;
+}
+
+const STATUS_FILTERS: StatusFilterOption[] = [
+    { key: 'all', label: 'Tất cả', color: '#3b82f6', bgColor: '#DBEAFE' },
+    { key: 'upcoming', label: 'Sắp tới', color: '#2563EB', bgColor: '#DBEAFE' },
+    { key: 'ongoing', label: 'Đang đi', color: '#16A34A', bgColor: '#DCFCE7' },
+    { key: 'completed', label: 'Đã đi', color: '#6B7280', bgColor: '#F3F4F6' },
 ];
+
+const getStatusBadgeStyle = (status: string) => {
+    switch (status) {
+        case 'ongoing':
+            return { bg: '#DCFCE7', text: '#16A34A', label: 'Đang đi' };
+        case 'completed':
+            return { bg: '#F3F4F6', text: '#6B7280', label: 'Đã đi' };
+        case 'upcoming':
+        default:
+            return { bg: '#DBEAFE', text: '#2563EB', label: 'Sắp tới' };
+    }
+};
 
 export interface ChooseItinerarySheetProps {
     onSelect: (itinerary: ItineraryForSelection) => void;
+}
+
+interface ItineraryWithStatus extends ItineraryForSelection {
+    status: string;
 }
 
 export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheetProps>(
@@ -36,54 +60,61 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
         const colorScheme = useColorScheme() ?? 'light';
         const colors = Colors[colorScheme];
 
-        const [activeTab, setActiveTab] = useState<ItinerarySubTab>('mine');
+        const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
         const [searchQuery, setSearchQuery] = useState('');
-        const [myItineraries, setMyItineraries] = useState<ItineraryForSelection[]>([]);
-        const [savedItineraries, setSavedItineraries] = useState<ItineraryForSelection[]>([]);
+        const [allItineraries, setAllItineraries] = useState<ItineraryWithStatus[]>([]);
         const [isLoading, setIsLoading] = useState(false);
 
         // Load trips from AsyncStorage
-        useEffect(() => {
-            const loadTrips = async () => {
-                setIsLoading(true);
-                try {
-                    const tripsJson = await AsyncStorage.getItem('@trips');
-                    if (tripsJson) {
-                        const trips = JSON.parse(tripsJson);
-                        const mappedItineraries: ItineraryForSelection[] = trips.map((trip: any) => {
-                            const startDate = new Date(trip.startDate);
-                            const formattedDate = `${String(startDate.getDate()).padStart(2, '0')}/${String(startDate.getMonth() + 1).padStart(2, '0')}/${startDate.getFullYear()}`;
-                            const startTime = new Date(trip.startTime);
-                            const formattedTime = `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}`;
-                            
-                            return {
-                                id: trip.id,
-                                title: trip.tripName,
-                                date: formattedDate,
-                                timeRange: `${formattedTime} - ...`,
-                                area: 'TP.HCM', // Default area - could be enhanced later
-                                stopsCount: trip.destinations?.length || 0,
-                                tags: ['Lịch trình', trip.status === 'completed' ? 'Hoàn thành' : trip.status === 'ongoing' ? 'Đang đi' : 'Sắp tới'],
-                                stops: (trip.destinations || []).map((dest: any) => ({
-                                    id: dest.id,
-                                    time: dest.time || '',
-                                    name: dest.name,
-                                })),
-                                isSaved: false,
-                            };
-                        });
-                        setMyItineraries(mappedItineraries);
-                    }
-                } catch (error) {
-                    console.error('Failed to load trips:', error);
-                } finally {
-                    setIsLoading(false);
+        const loadTrips = useCallback(async () => {
+            setIsLoading(true);
+            try {
+                const tripsJson = await AsyncStorage.getItem('@trips');
+                if (tripsJson) {
+                    const trips = JSON.parse(tripsJson);
+                    const mappedItineraries: ItineraryWithStatus[] = trips.map((trip: any) => {
+                        const startDate = new Date(trip.startDate);
+                        const formattedDate = `${String(startDate.getDate()).padStart(2, '0')}/${String(startDate.getMonth() + 1).padStart(2, '0')}/${startDate.getFullYear()}`;
+                        const startTime = new Date(trip.startTime);
+                        const formattedTime = `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}`;
+                        
+                        const status = trip.status || 'upcoming';
+                        const badgeStyle = getStatusBadgeStyle(status);
+                        
+                        return {
+                            id: trip.id,
+                            title: trip.tripName,
+                            date: formattedDate,
+                            timeRange: formattedTime,
+                            area: 'TP.HCM',
+                            stopsCount: trip.destinations?.length || 0,
+                            tags: [badgeStyle.label],
+                            stops: (trip.destinations || []).slice(0, 3).map((dest: any) => ({
+                                id: dest.id,
+                                time: dest.time || '',
+                                name: dest.name,
+                            })),
+                            isSaved: false,
+                            status: status,
+                        };
+                    });
+                    setAllItineraries(mappedItineraries);
+                } else {
+                    setAllItineraries([]);
                 }
-            };
-            loadTrips();
+            } catch (error) {
+                console.error('Failed to load trips:', error);
+                setAllItineraries([]);
+            } finally {
+                setIsLoading(false);
+            }
         }, []);
 
-        const snapPoints = useMemo(() => ['70%', '90%'], []);
+        useEffect(() => {
+            loadTrips();
+        }, [loadTrips]);
+
+        const snapPoints = useMemo(() => ['75%', '95%'], []);
 
         const renderBackdrop = useCallback(
             (props: any) => (
@@ -97,103 +128,149 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
             []
         );
 
-        const itineraries = activeTab === 'mine' ? myItineraries : savedItineraries;
-
+        // Filter by status and search query
         const filteredItineraries = useMemo(() => {
-            if (!searchQuery.trim()) return itineraries;
-            const query = searchQuery.toLowerCase();
-            return itineraries.filter(
-                (it) =>
-                    it.title.toLowerCase().includes(query) ||
-                    it.area.toLowerCase().includes(query)
-            );
-        }, [itineraries, searchQuery]);
+            let result = allItineraries;
+            
+            // Filter by status
+            if (statusFilter !== 'all') {
+                result = result.filter((it) => it.status === statusFilter);
+            }
+            
+            // Filter by search query
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                result = result.filter(
+                    (it) =>
+                        it.title.toLowerCase().includes(query) ||
+                        it.area.toLowerCase().includes(query)
+                );
+            }
+            
+            return result;
+        }, [allItineraries, statusFilter, searchQuery]);
 
         const handleSelect = (itinerary: ItineraryForSelection) => {
             onSelect(itinerary);
         };
 
-        const renderItineraryItem = useCallback(
-            ({ item }: { item: ItineraryForSelection }) => (
-                <TouchableOpacity
-                    style={[
-                        styles.itineraryCard,
-                        {
-                            backgroundColor: colors.card,
-                            borderColor: colors.border,
-                        },
-                    ]}
-                    onPress={() => handleSelect(item)}
-                    activeOpacity={0.7}
-                >
-                    {/* Tags */}
-                    <View style={styles.tagsRow}>
-                        {item.tags.map((tag, index) => (
-                            <View
-                                key={index}
+        const renderStatusFilterChips = () => (
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterChipsContainer}
+            >
+                {STATUS_FILTERS.map((filter) => {
+                    const isActive = statusFilter === filter.key;
+                    return (
+                        <TouchableOpacity
+                            key={filter.key}
+                            style={[
+                                styles.filterChip,
+                                {
+                                    backgroundColor: isActive ? filter.bgColor : colors.chipBackground,
+                                    borderColor: isActive ? filter.color : colors.border,
+                                    borderWidth: 1,
+                                },
+                            ]}
+                            onPress={() => setStatusFilter(filter.key)}
+                            activeOpacity={0.7}
+                        >
+                            <Text
                                 style={[
-                                    styles.tag,
-                                    { backgroundColor: colors.chipBackground },
+                                    styles.filterChipText,
+                                    { color: isActive ? filter.color : colors.textSecondary },
                                 ]}
                             >
-                                <Text
-                                    style={[styles.tagText, { color: colors.textSecondary }]}
-                                >
-                                    {tag}
+                                {filter.label}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+        );
+
+        const renderItineraryItem = useCallback(
+            ({ item }: { item: ItineraryWithStatus }) => {
+                const badgeStyle = getStatusBadgeStyle(item.status);
+                
+                return (
+                    <TouchableOpacity
+                        style={[
+                            styles.itineraryCard,
+                            {
+                                backgroundColor: colors.card,
+                                borderColor: colors.border,
+                            },
+                        ]}
+                        onPress={() => handleSelect(item)}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.cardHeader}>
+                            {/* Title */}
+                            <Text
+                                style={[styles.itineraryTitle, { color: colors.text }]}
+                                numberOfLines={2}
+                            >
+                                {item.title}
+                            </Text>
+                            
+                            {/* Status Badge */}
+                            <View style={[styles.statusBadge, { backgroundColor: badgeStyle.bg }]}>
+                                <Text style={[styles.statusBadgeText, { color: badgeStyle.text }]}>
+                                    {badgeStyle.label}
                                 </Text>
                             </View>
-                        ))}
-                    </View>
+                        </View>
 
-                    {/* Title */}
-                    <Text
-                        style={[styles.itineraryTitle, { color: colors.textPrimary }]}
-                        numberOfLines={2}
-                    >
-                        {item.title}
-                    </Text>
+                        {/* Meta Info */}
+                        <View style={styles.metaContainer}>
+                            <View style={styles.metaRow}>
+                                <MaterialIcons name="event" size={16} color={colors.textSecondary} />
+                                <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                                    {item.date}
+                                </Text>
+                            </View>
+                            
+                            <View style={styles.metaRow}>
+                                <MaterialIcons name="schedule" size={16} color={colors.textSecondary} />
+                                <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                                    {item.timeRange}
+                                </Text>
+                            </View>
+                            
+                            <View style={styles.metaRow}>
+                                <MaterialIcons name="place" size={16} color={colors.textSecondary} />
+                                <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                                    {item.stopsCount} điểm dừng
+                                </Text>
+                            </View>
+                        </View>
 
-                    {/* Meta */}
-                    <View style={styles.metaRow}>
-                        <MaterialIcons
-                            name="event"
-                            size={14}
-                            color={colors.textSecondary}
-                        />
-                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                            {item.date}
-                        </Text>
-                        <Text style={[styles.metaDot, { color: colors.textSecondary }]}>
-                            •
-                        </Text>
-                        <MaterialIcons
-                            name="schedule"
-                            size={14}
-                            color={colors.textSecondary}
-                        />
-                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                            {item.timeRange}
-                        </Text>
-                    </View>
-
-                    <View style={styles.metaRow}>
-                        <MaterialIcons
-                            name="place"
-                            size={14}
-                            color={colors.textSecondary}
-                        />
-                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                            {item.area}
-                        </Text>
-                        <Text style={[styles.metaDot, { color: colors.textSecondary }]}>
-                            •
-                        </Text>
-                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                            {item.stopsCount} điểm dừng
-                        </Text>
-                    </View>
-                </TouchableOpacity>
-            ),
+                        {/* Preview Stops */}
+                        {item.stops.length > 0 && (
+                            <View style={[styles.stopsPreview, { borderTopColor: colors.border }]}>
+                                {item.stops.map((stop, index) => (
+                                    <View key={stop.id} style={styles.stopItem}>
+                                        <View style={[styles.stopDot, { backgroundColor: badgeStyle.text }]} />
+                                        <Text
+                                            style={[styles.stopName, { color: colors.text }]}
+                                            numberOfLines={1}
+                                        >
+                                            {stop.name}
+                                        </Text>
+                                    </View>
+                                ))}
+                                {item.stopsCount > 3 && (
+                                    <Text style={[styles.moreStops, { color: colors.textSecondary }]}>
+                                        +{item.stopsCount - 3} điểm khác
+                                    </Text>
+                                )}
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                );
+            },
             [colors, handleSelect]
         );
 
@@ -208,22 +285,21 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
                 handleIndicatorStyle={[styles.indicator, { backgroundColor: colors.border }]}
                 keyboardBehavior="interactive"
                 keyboardBlurBehavior="restore"
+                onChange={(index) => {
+                    if (index >= 0) {
+                        loadTrips();
+                    }
+                }}
             >
                 {/* Header */}
                 <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                    <Text style={[styles.title, { color: colors.textPrimary }]}>
+                    <Text style={[styles.title, { color: colors.text }]}>
                         Chọn lịch trình
                     </Text>
                 </View>
 
-                {/* Inner Tabs */}
-                <View style={styles.tabsContainer}>
-                    <SegmentedTabs
-                        tabs={ITINERARY_TABS}
-                        activeTab={activeTab}
-                        onTabChange={setActiveTab}
-                    />
-                </View>
+                {/* Status Filter Chips */}
+                {renderStatusFilterChips()}
 
                 {/* Search */}
                 <View style={styles.searchContainer}>
@@ -236,11 +312,7 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
                             },
                         ]}
                     >
-                        <MaterialIcons
-                            name="search"
-                            size={20}
-                            color={colors.textSecondary}
-                        />
+                        <MaterialIcons name="search" size={20} color={colors.textSecondary} />
                         <BottomSheetTextInput
                             style={[styles.searchInput, { color: colors.text }]}
                             placeholder="Tìm lịch trình…"
@@ -252,16 +324,22 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
                 </View>
 
                 {/* Itinerary List */}
-                <BottomSheetFlatList<ItineraryForSelection>
+                <BottomSheetFlatList<ItineraryWithStatus>
                     data={filteredItineraries}
-                    keyExtractor={(item: ItineraryForSelection) => item.id}
+                    keyExtractor={(item) => item.id}
                     renderItem={renderItineraryItem}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
+                            <MaterialIcons name="event-note" size={48} color={colors.textSecondary} />
+                            <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                                {isLoading ? 'Đang tải...' : 'Không có lịch trình'}
+                            </Text>
                             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                                Không tìm thấy lịch trình
+                                {statusFilter !== 'all'
+                                    ? `Không có lịch trình "${STATUS_FILTERS.find(f => f.key === statusFilter)?.label}"`
+                                    : 'Tạo lịch trình mới để chia sẻ'}
                             </Text>
                         </View>
                     }
@@ -293,9 +371,20 @@ const styles = StyleSheet.create({
         fontWeight: Typography.weights.semibold,
         textAlign: 'center',
     },
-    tabsContainer: {
+    filterChipsContainer: {
         paddingHorizontal: Spacing.screenPadding,
         paddingVertical: Spacing.sm,
+        gap: Spacing.sm,
+    },
+    filterChip: {
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.full,
+        marginRight: Spacing.sm,
+    },
+    filterChipText: {
+        fontSize: Typography.sizes.sm,
+        fontWeight: Typography.weights.medium,
     },
     searchContainer: {
         paddingHorizontal: Spacing.screenPadding,
@@ -325,43 +414,77 @@ const styles = StyleSheet.create({
         borderRadius: BorderRadius.lg,
         borderWidth: 1,
     },
-    tagsRow: {
+    cardHeader: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.xs,
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
         marginBottom: Spacing.sm,
-    },
-    tag: {
-        paddingHorizontal: Spacing.sm,
-        paddingVertical: Spacing.xs,
-        borderRadius: BorderRadius.sm,
-    },
-    tagText: {
-        fontSize: Typography.sizes.sm,
-        fontWeight: Typography.weights.medium,
+        gap: Spacing.sm,
     },
     itineraryTitle: {
+        flex: 1,
         fontSize: Typography.sizes.base,
         fontWeight: Typography.weights.semibold,
+        lineHeight: 22,
+    },
+    statusBadge: {
+        paddingHorizontal: Spacing.sm,
+        paddingVertical: 4,
+        borderRadius: BorderRadius.full,
+    },
+    statusBadgeText: {
+        fontSize: Typography.sizes.xs,
+        fontWeight: Typography.weights.semibold,
+    },
+    metaContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.md,
         marginBottom: Spacing.sm,
     },
     metaRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.xs,
-        marginBottom: Spacing.xs,
+        gap: 4,
     },
     metaText: {
         fontSize: Typography.sizes.sm,
     },
-    metaDot: {
+    stopsPreview: {
+        borderTopWidth: 1,
+        paddingTop: Spacing.sm,
+        gap: 6,
+    },
+    stopItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+    },
+    stopDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    stopName: {
+        flex: 1,
         fontSize: Typography.sizes.sm,
     },
+    moreStops: {
+        fontSize: Typography.sizes.sm,
+        fontStyle: 'italic',
+        marginLeft: 20,
+    },
     emptyContainer: {
-        paddingVertical: Spacing.xl,
+        paddingVertical: Spacing.xl * 2,
         alignItems: 'center',
+        gap: Spacing.sm,
+    },
+    emptyTitle: {
+        fontSize: Typography.sizes.base,
+        fontWeight: Typography.weights.medium,
     },
     emptyText: {
-        fontSize: Typography.sizes.base,
+        fontSize: Typography.sizes.sm,
+        textAlign: 'center',
     },
 });
