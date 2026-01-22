@@ -11,13 +11,12 @@ import BottomSheet, {
     BottomSheetFlatList,
     BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
-import React, { forwardRef, useCallback, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import {
     ItineraryForSelection,
-    MOCK_MY_ITINERARIES,
-    MOCK_SAVED_ITINERARIES,
 } from '../types/createPost.types';
 import { SegmentedTabs, TabItem } from './SegmentedTabs';
 
@@ -39,6 +38,50 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
 
         const [activeTab, setActiveTab] = useState<ItinerarySubTab>('mine');
         const [searchQuery, setSearchQuery] = useState('');
+        const [myItineraries, setMyItineraries] = useState<ItineraryForSelection[]>([]);
+        const [savedItineraries, setSavedItineraries] = useState<ItineraryForSelection[]>([]);
+        const [isLoading, setIsLoading] = useState(false);
+
+        // Load trips from AsyncStorage
+        useEffect(() => {
+            const loadTrips = async () => {
+                setIsLoading(true);
+                try {
+                    const tripsJson = await AsyncStorage.getItem('@trips');
+                    if (tripsJson) {
+                        const trips = JSON.parse(tripsJson);
+                        const mappedItineraries: ItineraryForSelection[] = trips.map((trip: any) => {
+                            const startDate = new Date(trip.startDate);
+                            const formattedDate = `${String(startDate.getDate()).padStart(2, '0')}/${String(startDate.getMonth() + 1).padStart(2, '0')}/${startDate.getFullYear()}`;
+                            const startTime = new Date(trip.startTime);
+                            const formattedTime = `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}`;
+                            
+                            return {
+                                id: trip.id,
+                                title: trip.tripName,
+                                date: formattedDate,
+                                timeRange: `${formattedTime} - ...`,
+                                area: 'TP.HCM', // Default area - could be enhanced later
+                                stopsCount: trip.destinations?.length || 0,
+                                tags: ['Lịch trình', trip.status === 'completed' ? 'Hoàn thành' : trip.status === 'ongoing' ? 'Đang đi' : 'Sắp tới'],
+                                stops: (trip.destinations || []).map((dest: any) => ({
+                                    id: dest.id,
+                                    time: dest.time || '',
+                                    name: dest.name,
+                                })),
+                                isSaved: false,
+                            };
+                        });
+                        setMyItineraries(mappedItineraries);
+                    }
+                } catch (error) {
+                    console.error('Failed to load trips:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            loadTrips();
+        }, []);
 
         const snapPoints = useMemo(() => ['70%', '90%'], []);
 
@@ -54,7 +97,7 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
             []
         );
 
-        const itineraries = activeTab === 'mine' ? MOCK_MY_ITINERARIES : MOCK_SAVED_ITINERARIES;
+        const itineraries = activeTab === 'mine' ? myItineraries : savedItineraries;
 
         const filteredItineraries = useMemo(() => {
             if (!searchQuery.trim()) return itineraries;
