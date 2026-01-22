@@ -52,7 +52,7 @@ interface OptimisticWSMessage extends MessageResponse {
  */
 export function useSendMessageViaWebSocket() {
     const queryClient = useQueryClient();
-    const { addPendingMessage } = useChatStore.getState();
+    const { addPendingMessage, handleAck } = useChatStore.getState();
 
     /**
      * Send message via WebSocket
@@ -65,6 +65,7 @@ export function useSendMessageViaWebSocket() {
         addPendingMessage({
             clientMessageId,
             recipientId: input.recipientId,
+            conversationId: input.conversationId,
             content: input.content,
             replyToId: input.replyToId,
         });
@@ -107,16 +108,25 @@ export function useSendMessageViaWebSocket() {
             });
         }
 
+        const receiptId = `msg-${clientMessageId}`;
+        websocketService.watchForReceipt(receiptId, () => {
+            handleAck({
+                clientMessageId,
+                status: 'DELIVERED',
+                conversationId: input.conversationId,
+            });
+        });
+
         // Send via WebSocket
         websocketService.sendChatMessage({
             recipientId: input.recipientId,
             content: input.content,
             clientMessageId,
             replyToId: input.replyToId,
-        });
+        }, { receiptId });
 
         return clientMessageId;
-    }, [queryClient, addPendingMessage]);
+    }, [queryClient, addPendingMessage, handleAck]);
 
     /**
      * Check if WebSocket is connected

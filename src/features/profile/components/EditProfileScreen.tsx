@@ -1,9 +1,9 @@
 import {
-    BorderRadius,
-    Colors,
-    Shadows,
-    Spacing,
-    Typography,
+  BorderRadius,
+  Colors,
+  Shadows,
+  Spacing,
+  Typography,
 } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -12,22 +12,22 @@ import { router } from "expo-router";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-    useImagePicker,
-    useMyProfile,
-    useUpdateProfile,
-    useUploadAvatar,
-    useUploadCover,
+  useImagePicker,
+  useMyProfile,
+  useUpdateProfile,
+  useUploadAvatar,
+  useUploadCover,
 } from "../hooks";
 import { editProfileSchema, type EditProfileFormData } from "../schemas";
 import { EditProfileFormRow } from "./EditProfileFormRow";
@@ -287,12 +287,7 @@ export function EditProfileScreen() {
                       />
                     )}
                   />
-                  <ProfileFAB
-                    onPress={handleChangeAvatar}
-                    absolute={false}
-                    avatarUrl={watchedAvatarUrl}
-                    displayName={watch("displayName")}
-                  />
+                  <ProfileFAB onPress={handleChangeAvatar} absolute={false} />
                 </View>
                 {errors.displayName && (
                   <Text style={[styles.errorText, { color: colors.error }]}>

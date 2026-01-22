@@ -3,8 +3,8 @@
  * Fetches channel data from backend APIs and maps to UI models.
  */
 
-import { channelsApi, conversationsApi, type CreateChannelFormData, type UpdateChannelFormData } from '@/features/chat/api';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { channelsApi, conversationsApi, type CreateChannelFormData, type UpdateChannelFormData } from '@/features/chat/api';
 import type { ChannelInfo, ChannelMember } from '@/shared/types';
 import type {
     ChannelMemberResponse,
@@ -47,14 +47,28 @@ const mapChannelInfo = (
     const isJoined = currentUserId
         ? members.some((member) => member.userId === currentUserId)
         : false;
+    
+    // Check if current user is admin (owner or has ADMIN role)
+    const currentUserMember = currentUserId
+        ? members.find((member) => member.userId === currentUserId)
+        : null;
+    const isAdmin =
+        currentUserId === channel.creatorId ||
+        currentUserMember?.role === 'OWNER' ||
+        currentUserMember?.role === 'ADMIN';
 
     return {
         id: channel.conversationId ?? fallbackId ?? channel.id?.toString() ?? '',
+        channelId: channel.id,
         name: channel.name ?? 'Channel',
         description: channel.description ?? '',
         memberCount: channel.memberCount ?? mappedMembers.length,
         iconUrl: channel.avatarUrl,
         previewImageUrl: channel.avatarUrl,
+        category: channel.category as ChannelInfo['category'],
+        inviteCode: channel.inviteCode,
+        allowSharing: channel.allowSharing,
+        isAdmin,
         creator: resolveCreator(channel, members),
         members: mappedMembers,
         isJoined,

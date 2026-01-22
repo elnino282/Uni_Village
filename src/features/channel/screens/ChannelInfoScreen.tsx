@@ -4,24 +4,28 @@
  */
 
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+    Alert,
     SafeAreaView,
     ScrollView,
+    Share,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
 
+import { useRegenerateInviteCode } from '@/features/chat/hooks/useChannels';
 import { AvatarRow } from '@/shared/components/avatar';
 import { EmptyState, ErrorMessage, LoadingScreen } from '@/shared/components/feedback';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
-import { showErrorToast } from '@/shared/utils';
+import { showErrorToast, showSuccessToast } from '@/shared/utils';
 import { useChannelInfo, useJoinChannel } from '../hooks';
 
 /**
@@ -36,6 +40,63 @@ export function ChannelInfoScreen() {
 
     const { data: channelInfo, isLoading, isError, refetch } = useChannelInfo(channelId || '');
     const joinChannelMutation = useJoinChannel();
+    const { mutate: regenerateInvite, isPending: isRegenerating } = useRegenerateInviteCode();
+
+    const [showInviteSection, setShowInviteSection] = useState(false);
+
+    const getInviteLink = useCallback(() => {
+        if (!channelInfo?.inviteCode) return '';
+        // Generate a shareable link (adjust domain as needed)
+        return `https://univillage.app/channel/invite/${channelInfo.inviteCode}`;
+    }, [channelInfo?.inviteCode]);
+
+    const handleCopyInviteLink = useCallback(async () => {
+        const link = getInviteLink();
+        if (!link) {
+            showErrorToast('Không có link mời');
+            return;
+        }
+        await Clipboard.setStringAsync(link);
+        showSuccessToast('Đã sao chép link mời');
+    }, [getInviteLink]);
+
+    const handleShareInviteLink = useCallback(async () => {
+        const link = getInviteLink();
+        if (!link || !channelInfo) return;
+        try {
+            await Share.share({
+                message: `Tham gia channel "${channelInfo.name}" trên UniVillage!\n${link}`,
+                title: `Mời bạn tham gia ${channelInfo.name}`,
+            });
+        } catch (error) {
+            console.error('Share failed:', error);
+        }
+    }, [getInviteLink, channelInfo]);
+
+    const handleRegenerateInvite = useCallback(() => {
+        if (!channelInfo?.channelId || isRegenerating) return;
+        Alert.alert(
+            'Tạo link mời mới',
+            'Link mời cũ sẽ không còn hoạt động. Bạn có chắc chắn?',
+            [
+                { text: 'Hủy', style: 'cancel' },
+                {
+                    text: 'Tạo mới',
+                    onPress: () => {
+                        regenerateInvite(channelInfo.channelId!, {
+                            onSuccess: () => {
+                                showSuccessToast('Đã tạo link mời mới');
+                                refetch();
+                            },
+                            onError: () => {
+                                showErrorToast('Không thể tạo link mời mới');
+                            },
+                        });
+                    },
+                },
+            ]
+        );
+    }, [channelInfo?.channelId, isRegenerating, regenerateInvite, refetch]);
 
     const handleBack = () => {
         router.back();
@@ -120,7 +181,7 @@ export function ChannelInfoScreen() {
                 <TouchableOpacity style={styles.backButton} onPress={handleBack}>
                     <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>ThÃ´ng tin nhÃ³m</Text>
+                <Text style={styles.headerTitle}>Thông tin nhóm</Text>
                 <TouchableOpacity style={styles.menuButton}>
                     <MaterialIcons name="more-vert" size={24} color="#ffffff" />
                 </TouchableOpacity>
@@ -149,7 +210,7 @@ export function ChannelInfoScreen() {
                 {/* Creator */}
                 <View style={styles.creatorRow}>
                     <Text style={[styles.createdByText, { color: colors.textSecondary }]}>
-                        Táº¡o bá»Ÿi{' '}
+                        Tạo bởi{' '}
                     </Text>
                     <TouchableOpacity onPress={handleCreatorPress}>
                         <Text style={[styles.creatorName, { color: colors.actionBlue }]}>
@@ -168,7 +229,7 @@ export function ChannelInfoScreen() {
                 {/* Members Section */}
                 <View style={[styles.membersContainer, { backgroundColor: colors.card }]}>
                     <Text style={[styles.membersTitle, { color: colors.textPrimary }]}>
-                        ThÃ nh viÃªn ({channelInfo.memberCount.toLocaleString()})
+                        Thành viên ({channelInfo.memberCount.toLocaleString()})
                     </Text>
                     <View style={styles.membersRow}>
                         <AvatarRow
@@ -180,6 +241,67 @@ export function ChannelInfoScreen() {
                         />
                     </View>
                 </View>
+
+                {/* Invite Link Section - Show for admins or if allowSharing is true */}
+                {channelInfo.isJoined && (channelInfo.isAdmin || channelInfo.allowSharing) && channelInfo.inviteCode && (
+                    <View style={[styles.inviteContainer, { backgroundColor: colors.card }]}>
+                        <View style={styles.inviteHeader}>
+                            <MaterialIcons name="link" size={22} color={colors.actionBlue} />
+                            <Text style={[styles.inviteTitle, { color: colors.textPrimary }]}>
+                                Link mời tham gia
+                            </Text>
+                        </View>
+
+                        <View style={[styles.inviteLinkBox, { backgroundColor: colors.backgroundSecondary }]}>
+                            <Text
+                                style={[styles.inviteLinkText, { color: colors.textSecondary }]}
+                                numberOfLines={1}
+                                ellipsizeMode="middle"
+                            >
+                                {getInviteLink()}
+                            </Text>
+                        </View>
+
+                        <View style={styles.inviteActions}>
+                            <TouchableOpacity
+                                style={[styles.inviteActionButton, { backgroundColor: colors.actionBlue }]}
+                                onPress={handleCopyInviteLink}
+                                activeOpacity={0.8}
+                            >
+                                <MaterialIcons name="content-copy" size={18} color="#FFFFFF" />
+                                <Text style={styles.inviteActionText}>Sao chép</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.inviteActionButton, { backgroundColor: colors.actionBlue }]}
+                                onPress={handleShareInviteLink}
+                                activeOpacity={0.8}
+                            >
+                                <MaterialIcons name="share" size={18} color="#FFFFFF" />
+                                <Text style={styles.inviteActionText}>Chia sẻ</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Regenerate invite - Admin only */}
+                        {channelInfo.isAdmin && (
+                            <TouchableOpacity
+                                style={styles.regenerateButton}
+                                onPress={handleRegenerateInvite}
+                                disabled={isRegenerating}
+                                activeOpacity={0.7}
+                            >
+                                <MaterialIcons
+                                    name="refresh"
+                                    size={16}
+                                    color={colors.textSecondary}
+                                />
+                                <Text style={[styles.regenerateText, { color: colors.textSecondary }]}>
+                                    {isRegenerating ? 'Đang tạo...' : 'Tạo link mới'}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
             </ScrollView>
 
             {/* Footer CTA */}
@@ -203,9 +325,9 @@ export function ChannelInfoScreen() {
                         />
                         <Text style={styles.ctaText}>
                             {joinChannelMutation.isPending
-                                ? 'Äang xá»­ lÃ½...'
+                                ? 'Đang xử lý...'
                                 : channelInfo.isJoined
-                                    ? 'VÃ o chat'
+                                    ? 'Vào chat'
                                     : 'Tham gia chat'}
                         </Text>
                     </LinearGradient>
@@ -309,6 +431,62 @@ const styles = StyleSheet.create({
     },
     membersRow: {
         alignItems: 'flex-start',
+    },
+    // Invite link styles
+    inviteContainer: {
+        marginHorizontal: Spacing.md,
+        marginTop: Spacing.md,
+        padding: Spacing.md,
+        borderRadius: BorderRadius.lg,
+    },
+    inviteHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        marginBottom: Spacing.md,
+    },
+    inviteTitle: {
+        fontSize: Typography.sizes.base,
+        fontWeight: Typography.weights.semibold,
+    },
+    inviteLinkBox: {
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.md,
+        marginBottom: Spacing.md,
+    },
+    inviteLinkText: {
+        fontSize: Typography.sizes.sm,
+        fontFamily: 'monospace',
+    },
+    inviteActions: {
+        flexDirection: 'row',
+        gap: Spacing.sm,
+    },
+    inviteActionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.md,
+        gap: Spacing.xs,
+    },
+    inviteActionText: {
+        color: '#FFFFFF',
+        fontSize: Typography.sizes.sm,
+        fontWeight: Typography.weights.medium,
+    },
+    regenerateButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: Spacing.md,
+        paddingVertical: Spacing.xs,
+        gap: 4,
+    },
+    regenerateText: {
+        fontSize: Typography.sizes.sm,
     },
     footer: {
         position: 'absolute',

@@ -1,10 +1,13 @@
 /**
  * ChooseChannelSheet Component
  * Bottom sheet for selecting a Channel when creating a post
+ * Uses real API to fetch user's channels
  */
 
+import { useChannelConversations } from '@/features/chat/hooks/useConversations';
 import { BorderRadius, Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
+import type { ConversationResponse } from '@/shared/types/backend.types';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import BottomSheet, {
     BottomSheetBackdrop,
@@ -12,33 +15,57 @@ import BottomSheet, {
     BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import React, { forwardRef, useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import {
-    ChannelForSelection,
-    MOCK_JOINED_CHANNELS,
-    MOCK_MY_CHANNELS,
-} from '../types/createPost.types';
-import { SegmentedTabs, TabItem } from './SegmentedTabs';
-
-type ChannelSubTab = 'mine' | 'joined';
-
-const CHANNEL_TABS: TabItem<ChannelSubTab>[] = [
-    { key: 'mine', label: 'Của tôi' },
-    { key: 'joined', label: 'Đã tham gia' },
-];
+import type { ChannelForSelection } from '../types/createPost.types';
 
 export interface ChooseChannelSheetProps {
     onSelect: (channel: ChannelForSelection) => void;
+}
+
+/**
+ * Map ConversationResponse to ChannelForSelection
+ */
+function mapConversationToChannel(conversation: ConversationResponse): ChannelForSelection {
+    return {
+        id: conversation.id || '',
+        name: conversation.name || 'Channel',
+        description: '',
+        memberCount: 0, // Not available in ConversationResponse
+        avatarUrl: conversation.avatarUrl,
+        emoji: undefined,
+        lastActive: formatLastActive(conversation.lastMessageTime),
+    };
+}
+
+function formatLastActive(timestamp: string | undefined): string {
+    if (!timestamp) return 'Chưa có hoạt động';
+
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+        return 'Hôm nay';
+    } else if (diffDays === 1) {
+        return 'Hôm qua';
+    } else if (diffDays < 7) {
+        return `${diffDays} ngày trước`;
+    } else {
+        return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    }
 }
 
 export const ChooseChannelSheet = forwardRef<BottomSheet, ChooseChannelSheetProps>(
     ({ onSelect }, ref) => {
         const colorScheme = useColorScheme() ?? 'light';
         const colors = Colors[colorScheme];
-
-        const [activeTab, setActiveTab] = useState<ChannelSubTab>('mine');
         const [searchQuery, setSearchQuery] = useState('');
+
+        // Fetch user's channel conversations from API
+        const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+            useChannelConversations({ size: 50 });
 
         const snapPoints = useMemo(() => ['70%', '90%'], []);
 
@@ -54,44 +81,55 @@ export const ChooseChannelSheet = forwardRef<BottomSheet, ChooseChannelSheetProp
             []
         );
 
-        const channels = activeTab === 'mine' ? MOCK_MY_CHANNELS : MOCK_JOINED_CHANNELS;
+        // Flatten paginated data and map to ChannelForSelection
+        const channels = useMemo<ChannelForSelection[]>(() => {
+            if (!data?.pages) return [];
+            const allConversations = data.pages.flatMap((page) => page?.content ?? []);
+            return allConversations.map(mapConversationToChannel);
+        }, [data]);
 
+        // Filter channels based on search query
         const filteredChannels = useMemo(() => {
             if (!searchQuery.trim()) return channels;
             const query = searchQuery.toLowerCase();
-            return channels.filter(
-                (c) =>
-                    c.name.toLowerCase().includes(query) ||
-                    c.description.toLowerCase().includes(query)
-            );
+            return channels.filter((c) => c.name.toLowerCase().includes(query));
         }, [channels, searchQuery]);
 
         const handleSelect = (channel: ChannelForSelection) => {
             onSelect(channel);
-            // Sheet will be closed by parent
+        };
+
+        const handleLoadMore = () => {
+            if (hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
+            }
         };
 
         const renderChannelItem = useCallback(
             ({ item }: { item: ChannelForSelection }) => (
                 <TouchableOpacity
-                    style={[
-                        styles.channelItem,
-                        { borderBottomColor: colors.border },
-                    ]}
+                    style={[styles.channelItem, { borderBottomColor: colors.border }]}
                     onPress={() => handleSelect(item)}
                     activeOpacity={0.7}
                 >
                     <View style={styles.channelLeft}>
-                        <View
-                            style={[
-                                styles.channelIcon,
-                                { backgroundColor: colors.chipBackground },
-                            ]}
-                        >
-                            <Text style={styles.channelEmoji}>
-                                {item.emoji || '#'}
-                            </Text>
-                        </View>
+                        {item.avatarUrl ? (
+                            <Image
+                                source={{ uri: item.avatarUrl }}
+                                style={styles.channelAvatar}
+                            />
+                        ) : (
+                            <View
+                                style={[
+                                    styles.channelIcon,
+                                    { backgroundColor: colors.chipBackground },
+                                ]}
+                            >
+                                <Text style={styles.channelEmoji}>
+                                    {item.emoji || '#'}
+                                </Text>
+                            </View>
+                        )}
                         <View style={styles.channelInfo}>
                             <Text
                                 style={[styles.channelName, { color: colors.textPrimary }]}
@@ -103,7 +141,7 @@ export const ChooseChannelSheet = forwardRef<BottomSheet, ChooseChannelSheetProp
                                 style={[styles.channelMeta, { color: colors.textSecondary }]}
                                 numberOfLines={1}
                             >
-                                {item.memberCount.toLocaleString()} thành viên · {item.lastActive}
+                                {item.lastActive}
                             </Text>
                         </View>
                     </View>
@@ -116,6 +154,15 @@ export const ChooseChannelSheet = forwardRef<BottomSheet, ChooseChannelSheetProp
             ),
             [colors, handleSelect]
         );
+
+        const renderFooter = () => {
+            if (!isFetchingNextPage) return null;
+            return (
+                <View style={styles.loadingFooter}>
+                    <ActivityIndicator size="small" color={colors.actionBlue} />
+                </View>
+            );
+        };
 
         return (
             <BottomSheet
@@ -136,15 +183,6 @@ export const ChooseChannelSheet = forwardRef<BottomSheet, ChooseChannelSheetProp
                     </Text>
                 </View>
 
-                {/* Inner Tabs */}
-                <View style={styles.tabsContainer}>
-                    <SegmentedTabs
-                        tabs={CHANNEL_TABS}
-                        activeTab={activeTab}
-                        onTabChange={setActiveTab}
-                    />
-                </View>
-
                 {/* Search */}
                 <View style={styles.searchContainer}>
                     <View
@@ -156,11 +194,7 @@ export const ChooseChannelSheet = forwardRef<BottomSheet, ChooseChannelSheetProp
                             },
                         ]}
                     >
-                        <MaterialIcons
-                            name="search"
-                            size={20}
-                            color={colors.textSecondary}
-                        />
+                        <MaterialIcons name="search" size={20} color={colors.textSecondary} />
                         <BottomSheetTextInput
                             style={[styles.searchInput, { color: colors.text }]}
                             placeholder="Tìm Channel…"
@@ -172,20 +206,39 @@ export const ChooseChannelSheet = forwardRef<BottomSheet, ChooseChannelSheetProp
                 </View>
 
                 {/* Channel List */}
-                <BottomSheetFlatList<ChannelForSelection>
-                    data={filteredChannels}
-                    keyExtractor={(item: ChannelForSelection) => item.id}
-                    renderItem={renderChannelItem}
-                    contentContainerStyle={styles.listContent}
-                    showsVerticalScrollIndicator={false}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                                Không tìm thấy Channel
-                            </Text>
-                        </View>
-                    }
-                />
+                {isLoading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={colors.actionBlue} />
+                        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                            Đang tải Channel...
+                        </Text>
+                    </View>
+                ) : (
+                    <BottomSheetFlatList<ChannelForSelection>
+                        data={filteredChannels}
+                        keyExtractor={(item: ChannelForSelection) => item.id}
+                        renderItem={renderChannelItem}
+                        contentContainerStyle={styles.listContent}
+                        showsVerticalScrollIndicator={false}
+                        onEndReached={handleLoadMore}
+                        onEndReachedThreshold={0.5}
+                        ListFooterComponent={renderFooter}
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <MaterialIcons
+                                    name="group"
+                                    size={48}
+                                    color={colors.textSecondary}
+                                />
+                                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                                    {searchQuery
+                                        ? 'Không tìm thấy Channel'
+                                        : 'Bạn chưa tham gia Channel nào'}
+                                </Text>
+                            </View>
+                        }
+                    />
+                )}
             </BottomSheet>
         );
     }
@@ -213,13 +266,9 @@ const styles = StyleSheet.create({
         fontWeight: Typography.weights.semibold,
         textAlign: 'center',
     },
-    tabsContainer: {
-        paddingHorizontal: Spacing.screenPadding,
-        paddingVertical: Spacing.sm,
-    },
     searchContainer: {
         paddingHorizontal: Spacing.screenPadding,
-        paddingBottom: Spacing.sm,
+        paddingVertical: Spacing.sm,
     },
     searchInputContainer: {
         flexDirection: 'row',
@@ -252,6 +301,11 @@ const styles = StyleSheet.create({
         flex: 1,
         gap: Spacing.sm + 4,
     },
+    channelAvatar: {
+        width: 44,
+        height: 44,
+        borderRadius: BorderRadius.lg,
+    },
     channelIcon: {
         width: 44,
         height: 44,
@@ -274,10 +328,25 @@ const styles = StyleSheet.create({
         fontSize: Typography.sizes.sm,
     },
     emptyContainer: {
-        paddingVertical: Spacing.xl,
+        paddingVertical: Spacing.xl * 2,
         alignItems: 'center',
+        gap: Spacing.sm,
     },
     emptyText: {
         fontSize: Typography.sizes.base,
+        textAlign: 'center',
+    },
+    loadingContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.md,
+    },
+    loadingText: {
+        fontSize: Typography.sizes.base,
+    },
+    loadingFooter: {
+        paddingVertical: Spacing.md,
+        alignItems: 'center',
     },
 });

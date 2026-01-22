@@ -197,6 +197,7 @@ export const API_ENDPOINTS = {
     LIST: "/api/v1/posts",
     MY_POSTS: "/api/v1/posts/me",
     SAVED_POSTS: "/api/v1/posts/me/saved-posts",
+    BY_USER: (userId: number) => `/api/v1/posts/user/${userId}`,
     BY_ID: (id: number) => `/api/v1/posts/${id}`,
     COMMENTS: (postId: number) => `/api/v1/posts/${postId}/comments`,
     SAVE: (postId: number) => `/api/v1/posts/${postId}/save`,
@@ -278,6 +279,16 @@ export const API_ENDPOINTS = {
       `/api/v1/channels/${channelId}/members/${memberId}`,
     JOIN_REQUESTS: (channelId: number) =>
       `/api/v1/channels/${channelId}/join-requests`,
+    UPDATE_MEMBER_ROLE: (channelId: number, memberId: number) =>
+      `/api/v1/channels/${channelId}/members/${memberId}/role`,
+    // Discovery & Invite
+    DISCOVER_PUBLIC: "/api/v1/channels/public",
+    BY_INVITE_CODE: (inviteCode: string) =>
+      `/api/v1/channels/invite/${inviteCode}`,
+    JOIN_BY_INVITE: (inviteCode: string) =>
+      `/api/v1/channels/invite/${inviteCode}/join`,
+    REGENERATE_INVITE: (channelId: number) =>
+      `/api/v1/channels/${channelId}/regenerate-invite`,
   },
 
   // ============================================

@@ -1,11 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
+import type { AddChannelMemberRequest, ParticipantRole } from '@/shared/types/backend.types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     channelsApi,
     type CreateChannelFormData,
-    type UpdateChannelFormData,
+    type DiscoverChannelsParams,
+    type UpdateChannelFormData
 } from '../api';
-import type { AddChannelMemberRequest } from '@/shared/types/backend.types';
 
 const STALE_TIME = 30 * 1000;
 
@@ -105,6 +106,27 @@ export function useRemoveChannelMember() {
     });
 }
 
+export function useUpdateMemberRole() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({
+            channelId,
+            memberId,
+            role,
+        }: {
+            channelId: number;
+            memberId: number;
+            role: ParticipantRole;
+        }) => channelsApi.updateMemberRole(channelId, memberId, role),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: queryKeys.channels.members(variables.channelId),
+            });
+        },
+    });
+}
+
 export function useChannelJoinRequests(channelId: number | undefined) {
     return useQuery({
         queryKey: queryKeys.channels.joinRequests(channelId!),
@@ -116,3 +138,56 @@ export function useChannelJoinRequests(channelId: number | undefined) {
         staleTime: STALE_TIME,
     });
 }
+
+// ==================== DISCOVERY & INVITE HOOKS ====================
+
+export function useDiscoverPublicChannels(params: DiscoverChannelsParams = {}) {
+    return useQuery({
+        queryKey: ['channels', 'public', params],
+        queryFn: async () => {
+            const response = await channelsApi.discoverPublicChannels(params);
+            return response.result ?? [];
+        },
+        staleTime: STALE_TIME,
+    });
+}
+
+export function useChannelByInviteCode(inviteCode: string | undefined) {
+    return useQuery({
+        queryKey: ['channels', 'invite', inviteCode],
+        queryFn: async () => {
+            const response = await channelsApi.getChannelByInviteCode(inviteCode!);
+            return response.result;
+        },
+        enabled: !!inviteCode,
+        staleTime: STALE_TIME,
+    });
+}
+
+export function useJoinByInviteCode() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (inviteCode: string) => channelsApi.joinByInviteCode(inviteCode),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.conversations.all });
+            queryClient.invalidateQueries({ queryKey: queryKeys.channels.all });
+        },
+    });
+}
+
+export function useRegenerateInviteCode() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (channelId: number) => channelsApi.regenerateInviteCode(channelId),
+        onSuccess: (_, channelId) => {
+            queryClient.invalidateQueries({
+                queryKey: queryKeys.channels.detail(channelId),
+            });
+        },
+    });
+}
+
+// Re-export types for convenience
+export type { ChannelCategory, DiscoverChannelsParams } from '../api';

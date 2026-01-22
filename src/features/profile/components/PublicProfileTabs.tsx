@@ -2,7 +2,7 @@
  * PublicProfileTabs Component
  * Tabs for posts and saved posts
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '@/shared/constants';
@@ -13,20 +13,30 @@ import type { PublicProfileTab } from '../types';
 interface PublicProfileTabsProps {
   activeTab: PublicProfileTab;
   onTabChange: (tab: PublicProfileTab) => void;
+  isOwnProfile?: boolean;
 }
 
-const TABS: { key: PublicProfileTab; label: string }[] = [
+const ALL_TABS: { key: PublicProfileTab; label: string }[] = [
   { key: 'posts', label: 'Bài viết của họ' },
   { key: 'saved', label: 'Bài viết đã lưu' },
 ];
 
-export function PublicProfileTabs({ activeTab, onTabChange }: PublicProfileTabsProps) {
+export function PublicProfileTabs({ activeTab, onTabChange, isOwnProfile }: PublicProfileTabsProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
+  // Only show "saved" tab for own profile (backend only returns current user's saved posts)
+  const tabs = useMemo(() => {
+    if (isOwnProfile) {
+      return ALL_TABS;
+    }
+    // For other users, only show their posts
+    return ALL_TABS.filter(tab => tab.key === 'posts');
+  }, [isOwnProfile]);
+
   return (
     <View style={[styles.container, { borderBottomColor: colors.borderLight }]}>
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const isActive = activeTab === tab.key;
         return (
           <Pressable

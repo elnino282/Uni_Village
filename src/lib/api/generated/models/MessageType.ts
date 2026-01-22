@@ -9,4 +9,5 @@ export enum MessageType {
     AUDIO = 'AUDIO',
     DOCUMENT = 'DOCUMENT',
     SHARED_POST = 'SHARED_POST',
+    SYSTEM = 'SYSTEM',
 }
