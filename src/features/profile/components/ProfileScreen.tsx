@@ -4,9 +4,9 @@ import { SaveSuccessModal } from "@/components/SaveSuccessModal";
 import { PostCard } from "@/features/community/components/PostCard";
 import { PostOwnerMenu } from "@/features/community/components/PostOwnerMenu";
 import {
-    useBlockPost,
-    useReportPost,
-    useSavePost,
+  useBlockPost,
+  useReportPost,
+  useSavePost,
 } from "@/features/community/hooks";
 import { useReportedPostsStore } from "@/features/community/services/reportedPostsStore";
 import type { PostLocation, PostVisibility } from "@/features/community/types";
@@ -19,21 +19,21 @@ import { showErrorToast } from "@/shared/utils";
 import { Href, router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  StyleSheet,
+  View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { s, vs } from "react-native-size-matters";
 import {
-    mapProfilePostToCommunityPost,
-    useMyPosts,
-    useMyProfile,
-    useProfileLikePost,
-    useProfileShareSheet,
+  mapProfilePostToCommunityPost,
+  useMyPosts,
+  useMyProfile,
+  useProfileLikePost,
+  useProfileShareSheet,
 } from "../hooks";
 import type { ProfilePost } from "../types";
 import { ProfileActionButtons } from "./ProfileActionButtons";
@@ -62,7 +62,7 @@ export function ProfileScreen() {
     useState(false);
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(
-    null
+    null,
   );
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
 
@@ -80,7 +80,7 @@ export function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       refetchPosts();
-    }, [refetchPosts])
+    }, [refetchPosts]),
   );
 
   // Mutations
@@ -91,7 +91,7 @@ export function ProfileScreen() {
   const { mutate: reportPost } = useReportPost();
   const { mutate: blockPost } = useBlockPost();
   const addReportedPost = useReportedPostsStore(
-    (state) => state.addReportedPost
+    (state) => state.addReportedPost,
   );
 
   // Profile share sheet
@@ -142,7 +142,7 @@ export function ProfileScreen() {
         setIsOwnerMenuOpen(true);
       }
     },
-    [posts, activeTab]
+    [posts, activeTab],
   );
 
   const handleCloseMenu = useCallback(() => {
@@ -164,7 +164,7 @@ export function ProfileScreen() {
         },
       });
     },
-    [savePost]
+    [savePost],
   );
 
   const handleUnsavePost = useCallback(
@@ -180,14 +180,14 @@ export function ProfileScreen() {
         },
       });
     },
-    [savePost, refetchPosts]
+    [savePost, refetchPosts],
   );
 
   const handleEditPost = useCallback(
     (postId: string) => {
       router.push({ pathname: "/post/edit", params: { postId } } as any);
     },
-    [router]
+    [router],
   );
 
   const handleEditPrivacy = useCallback(
@@ -205,7 +205,7 @@ export function ProfileScreen() {
         setIsEditPrivacyOpen(true);
       }
     },
-    [posts]
+    [posts],
   );
 
   const handleCloseEditPrivacy = useCallback(() => {
@@ -239,10 +239,10 @@ export function ProfileScreen() {
           onError: () => {
             showErrorToast("Không thể cập nhật quyền riêng tư");
           },
-        }
+        },
       );
     },
-    [posts, updatePost]
+    [posts, updatePost],
   );
 
   const handleLikePost = useCallback(
@@ -253,14 +253,14 @@ export function ProfileScreen() {
         },
       });
     },
-    [likePost]
+    [likePost],
   );
 
   const handleCommentPress = useCallback(
     (postId: string) => {
       router.push(`/post/${postId}` as any);
     },
-    [router]
+    [router],
   );
 
   const handleLocationPress = useCallback((location: PostLocation) => {
@@ -279,7 +279,7 @@ export function ProfileScreen() {
         router.push(`/profile/${authorId}` as any);
       }
     },
-    [router, profile?.userId]
+    [router, profile?.userId],
   );
 
   const handleReportPost = useCallback((postId: string) => {
@@ -304,11 +304,11 @@ export function ProfileScreen() {
               setIsReportModalOpen(false);
               setReportTargetId(null);
             },
-          }
+          },
         );
       }
     },
-    [reportTargetId, reportPost, addReportedPost, refetchPosts]
+    [reportTargetId, reportPost, addReportedPost, refetchPosts],
   );
 
   const handleBlockPost = useCallback(
@@ -320,7 +320,7 @@ export function ProfileScreen() {
         },
       });
     },
-    [blockPost, refetchPosts]
+    [blockPost, refetchPosts],
   );
 
   const handleMoveToTrash = useCallback(
@@ -329,24 +329,25 @@ export function ProfileScreen() {
         "Xóa bài viết",
         "Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.",
         [
-        { text: "Hủy", style: "cancel" },
-        {
-          text: "Xóa",
-          style: "destructive",
-          onPress: () => {
-            deletePost(Number(postId), {
-              onSuccess: () => {
-                refetchPosts();
-              },
-              onError: () => {
-                showErrorToast("Không thể xóa bài viết");
-              },
-            });
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Xóa",
+            style: "destructive",
+            onPress: () => {
+              deletePost(Number(postId), {
+                onSuccess: () => {
+                  refetchPosts();
+                },
+                onError: () => {
+                  showErrorToast("Không thể xóa bài viết");
+                },
+              });
+            },
           },
-        },
-      ]);
+        ],
+      );
     },
-    [deletePost, refetchPosts]
+    [deletePost, refetchPosts],
   );
 
   const renderPostItem = useCallback(
@@ -369,7 +370,7 @@ export function ProfileScreen() {
       handleCommentPress,
       handleLocationPress,
       handleAvatarPress,
-    ]
+    ],
   );
 
   const keyExtractor = useCallback((item: ProfilePost) => item.id, []);

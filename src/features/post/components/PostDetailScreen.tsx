@@ -6,14 +6,14 @@
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
-    Alert,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    View,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -23,12 +23,12 @@ import { LoadingScreen } from "@/shared/components/feedback";
 import { Colors, Shadows, Spacing, Typography } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import {
-    useCreateComment,
-    useDeletePost,
-    usePostComments,
-    usePostDetail,
-    useReportComment,
-    useUpdatePost,
+  useCreateComment,
+  useDeletePost,
+  usePostComments,
+  usePostDetail,
+  useReportComment,
+  useUpdatePost,
 } from "../hooks";
 import { useLikeComment, useLikePost } from "../hooks/useReactions";
 import type { CommentRequest, PostLocation, PostVisibility } from "../types";
@@ -40,15 +40,15 @@ import { EditPrivacySheet } from "@/features/community/components/EditPrivacyShe
 import { PostOverflowMenu } from "@/features/community/components/PostOverflowMenu";
 import { PostOwnerMenu } from "@/features/community/components/PostOwnerMenu";
 import {
-    useBlockPost,
-    useReportPost,
-    useSavePost,
+  useBlockPost,
+  useReportPost,
+  useSavePost,
 } from "@/features/community/hooks";
 import { ItineraryShareCard } from "@/features/itinerary/components/ItineraryShareCard";
 import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.types";
 import {
-    PostActionRow,
-    PostLocationDetailSheet,
+  PostActionRow,
+  PostLocationDetailSheet,
 } from "@/shared/components/post";
 import { PostType, Visibility } from "@/shared/types/backend.types";
 import { mapCommentResponseToComment } from "../adapters/commentAdapter";
