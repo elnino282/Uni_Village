@@ -13,7 +13,7 @@ import BottomSheet, {
 } from '@gorhom/bottom-sheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import {
     ItineraryForSelection,
@@ -155,11 +155,7 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
         };
 
         const renderStatusFilterChips = () => (
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterChipsContainer}
-            >
+            <View style={styles.filterChipsRow}>
                 {STATUS_FILTERS.map((filter) => {
                     const isActive = statusFilter === filter.key;
                     return (
@@ -170,7 +166,7 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
                                 {
                                     backgroundColor: isActive ? filter.bgColor : colors.chipBackground,
                                     borderColor: isActive ? filter.color : colors.border,
-                                    borderWidth: 1,
+                                    borderWidth: 1.5,
                                 },
                             ]}
                             onPress={() => setStatusFilter(filter.key)}
@@ -179,7 +175,10 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
                             <Text
                                 style={[
                                     styles.filterChipText,
-                                    { color: isActive ? filter.color : colors.textSecondary },
+                                    { 
+                                        color: isActive ? filter.color : colors.textSecondary,
+                                        fontWeight: isActive ? '600' : '500',
+                                    },
                                 ]}
                             >
                                 {filter.label}
@@ -187,7 +186,7 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
                         </TouchableOpacity>
                     );
                 })}
-            </ScrollView>
+            </View>
         );
 
         const renderItineraryItem = useCallback(
@@ -371,10 +370,10 @@ const styles = StyleSheet.create({
         fontWeight: Typography.weights.semibold,
         textAlign: 'center',
     },
-    filterChipsContainer: {
+    filterChipsRow: {
         flexDirection: 'row',
         paddingHorizontal: Spacing.screenPadding,
-        paddingVertical: Spacing.xs,
+        paddingVertical: Spacing.sm,
     },
     filterChip: {
         paddingHorizontal: Spacing.md,
