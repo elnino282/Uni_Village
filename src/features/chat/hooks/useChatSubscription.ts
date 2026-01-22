@@ -7,7 +7,11 @@ import { useCallback, useEffect, useRef } from "react";
 
 import { queryKeys } from "@/config/queryKeys";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import type { ChatMessageWsEvent, SeenEventData } from "@/lib/websocket";
+import type {
+    ChatMessageWsEvent,
+    SeenEventData,
+    WsMessageData,
+} from "@/lib/websocket";
 import { websocketService } from "@/lib/websocket";
 import type { MessageResponse } from "@/shared/types/backend.types";
 import type { Slice } from "@/shared/types/pagination.types";
@@ -164,8 +168,8 @@ export function useChatSubscription(conversationId: string | undefined) {
       switch (wsMessage.eventType) {
         case "SEND": {
           // Prepend new message to the first page
-          // Backend sends MessageResponse directly in data (not wrapped in .message)
-          const newMessage = wsMessage.data as MessageResponse;
+          // Backend sends WsMessageData directly in data (includes fileUrls for IMAGE)
+          const newMessage = wsMessage.data as WsMessageData;
           if (!newMessage || !newMessage.id) return;
 
           // Skip if not for this conversation
@@ -256,8 +260,8 @@ export function useChatSubscription(conversationId: string | undefined) {
 
         case "EDIT": {
           // Update edited message in cache
-          // Backend sends MessageResponse directly in data
-          const editedMessage = wsMessage.data as MessageResponse;
+          // Backend sends WsMessageData directly in data
+          const editedMessage = wsMessage.data as WsMessageData;
           if (!editedMessage || !editedMessage.id) return;
 
           queryClient.setQueryData<InfiniteMessagesData>(
@@ -280,8 +284,8 @@ export function useChatSubscription(conversationId: string | undefined) {
 
         case "UNSEND": {
           // Mark message as inactive or remove from cache
-          // Backend sends MessageResponse directly in data
-          const unsendMessage = wsMessage.data as MessageResponse;
+          // Backend sends WsMessageData directly in data
+          const unsendMessage = wsMessage.data as WsMessageData;
           if (!unsendMessage || !unsendMessage.id) return;
 
           queryClient.setQueryData<InfiniteMessagesData>(

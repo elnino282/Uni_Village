@@ -16,7 +16,8 @@ export type {
     WebSocketConfig,
     WebSocketEventType,
     WebSocketMessage,
-    WebSocketTopic
+    WebSocketTopic,
+    WsMessageData
 } from "./types";
 export { websocketService, WebSocketService } from "./websocketService";
 
