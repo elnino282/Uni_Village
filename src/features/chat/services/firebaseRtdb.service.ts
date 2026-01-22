@@ -154,6 +154,91 @@ export async function getConversation(
 }
 
 /**
+ * Ensure a conversation exists with the expected members and metadata.
+ * Safe to call repeatedly; only missing members/details are added.
+ */
+export async function ensureConversation(
+  conversationId: string,
+  data: {
+    type: "dm" | "group";
+    members: ConversationParticipant[];
+    name?: string;
+    avatarUrl?: string;
+  },
+): Promise<void> {
+  const conversationRef = ref(database, `conversations/${conversationId}`);
+  const snapshot = await get(conversationRef);
+  const now = Date.now();
+
+  const membersMap: Record<string, true> = {};
+  const memberDetails: Record<string, RtdbConversationMember> = {};
+
+  for (const member of data.members) {
+    if (!member.uid) continue;
+    membersMap[member.uid] = true;
+    memberDetails[member.uid] = {
+      displayName: member.displayName,
+      avatarUrl: member.avatarUrl,
+      legacyUserId: member.legacyUserId,
+      joinedAt: now,
+    };
+  }
+
+  const updates: Record<string, any> = {};
+
+  if (!snapshot.exists()) {
+    const conversationData: Omit<RtdbConversation, "id"> = {
+      type: data.type,
+      members: membersMap,
+      memberDetails,
+      name: data.name,
+      avatarUrl: data.avatarUrl,
+      createdAt: now,
+      updatedAt: now,
+    };
+    updates[`conversations/${conversationId}`] = conversationData;
+  } else {
+    const existing = snapshot.val() as Partial<RtdbConversation>;
+    const existingMembers = existing.members ?? {};
+
+    for (const member of data.members) {
+      if (!member.uid) continue;
+      if (!existingMembers[member.uid]) {
+        updates[`conversations/${conversationId}/members/${member.uid}`] = true;
+        updates[`conversations/${conversationId}/memberDetails/${member.uid}`] =
+          memberDetails[member.uid];
+      } else if (!existing.memberDetails?.[member.uid]) {
+        updates[`conversations/${conversationId}/memberDetails/${member.uid}`] =
+          memberDetails[member.uid];
+      }
+    }
+
+    if (!existing.type && data.type) {
+      updates[`conversations/${conversationId}/type`] = data.type;
+    }
+    if (!existing.name && data.name) {
+      updates[`conversations/${conversationId}/name`] = data.name;
+    }
+    if (!existing.avatarUrl && data.avatarUrl) {
+      updates[`conversations/${conversationId}/avatarUrl`] = data.avatarUrl;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updates[`conversations/${conversationId}/updatedAt`] = now;
+    }
+  }
+
+  for (const member of data.members) {
+    if (!member.uid) continue;
+    updates[`userConversations/${member.uid}/${conversationId}`] = true;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await update(ref(database), updates);
+  }
+}
+
+/**
  * Create or get an existing DM conversation between two users
  */
 export async function ensureDirectConversation(
@@ -815,6 +900,7 @@ export async function updateConversationMetadata(
 export default {
   // Conversations
   getConversation,
+  ensureConversation,
   ensureDirectConversation,
   createGroupConversation,
   subscribeToConversationList,

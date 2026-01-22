@@ -64,4 +64,10 @@ export const authApi = {
 
     changePassword: (data: ChangePasswordRequest): Promise<ApiResponse<string>> =>
         apiClient.post<ApiResponse<string>>(API_ENDPOINTS.USERS.CHANGE_PASSWORD, data),
+    getFirebaseToken: async (): Promise<string> => {
+        const response = await apiClient.get<ApiResponse<string>>(
+            API_ENDPOINTS.AUTH.FIREBASE_TOKEN
+        );
+        return response.result;
+    },
 };

@@ -7,8 +7,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { auth } from "@/lib/firebase";
+import { conversationsApi } from "../api";
 import {
-    ensureDirectConversation,
+    ensureConversation,
     isVirtualThreadId,
     sendSharedCardMessage as rtdbSendSharedCardMessage,
     type ConversationParticipant,
@@ -60,16 +61,39 @@ export function useSendSharedCard() {
       // Create conversation if it's a virtual thread
       let conversationId = threadId;
       if (isVirtualThreadId(threadId) && recipient) {
+        if (!recipient.legacyUserId) {
+          throw new Error("Missing recipient legacy user ID");
+        }
+
+        const response = await conversationsApi.getOrCreateDirect(
+          recipient.legacyUserId
+        );
+        const resolvedId = response.result?.conversationId;
+        if (!resolvedId) {
+          throw new Error("Failed to resolve conversation ID");
+        }
+
         const currentUserParticipant: ConversationParticipant = {
           uid: firebaseUser.uid,
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
           legacyUserId: user.id,
         };
-        conversationId = await ensureDirectConversation(
-          currentUserParticipant,
-          recipient,
-        );
+
+        await ensureConversation(resolvedId, {
+          type: "dm",
+          members: [
+            currentUserParticipant,
+            {
+              uid: recipient.legacyUserId.toString(),
+              displayName: recipient.displayName,
+              avatarUrl: recipient.avatarUrl,
+              legacyUserId: recipient.legacyUserId,
+            },
+          ],
+        });
+
+        conversationId = resolvedId;
       }
 
       const rtdbMessage = await rtdbSendSharedCardMessage(

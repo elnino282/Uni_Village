@@ -1,5 +1,5 @@
 import { auth } from '@/lib/firebase';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { authApi } from '../api';
 import { useAuthStore } from '../store/authStore';
 import type { ForgetPasswordRequest, LoginRequest, RegisterRequest, VerifyRequest } from '../types';
@@ -23,13 +23,22 @@ export const authService = {
             useAuthStore.getState().setUser(user);
             console.log('[Auth Service] User initialized:', { id: user.id, displayName: user.displayName });
 
-            // Sign in to Firebase anonymously for RTDB chat access
+            // Sign in to Firebase with a custom token tied to backend user ID
             try {
-                const firebaseUser = await signInAnonymously(auth);
-                console.log('[Auth Service] Firebase anonymous auth success:', firebaseUser.user.uid);
+                const firebaseToken = await authApi.getFirebaseToken();
+                const firebaseUser = await signInWithCustomToken(auth, firebaseToken);
+                console.log('[Auth Service] Firebase custom auth success:', firebaseUser.user.uid);
             } catch (firebaseError) {
-                console.error('[Auth Service] Firebase anonymous auth failed:', firebaseError);
-                // Non-blocking: Chat may not work, but login should still succeed
+                console.error('[Auth Service] Firebase custom auth failed:', firebaseError);
+
+                // Fallback to anonymous auth to avoid blocking login
+                try {
+                    const firebaseUser = await signInAnonymously(auth);
+                    console.log('[Auth Service] Firebase anonymous auth success:', firebaseUser.user.uid);
+                } catch (fallbackError) {
+                    console.error('[Auth Service] Firebase anonymous auth failed:', fallbackError);
+                    // Non-blocking: Chat may not work, but login should still succeed
+                }
             }
 
             return { success: true, message: 'Login successful' };

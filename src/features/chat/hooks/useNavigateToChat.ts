@@ -2,7 +2,8 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { auth } from '@/lib/firebase';
-import { buildDmConversationId, getConversation } from '../services';
+import { conversationsApi } from '../api';
+import { ensureConversation } from '../services/firebaseRtdb.service';
 import type { RelationshipStatus } from '../api/friends.api';
 import { useAuthStore } from '@/features/auth/store/authStore';
 
@@ -20,21 +21,39 @@ export function useNavigateToChat() {
             setIsNavigating(true);
 
             const currentUser = useAuthStore.getState().user;
-            const currentUid = auth.currentUser?.uid ?? currentUser?.id?.toString();
-            const peerUid = userId.toString();
+            const firebaseUser = auth.currentUser;
             let threadId = `user-${userId}`;
 
-            if (currentUid) {
-                const dmId = buildDmConversationId(currentUid, peerUid);
-                const existing = await getConversation(dmId);
-                if (existing) {
-                    threadId = dmId;
+            const response = await conversationsApi.getOrCreateDirect(userId);
+            const conversationId = response.result?.conversationId;
+
+            if (conversationId) {
+                threadId = conversationId;
+
+                if (currentUser && firebaseUser) {
+                    await ensureConversation(conversationId, {
+                        type: 'dm',
+                        members: [
+                            {
+                                uid: firebaseUser.uid,
+                                displayName: currentUser.displayName,
+                                avatarUrl: currentUser.avatarUrl,
+                                legacyUserId: currentUser.id,
+                            },
+                            {
+                                uid: userId.toString(),
+                                displayName: '',
+                                legacyUserId: userId,
+                            },
+                        ],
+                    });
                 }
             }
 
             router.push(`/chat/${threadId}` as any);
         } catch (error) {
             console.error('[useNavigateToChat] Error navigating to chat:', error);
+            router.push(`/chat/user-${userId}` as any);
         } finally {
             setIsNavigating(false);
         }

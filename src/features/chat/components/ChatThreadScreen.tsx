@@ -6,7 +6,7 @@
 import BottomSheet from "@gorhom/bottom-sheet";
 import * as ImagePicker from "expo-image-picker";
 import { router, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 
@@ -28,10 +28,11 @@ import {
   useSendSharedCard,
   useThread,
 } from "../hooks";
+import { conversationsApi } from "../api";
 import { useTypingIndicator } from "../hooks/useTypingIndicator";
-import { isVirtualThreadId } from "../services";
+import { fetchGroupMembers, isVirtualThreadId } from "../services";
 import {
-  ensureDirectConversation,
+  ensureConversation,
   type ConversationParticipant,
 } from "../services/firebaseRtdb.service";
 import type {
@@ -169,14 +170,17 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   const routerInstance = useRouter();
 
   const [attachments, setAttachments] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [rtdbConversationId, setRtdbConversationId] = useState<string | undefined>(undefined);
+  const [isRtdbReady, setIsRtdbReady] = useState(false);
 
   const itinerarySheetRef = useRef<BottomSheet>(null);
   const addMemberSheetRef = useRef<AddMemberBottomSheetRef>(null);
 
-  const currentUserId = useAuthStore(state => state.user?.id);
+  const currentUser = useAuthStore(state => state.user);
+  const currentUserId = currentUser?.id;
 
   const { data: thread, isLoading: isLoadingThread } = useThread(threadId);
-  const messagesQuery = useMessages(threadId);
+  const messagesQuery = useMessages(rtdbConversationId);
   const { mutateAsync: sendMessage } = useSendMessage();
   const { mutateAsync: sendWithFiles } = useSendMessageWithFiles();
   const { mutateAsync: sendSharedCard } = useSendSharedCard();
@@ -199,6 +203,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
     : undefined;
 
   const otherUserId = dmThread?.peer ? dmThread.peer.id : null;
+  const hasOtherUserId = typeof otherUserId === 'number' && otherUserId > 0;
   const relationshipStatus = dmThread?.relationshipStatus || 'NONE';
   const participantStatus = dmThread?.participantStatus || 'INBOX';
 
@@ -215,10 +220,10 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
     relationshipStatus !== 'ACCEPTED' &&
     relationshipStatus !== 'FRIEND';
 
-  const typingConversationId = useMemo(
-    () => (isVirtualThreadId(threadId) ? undefined : threadId),
-    [threadId]
-  );
+  const typingConversationId = useMemo(() => {
+    if (!isRtdbReady) return undefined;
+    return rtdbConversationId;
+  }, [isRtdbReady, rtdbConversationId]);
 
   const { sendTyping, stopTyping } = useTypingIndicator(typingConversationId);
 
@@ -234,6 +239,18 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
       throw new Error('Missing sender/recipient info for virtual thread');
     }
 
+    if (!recipient.legacyUserId) {
+      throw new Error('Missing recipient legacy user ID');
+    }
+
+    const response = await conversationsApi.getOrCreateDirect(
+      recipient.legacyUserId
+    );
+    const conversationId = response.result?.conversationId;
+    if (!conversationId) {
+      throw new Error('Failed to resolve conversation ID');
+    }
+
     const sender: ConversationParticipant = {
       uid: firebaseUser.uid,
       displayName: user.displayName,
@@ -241,7 +258,20 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
       legacyUserId: user.id,
     };
 
-    return ensureDirectConversation(sender, recipient);
+    await ensureConversation(conversationId, {
+      type: "dm",
+      members: [
+        sender,
+        {
+          uid: recipient.legacyUserId.toString(),
+          displayName: recipient.displayName,
+          avatarUrl: recipient.avatarUrl,
+          legacyUserId: recipient.legacyUserId,
+        },
+      ],
+    });
+
+    return conversationId;
   }, [recipient, threadId]);
 
   const handleSend = useCallback(
@@ -386,6 +416,91 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
     [sendTyping, stopTyping, typingConversationId]
   );
 
+  useEffect(() => {
+    let isActive = true;
+
+    const syncConversation = async () => {
+      setIsRtdbReady(false);
+      setRtdbConversationId(undefined);
+
+      if (!thread || isVirtualThreadId(threadId)) {
+        setRtdbConversationId(undefined);
+        return;
+      }
+
+      const firebaseUser = auth.currentUser;
+      if (!currentUser || !firebaseUser) {
+        return;
+      }
+
+      try {
+        if (isGroupThread(thread)) {
+          const members = await fetchGroupMembers(threadId);
+          const participants: ConversationParticipant[] = members.map((member) => ({
+            uid: member.id,
+            displayName: member.displayName,
+            avatarUrl: member.avatarUrl,
+            legacyUserId: Number(member.id),
+          }));
+
+          if (!participants.some((member) => member.uid === firebaseUser.uid)) {
+            participants.push({
+              uid: firebaseUser.uid,
+              displayName: currentUser.displayName,
+              avatarUrl: currentUser.avatarUrl,
+              legacyUserId: currentUser.id,
+            });
+          }
+
+          await ensureConversation(threadId, {
+            type: "group",
+            members: participants,
+            name: thread.name,
+            avatarUrl: thread.avatarUrl,
+          });
+        } else {
+          const peer = (thread as ChatThread).peer;
+          const peerUid = peer.uid ?? peer.id.toString();
+
+          if (!peerUid || peerUid === '0') {
+            return;
+          }
+
+          await ensureConversation(threadId, {
+            type: "dm",
+            members: [
+              {
+                uid: firebaseUser.uid,
+                displayName: currentUser.displayName,
+                avatarUrl: currentUser.avatarUrl,
+                legacyUserId: currentUser.id,
+              },
+              {
+                uid: peerUid,
+                displayName: peer.displayName,
+                avatarUrl: peer.avatarUrl,
+                legacyUserId: peer.id,
+              },
+            ],
+          });
+        }
+
+        if (isActive) {
+          setRtdbConversationId(threadId);
+          setIsRtdbReady(true);
+        }
+      } catch (error) {
+        console.error("[ChatThread] Failed to sync RTDB conversation:", error);
+      }
+    };
+
+    syncConversation();
+
+    return () => {
+      isActive = false;
+    };
+  }, [thread, threadId, currentUser]);
+
   if (isLoadingThread || !thread) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }] }>
@@ -407,14 +522,14 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
         <ChatHeader thread={thread} onInfoPress={handleInfoPress} />
       )}
 
-      {shouldShowMessageRequestBanner && otherUserId && (
+      {shouldShowMessageRequestBanner && hasOtherUserId && (
         <AcceptMessageRequestBanner
           conversationId={threadId}
           senderName={dmThread!.peer.displayName}
         />
       )}
 
-      {shouldShowAddFriendBanner && otherUserId && (
+      {shouldShowAddFriendBanner && hasOtherUserId && (
         <AddFriendBanner
           otherUserId={otherUserId}
           otherUserName={dmThread!.peer.displayName}

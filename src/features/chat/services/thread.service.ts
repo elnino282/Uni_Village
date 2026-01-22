@@ -6,6 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { profileApi } from '@/features/profile/api/profileApi';
+import type { ChannelResponse, ConversationResponse } from '@/shared/types/backend.types';
+import { channelsApi, conversationsApi } from '../api';
 import { auth } from '@/lib/firebase';
 import type { ChatThread, GroupThread, ThreadInfo, ThreadResponse } from '../types';
 import {
@@ -81,7 +83,7 @@ function mapConversationToThread(conversation: RtdbConversation): ChatThread {
         peer: {
             id: peerLegacyId ?? 0,
             uid: peerUid,
-            displayName: peerDetails?.displayName || 'Ngu?i dùng',
+            displayName: peerDetails?.displayName || 'Ngu?i d?ng',
             avatarUrl: peerDetails?.avatarUrl,
         },
         onlineStatus: 'offline',
@@ -97,9 +99,37 @@ function mapGroupConversationToThread(conversation: RtdbConversation): GroupThre
     return {
         id: conversation.id,
         type: 'group',
-        name: conversation.name || 'Kênh',
+        name: conversation.name || 'K?nh',
         avatarUrl: conversation.avatarUrl,
         memberCount,
+        onlineCount: 0,
+    };
+}
+
+function mapBackendConversationToThread(conversation: ConversationResponse): ChatThread {
+    return {
+        id: conversation.id || '',
+        type: 'dm',
+        peer: {
+            id: conversation.otherUserId ?? 0,
+            uid: conversation.otherUserId ? conversation.otherUserId.toString() : undefined,
+            displayName: conversation.name || 'Ngu?i d?ng',
+            avatarUrl: conversation.avatarUrl,
+        },
+        onlineStatus: 'offline',
+        onlineStatusText: 'Offline',
+        relationshipStatus: conversation.relationshipStatus ?? 'NONE',
+        participantStatus: conversation.participantStatus ?? 'INBOX',
+    };
+}
+
+function mapBackendChannelToThread(channel: ChannelResponse): GroupThread {
+    return {
+        id: channel.conversationId || '',
+        type: 'group',
+        name: channel.name || 'K?nh',
+        avatarUrl: channel.avatarUrl,
+        memberCount: channel.memberCount || 0,
         onlineCount: 0,
     };
 }
@@ -118,13 +148,33 @@ export async function fetchThread(conversationId: string): Promise<ThreadRespons
             return { thread: mapConversationToThread(conversation) };
         }
 
+        try {
+            const channelResponse = await channelsApi.getChannelByConversation(conversationId);
+            if (channelResponse.result) {
+                return { thread: mapBackendChannelToThread(channelResponse.result) };
+            }
+        } catch (error) {
+            console.error('[Thread Service] Error fetching channel thread:', error);
+        }
+
+        try {
+            const response = await conversationsApi.getPrivateConversations({ page: 0, size: 100 });
+            const conversations = response.result?.content || [];
+            const backendConversation = conversations.find((c) => c.id === conversationId);
+            if (backendConversation) {
+                return { thread: mapBackendConversationToThread(backendConversation) };
+            }
+        } catch (error) {
+            console.error('[Thread Service] Error fetching backend conversation:', error);
+        }
+
         return {
             thread: {
                 id: conversationId,
                 type: 'dm',
                 peer: {
                     id: 0,
-                    displayName: 'Ngu?i dùng',
+                    displayName: 'Ngu?i d?ng',
                     avatarUrl: undefined,
                 },
                 onlineStatus: 'offline',
@@ -141,7 +191,7 @@ export async function fetchThread(conversationId: string): Promise<ThreadRespons
                 type: 'dm',
                 peer: {
                     id: 0,
-                    displayName: 'Ngu?i dùng',
+                    displayName: 'Ngu?i d?ng',
                     avatarUrl: undefined,
                 },
                 onlineStatus: 'offline',
@@ -153,9 +203,6 @@ export async function fetchThread(conversationId: string): Promise<ThreadRespons
     }
 }
 
-/**
- * Fetch virtual thread metadata from user profile
- */
 export async function fetchVirtualThread(userId: number): Promise<ThreadResponse> {
     try {
         const profile = await profileApi.getProfile(userId);
@@ -204,6 +251,12 @@ export async function fetchGroupThread(conversationId: string): Promise<ThreadRe
         if (conversation && conversation.type === 'group') {
             return { thread: mapGroupConversationToThread(conversation) };
         }
+
+        const response = await channelsApi.getChannelByConversation(conversationId);
+        if (response.result) {
+            return { thread: mapBackendChannelToThread(response.result) };
+        }
+
         return null;
     } catch (error) {
         console.error('[Thread Service] Error fetching group thread:', error);
