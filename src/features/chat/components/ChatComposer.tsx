@@ -4,23 +4,27 @@
  * Matches Figma node 317:2269
  */
 import { Feather, Ionicons } from '@expo/vector-icons';
+import type { ImagePickerAsset } from 'expo-image-picker';
 import React, { useState } from 'react';
 import {
-    Pressable,
-    StyleSheet,
-    TextInput,
-    View,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
+import { FileAttachmentThumbnails } from './FileAttachmentThumbnails';
 
 interface ChatComposerProps {
   onSend: (text: string) => void;
   onImagePress?: () => void;
   onCalendarPress?: () => void;
   isSending?: boolean;
+  attachments?: ImagePickerAsset[];
+  onRemoveAttachment?: (uri: string) => void;
 }
 
 /**
@@ -31,6 +35,8 @@ export function ChatComposer({
   onImagePress,
   onCalendarPress,
   isSending,
+  attachments = [],
+  onRemoveAttachment,
 }: ChatComposerProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
@@ -38,10 +44,17 @@ export function ChatComposer({
   const [text, setText] = useState('');
 
   const handleSend = () => {
-    const trimmedText = text.trim();
-    if (trimmedText && !isSending) {
-      onSend(trimmedText);
+    // Allow sending attachments without text
+    if (attachments.length > 0) {
+      onSend(text.trim());
       setText('');
+    } else {
+      // Require text if no attachments
+      const trimmedText = text.trim();
+      if (trimmedText && !isSending) {
+        onSend(trimmedText);
+        setText('');
+      }
     }
   };
 
@@ -53,7 +66,7 @@ export function ChatComposer({
     onCalendarPress?.();
   };
 
-  const canSend = text.trim().length > 0 && !isSending;
+  const canSend = (text.trim().length > 0 || attachments.length > 0) && !isSending;
 
   return (
     <View
@@ -66,6 +79,10 @@ export function ChatComposer({
         },
       ]}
     >
+      <FileAttachmentThumbnails
+        attachments={attachments}
+        onRemove={onRemoveAttachment!}
+      />
       <View style={styles.content}>
         {/* Image attachment button */}
         <Pressable
