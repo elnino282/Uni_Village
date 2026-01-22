@@ -27,6 +27,7 @@ function mapPostResponseToProfilePost(post: PostResponse): ProfilePost {
     content: post.content ?? "",
     imageUrl: post.mediaUrls?.[0], // Use first image as main image
     createdAt: post.createdAt ?? new Date().toISOString(),
+    visibility: post.visibility, // PUBLIC, PRIVATE, FRIENDS
     locations:
       post.locations?.map((loc) => ({
         id: String(loc.id ?? ""),

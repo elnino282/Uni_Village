@@ -6,7 +6,7 @@ import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { showErrorToast } from "@/shared/utils";
-import { Href, router } from "expo-router";
+import { Href, router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -51,6 +51,13 @@ export function ProfileScreen() {
     isLoading: isPostsLoading,
     refetch: refetchPosts,
   } = useMyPosts(activeTab);
+
+  // Refetch posts when screen is focused (e.g., after editing a post)
+  useFocusEffect(
+    useCallback(() => {
+      refetchPosts();
+    }, [refetchPosts])
+  );
 
   // Mutations
   const { mutate: savePost } = useSavePost();
@@ -178,6 +185,7 @@ export function ProfileScreen() {
         {
           onSuccess: () => {
             setIsEditPrivacyOpen(false);
+            // Refetch to get updated post with new visibility
             refetchPosts();
           },
           onError: () => {

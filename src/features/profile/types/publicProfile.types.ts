@@ -32,6 +32,7 @@ export interface ProfilePost {
   content: string;
   imageUrl?: string;
   createdAt: string;
+  visibility?: string; // PUBLIC, PRIVATE, FRIENDS
   locations: ProfilePostLocation[];
   reactions: ProfilePostReactions;
 }

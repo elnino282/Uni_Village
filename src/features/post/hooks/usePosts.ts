@@ -381,6 +381,13 @@ export function useUpdatePost() {
                     queryKeys.posts.detail(variables.postId),
                     updatedPost
                 );
+                // Invalidate profile posts to reflect updates in ProfileScreen
+                queryClient.invalidateQueries({
+                    predicate: (query) => {
+                        const key = query.queryKey;
+                        return Array.isArray(key) && key[0] === 'myPosts';
+                    },
+                });
             }
         },
     });
