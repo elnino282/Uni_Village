@@ -92,10 +92,16 @@ function mapMessageResponse(
   const isUnsent = msg.isActive === false;
 
   if (msg.messageType === MessageType.IMAGE) {
-    // Read from attachments array (backend MediaAttachmentResponse structure)
-    const attachments = (msg as { attachments?: AttachmentResponse[] })
-      .attachments;
-    const imageUrl = attachments?.[0]?.fileUrl;
+    // Support multiple data structures:
+    // 1. Backend WebSocket/API: fileUrls: string[] (from FileMessageResponse)
+    // 2. Legacy: attachments[].fileUrl (from older API)
+    // 3. Optimistic: fileUrls: [localUri]
+    const msgAny = msg as any;
+    const fileUrls = msgAny.fileUrls as string[] | undefined;
+    const attachments = msgAny.attachments as AttachmentResponse[] | undefined;
+
+    // Try fileUrls first (current backend format), then attachments (legacy)
+    const imageUrl = fileUrls?.[0] ?? attachments?.[0]?.fileUrl;
 
     // Graceful fallback when image URL missing
     if (!imageUrl) {

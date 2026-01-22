@@ -3,6 +3,15 @@ import type {
     MessageType,
 } from "@/shared/types/backend.types";
 
+/**
+ * Combined message response type for WebSocket events.
+ * Backend may send either MessageResponse or FileMessageResponse
+ * depending on messageType (TEXT vs IMAGE/FILE).
+ */
+export type WsMessageData = MessageResponse & {
+  fileUrls?: string[];
+};
+
 export type WebSocketEventType =
   | "SEND"
   | "EDIT"
@@ -64,9 +73,9 @@ export interface SeenEventData {
  * Backend sends data directly in wsMessage.data (not wrapped in .message)
  */
 export type ChatMessageWsEvent =
-  | { eventType: "SEND"; data: MessageResponse }
-  | { eventType: "EDIT"; data: MessageResponse }
-  | { eventType: "UNSEND"; data: MessageResponse }
+  | { eventType: "SEND"; data: WsMessageData }
+  | { eventType: "EDIT"; data: WsMessageData }
+  | { eventType: "UNSEND"; data: WsMessageData }
   | { eventType: "SEEN"; data: SeenEventData };
 
 export type WebSocketTopic =
