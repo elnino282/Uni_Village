@@ -34,7 +34,32 @@ interface OptimisticMessage extends MessageResponse {
     _error?: string;
 }
 
-const ACK_TIMEOUT = 5000;
+function dedupePagesById(pages: Slice<MessageResponse>[]) {
+    const seen = new Set<number>();
+
+    return pages.map((page) => {
+        const filtered = page.content.filter((msg) => {
+            if (msg.id == null) return true;
+            if (seen.has(msg.id)) return false;
+            seen.add(msg.id);
+            return true;
+        });
+
+        if (filtered.length === page.content.length) {
+            return page;
+        }
+
+        return {
+            ...page,
+            content: filtered,
+            numberOfElements: filtered.length,
+            empty: filtered.length === 0,
+        };
+    });
+}
+
+const FALLBACK_TIMEOUT_MS = 15000;
+const CACHE_MATCH_WINDOW_MS = 20000;
 
 export function useSendMessageHybrid() {
     const queryClient = useQueryClient();
@@ -119,7 +144,7 @@ export function useSendMessageHybrid() {
                     }),
                 }));
 
-                return { ...oldData, pages: newPages };
+                return { ...oldData, pages: dedupePagesById(newPages) };
             });
         },
         [queryClient]
@@ -241,6 +266,7 @@ export function useSendMessageHybrid() {
             addPendingMessage({
                 clientMessageId,
                 recipientId: input.recipientId || 0,
+                conversationId: input.threadId,
                 content: input.text,
                 replyToId: input.replyToId,
             });
@@ -258,20 +284,96 @@ export function useSendMessageHybrid() {
             }
 
             console.log('[Hybrid Send] Attempting WebSocket send:', clientMessageId);
+            const sentAt = Date.now();
 
-            websocketService.sendChatMessage({
+            const receiptId = `msg-${clientMessageId}`;
+            websocketService.watchForReceipt(receiptId, () => {
+                handleAck({
+                    clientMessageId,
+                    status: 'DELIVERED',
+                    conversationId: input.threadId,
+                });
+            });
+
+            const wsSent = websocketService.sendChatMessage({
                 recipientId: input.recipientId,
                 content: input.text,
                 clientMessageId,
                 replyToId: input.replyToId,
-            });
+            }, { receiptId });
+
+            if (!wsSent) {
+                return sendViaHTTP(input, clientMessageId);
+            }
+
+            const findMatchingMessageInCache = () => {
+                const cached = queryClient.getQueryData<InfiniteMessagesData>(queryKey);
+                if (!cached?.pages?.length) return undefined;
+
+                const allMessages = cached.pages.flatMap((page) => page.content);
+                const byClientId = allMessages.find((msg) => {
+                    const payload = msg as MessageResponse & {
+                        clientMessageId?: string;
+                        _clientMessageId?: string;
+                    };
+                    return (
+                        payload.clientMessageId === clientMessageId ||
+                        payload._clientMessageId === clientMessageId
+                    );
+                });
+
+                if (byClientId) return byClientId;
+
+                const candidates = allMessages
+                    .filter(
+                        (msg) =>
+                            msg.senderId === input.senderInfo.id &&
+                            msg.content === input.text &&
+                            (msg.replyToId ?? null) === (input.replyToId ?? null)
+                    )
+                    .map((msg) => {
+                        const timestamp = Date.parse(msg.timestamp);
+                        if (!Number.isFinite(timestamp)) return null;
+                        return { msg, delta: Math.abs(timestamp - sentAt) };
+                    })
+                    .filter((candidate): candidate is { msg: MessageResponse; delta: number } => {
+                        return !!candidate && candidate.delta <= CACHE_MATCH_WINDOW_MS;
+                    })
+                    .sort((a, b) => a.delta - b.delta);
+
+                return candidates[0]?.msg;
+            };
 
             return new Promise<MessageResponse>((resolve, reject) => {
                 let resolved = false;
 
                 const timeout = setTimeout(async () => {
                     if (resolved) return;
-                    console.log('[Hybrid Send] ACK timeout, falling back to HTTP:', clientMessageId);
+                    const pending = useChatStore.getState().pendingMessages.get(clientMessageId);
+
+                    if (!pending) {
+                        return;
+                    }
+
+                    const cachedMessage = findMatchingMessageInCache();
+                    if (cachedMessage) {
+                        handleAck({
+                            clientMessageId,
+                            status: 'DELIVERED',
+                            conversationId: input.threadId,
+                        });
+                        replaceOptimisticWithReal(input.threadId, clientMessageId, cachedMessage);
+                        updateOptimisticStatus(input.threadId, clientMessageId, 'sent');
+                        pendingTimeoutsRef.current.delete(clientMessageId);
+                        resolved = true;
+                        resolve(cachedMessage);
+                        return;
+                    }
+
+                    console.log(
+                        '[Hybrid Send] No WS ACK/message, falling back to HTTP:',
+                        clientMessageId
+                    );
                     pendingTimeoutsRef.current.delete(clientMessageId);
                     resolved = true;
 
@@ -281,7 +383,7 @@ export function useSendMessageHybrid() {
                     } catch (error) {
                         reject(error);
                     }
-                }, ACK_TIMEOUT);
+                }, FALLBACK_TIMEOUT_MS);
 
                 pendingTimeoutsRef.current.set(clientMessageId, timeout);
 

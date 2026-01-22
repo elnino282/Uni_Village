@@ -26,6 +26,7 @@ export interface TypingUserInfo {
 export interface PendingMessage {
     clientMessageId: string;
     recipientId: number;
+    conversationId?: string;
     content: string;
     replyToId?: number;
     timestamp: number;

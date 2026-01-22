@@ -1,4 +1,4 @@
-import { Client, IMessage, StompConfig } from "@stomp/stompjs";
+import { Client, IMessage, StompConfig, type StompHeaders } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import type {
     StompSubscription,
@@ -49,7 +49,14 @@ class ErrorRateLimiter {
 
 class StompClientService {
   private client: Client | null = null;
-  private subscriptions: Map<string, StompSubscription> = new Map();
+  private destinationSubscriptions: Map<
+    string,
+    {
+      subscription: StompSubscription;
+      handlers: Map<string, (message: WebSocketMessage<unknown>) => void>;
+    }
+  > = new Map();
+  private handlerToDestination: Map<string, string> = new Map();
   private isConnecting = false;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
@@ -117,6 +124,8 @@ class StompClientService {
         onDisconnect: () => {
           console.log("[STOMP] Disconnected");
           this.isConnecting = false;
+          this.destinationSubscriptions.clear();
+          this.handlerToDestination.clear();
           config.onDisconnect?.();
         },
         onStompError: (frame) => {
@@ -208,8 +217,11 @@ class StompClientService {
 
   disconnect(): void {
     if (this.client) {
-      this.subscriptions.forEach((sub) => sub.unsubscribe());
-      this.subscriptions.clear();
+      this.destinationSubscriptions.forEach((entry) =>
+        entry.subscription.unsubscribe(),
+      );
+      this.destinationSubscriptions.clear();
+      this.handlerToDestination.clear();
       this.client.deactivate();
       this.client = null;
     }
@@ -225,15 +237,53 @@ class StompClientService {
       return null;
     }
 
+    const handlerId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const existing = this.destinationSubscriptions.get(destination);
+
+    if (existing) {
+      existing.handlers.set(
+        handlerId,
+        callback as (message: WebSocketMessage<unknown>) => void,
+      );
+      this.handlerToDestination.set(handlerId, destination);
+      return {
+        id: handlerId,
+        topic: destination,
+        unsubscribe: () => {
+          this.unsubscribe(handlerId);
+        },
+      };
+    }
+
+    const handlers = new Map<string, (message: WebSocketMessage<unknown>) => void>();
+    handlers.set(
+      handlerId,
+      callback as (message: WebSocketMessage<unknown>) => void,
+    );
+
     const subscription = this.client.subscribe(
       destination,
       (message: IMessage) => {
+        let parsedMessage: WebSocketMessage<unknown> | null = null;
         try {
-          const parsedMessage = JSON.parse(message.body) as WebSocketMessage<T>;
-          callback(parsedMessage);
+          parsedMessage = JSON.parse(message.body) as WebSocketMessage<unknown>;
         } catch (error) {
           console.error("[STOMP] Failed to parse message:", error);
+          return;
         }
+
+        const entry = this.destinationSubscriptions.get(destination);
+        if (!entry) {
+          return;
+        }
+
+        entry.handlers.forEach((handler) => {
+          try {
+            handler(parsedMessage as WebSocketMessage<T>);
+          } catch (error) {
+            console.error("[STOMP] Handler error:", error);
+          }
+        });
       },
     );
 
@@ -242,15 +292,25 @@ class StompClientService {
       topic: destination,
       unsubscribe: () => {
         subscription.unsubscribe();
-        this.subscriptions.delete(subscription.id);
       },
     };
 
-    this.subscriptions.set(subscription.id, stompSub);
-    return stompSub;
+    this.destinationSubscriptions.set(destination, {
+      subscription: stompSub,
+      handlers,
+    });
+    this.handlerToDestination.set(handlerId, destination);
+
+    return {
+      id: handlerId,
+      topic: destination,
+      unsubscribe: () => {
+        this.unsubscribe(handlerId);
+      },
+    };
   }
 
-  send(destination: string, body: any): void {
+  send(destination: string, body: any, headers?: StompHeaders): void {
     if (!this.client?.connected) {
       console.warn("[STOMP] Cannot send - not connected");
       return;
@@ -259,7 +319,18 @@ class StompClientService {
     this.client.publish({
       destination,
       body: JSON.stringify(body),
+      headers,
     });
+  }
+
+  watchForReceipt(receiptId: string, callback: () => void): boolean {
+    if (!this.client?.connected) {
+      console.warn("[STOMP] Cannot watch receipt - not connected");
+      return false;
+    }
+
+    this.client.watchForReceipt(receiptId, callback);
+    return true;
   }
 
   isConnected(): boolean {
@@ -281,15 +352,32 @@ class StompClientService {
   }
 
   unsubscribe(subscriptionId: string): void {
-    const subscription = this.subscriptions.get(subscriptionId);
-    if (subscription) {
-      subscription.unsubscribe();
+    const destination = this.handlerToDestination.get(subscriptionId);
+    if (!destination) {
+      return;
+    }
+
+    const entry = this.destinationSubscriptions.get(destination);
+    if (!entry) {
+      this.handlerToDestination.delete(subscriptionId);
+      return;
+    }
+
+    entry.handlers.delete(subscriptionId);
+    this.handlerToDestination.delete(subscriptionId);
+
+    if (entry.handlers.size === 0) {
+      entry.subscription.unsubscribe();
+      this.destinationSubscriptions.delete(destination);
     }
   }
 
   unsubscribeAll(): void {
-    this.subscriptions.forEach((sub) => sub.unsubscribe());
-    this.subscriptions.clear();
+    this.destinationSubscriptions.forEach((entry) =>
+      entry.subscription.unsubscribe(),
+    );
+    this.destinationSubscriptions.clear();
+    this.handlerToDestination.clear();
   }
 }
 
