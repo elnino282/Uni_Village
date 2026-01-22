@@ -3,8 +3,6 @@ export { useAddChannelMembers, useChannel, useChannelByConversation, useChannelJ
 export { useAcceptJoinRequest, useChannelConversations, useConversationMedia, useCreatePrivateConversation, useJoinConversation, usePrivateConversations, useRejectJoinRequest } from './useConversations';
 export * from './useCreateChannel';
 export * from './useDeleteConversation';
-export * from './useFriendRequests';
-export * from './useFriends';
 export * from './useGlobalWebSocketSubscriptions';
 export * from './useGroupMembers';
 export * from './useMessageActions';
