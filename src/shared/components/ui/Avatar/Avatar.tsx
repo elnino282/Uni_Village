@@ -3,6 +3,7 @@
  * User avatar with fallback initials
  */
 
+import { getImageUrl } from "@/shared/utils/imageUtils";
 import { Image } from "expo-image";
 import { useCallback } from "react";
 import {
@@ -91,15 +92,15 @@ export function Avatar({
   const fontSize = FONT_SIZE_MAP[size];
 
   const getPressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [
-      pressed && styles.pressed,
-    ],
-    []
+    ({ pressed }: { pressed: boolean }) => [pressed && styles.pressed],
+    [],
   );
 
-  const avatarContent = source ? (
+  const absoluteUrl = getImageUrl(source);
+
+  const avatarContent = absoluteUrl ? (
     <Image
-      source={{ uri: source }}
+      source={{ uri: absoluteUrl }}
       style={[
         styles.image,
         {

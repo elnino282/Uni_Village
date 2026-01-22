@@ -87,10 +87,16 @@ export function SelectDestinationsScreen({
   const [selectedDestinations, setSelectedDestinations] = useState<
     SelectedDestination[]
   >([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Update selected destinations when nearbyPlaces load and existingDestinations are provided
   useEffect(() => {
-    if (isAddingToExisting && existingDestinations && nearbyPlaces.length > 0) {
+    if (
+      isAddingToExisting &&
+      existingDestinations &&
+      nearbyPlaces.length > 0 &&
+      !isInitialized
+    ) {
       const mapped = existingDestinations
         .map((dest) => {
           const place = nearbyPlaces.find((p) => p.id === dest.id);
@@ -111,8 +117,9 @@ export function SelectDestinationsScreen({
         })
         .filter((d): d is SelectedDestination => d !== null);
       setSelectedDestinations(mapped);
+      setIsInitialized(true);
     }
-  }, [isAddingToExisting, existingDestinations, nearbyPlaces]);
+  }, [isAddingToExisting, existingDestinations, nearbyPlaces.length, isInitialized]);
 
   // Store initial count to track if user made changes
   const initialDestinationCount = useRef(existingDestinations?.length || 0);
@@ -160,21 +167,12 @@ export function SelectDestinationsScreen({
     }));
   }, [filteredPlaces]);
 
-  // Create map of selected markers with their order
-  const selectedMarkersWithOrder = useMemo(() => {
-    const map = new Map<string, number>();
-    selectedDestinations.forEach((dest) => {
-      map.set(dest.place.id, dest.order);
-    });
-    return map;
-  }, [selectedDestinations]);
-
   const getDestinationOrder = useCallback(
     (placeId: string): number | null => {
       const dest = selectedDestinations.find((d) => d.place.id === placeId);
       return dest ? dest.order : null;
     },
-    [selectedDestinations],
+    [selectedDestinations.length], // Only depend on length to avoid infinite updates
   );
 
   const toggleDestination = useCallback((place: Place) => {
@@ -219,7 +217,8 @@ export function SelectDestinationsScreen({
 
   const handleMarkerPress = useCallback(
     (markerId: string) => {
-      const place = filteredPlaces.find((p) => p.id === markerId);
+      // Find place from nearbyPlaces instead of filteredPlaces to avoid re-renders
+      const place = nearbyPlaces.find((p) => p.id === markerId);
       if (place) {
         toggleDestination(place);
         mapRef.current?.animateToCoordinate({
@@ -228,7 +227,7 @@ export function SelectDestinationsScreen({
         });
       }
     },
-    [filteredPlaces, toggleDestination],
+    [toggleDestination, nearbyPlaces],
   );
 
   const handleSetTime = useCallback(
@@ -242,7 +241,7 @@ export function SelectDestinationsScreen({
         setShowTimePicker(true);
       }
     },
-    [selectedDestinations],
+    [], // Empty dependency array since we're just setting local state
   );
 
   const handleTimeConfirm = useCallback(() => {
