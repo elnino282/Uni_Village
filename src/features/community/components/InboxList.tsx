@@ -19,7 +19,8 @@ interface InboxListProps {
 }
 
 /**
- * FlatList of direct message conversations
+ * FlashList of direct message conversations
+ * Optimization: Replaced FlatList with FlashList for better performance with large lists
  */
 export function InboxList({ searchQuery }: InboxListProps) {
   const colorScheme = useColorScheme();
