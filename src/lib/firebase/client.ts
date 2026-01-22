@@ -6,12 +6,14 @@
 import { env } from '@/config/env';
 import { FirebaseApp, initializeApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
+import { Database, getDatabase } from 'firebase/database';
 import { Firestore, getFirestore } from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
     apiKey: env.FIREBASE_API_KEY,
     authDomain: env.FIREBASE_AUTH_DOMAIN,
+    databaseURL: env.FIREBASE_DATABASE_URL,
     projectId: env.FIREBASE_PROJECT_ID,
     storageBucket: env.FIREBASE_STORAGE_BUCKET,
     messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID,
@@ -24,6 +26,7 @@ export const firebaseApp: FirebaseApp = initializeApp(firebaseConfig);
 // Initialize Firebase services
 export const auth: Auth = getAuth(firebaseApp);
 export const firestore: Firestore = getFirestore(firebaseApp);
+export const database: Database = getDatabase(firebaseApp);
 
 /**
  * Helper to get current user
