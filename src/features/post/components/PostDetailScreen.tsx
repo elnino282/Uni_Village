@@ -172,31 +172,6 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
     setReplyingToId(commentId);
   }, []);
 
-  const handleReportComment = useCallback(
-    (commentId: string) => {
-      const id = parseInt(commentId, 10);
-      if (isNaN(id) || isReportingComment) return;
-
-      Alert.alert('Báo cáo bình luận', 'Bạn có chắc muốn báo cáo bình luận này?', [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Báo cáo',
-          onPress: () => {
-            reportComment(
-              { commentId: id, reason: 'Inappropriate content' },
-              {
-                onSuccess: () => {
-                  Alert.alert('Đã báo cáo', 'Cảm ơn bạn đã báo cáo bình luận này.');
-                },
-              }
-            );
-          },
-        },
-      ]);
-    },
-    [reportComment, isReportingComment]
-  );
-
   const handleSavePost = useCallback(
     (postIdOverride?: string) => {
       const targetPostId = postIdOverride ?? (post?.id ? String(post.id) : undefined);
