@@ -10,6 +10,7 @@ import {
   Share,
   StyleSheet,
   Text,
+  TextInput,
   View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
