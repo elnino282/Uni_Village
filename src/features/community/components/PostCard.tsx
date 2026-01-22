@@ -1,5 +1,11 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import { ItineraryShareCard } from "@/features/itinerary/components/ItineraryShareCard";
 import { ChannelInviteCard } from "@/shared/components/channel";
@@ -26,9 +32,8 @@ interface PostCardProps {
   onLocationPress?: (location: PostLocation) => void;
   onPress?: (postId: string) => void;
   onAvatarPress?: (authorId: string) => void;
-  onViewItineraryDetails?: () => void;
-  onOpenItinerary?: () => void;
-  onMessage?: () => void;
+  /** Called when user taps on itinerary card - navigate to SharedItineraryDetailScreen */
+  onOpenItinerary?: (itinerary: any) => void;
 }
 
 function TagChips({
@@ -68,20 +73,56 @@ export function PostCard({
   onLocationPress,
   onPress,
   onAvatarPress,
-  onViewItineraryDetails,
   onOpenItinerary,
-  onMessage,
 }: PostCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
 
-  const handlePress = () => {
-    // Don't navigate to post detail for special post types
-    // They have their own navigation in ItineraryShareCard and ChannelInviteCard
-    if (post.itineraryShare || post.channelInvite) {
-      return;
+  // Parse embedded itinerary data from content if present
+  const parseEmbeddedItinerary = (content: string) => {
+    const match = content.match(
+      /\[ITINERARY_SHARE\](.*?)\[\/ITINERARY_SHARE\]/s,
+    );
+    if (match) {
+      try {
+        const tripData = JSON.parse(match[1]);
+        const cleanContent = content
+          .replace(/\n*\[ITINERARY_SHARE\].*?\[\/ITINERARY_SHARE\]/s, "")
+          .trim();
+        // Convert to ItineraryShareData format with all required fields
+        const itineraryShare = {
+          id: tripData.id || String(Date.now()),
+          dayLabel: tripData.title || "Lịch trình",
+          date: tripData.date,
+          stopsCount: tripData.stopsCount || tripData.stops?.length || 0,
+          timeRange: tripData.timeRange || "",
+          tags: ["Lịch trình"],
+          stops: (tripData.stops || []).map((stop: any, index: number) => ({
+            id: stop.id || String(index),
+            time: stop.time || "",
+            name: stop.name,
+            address: tripData.area || "TP.HCM",
+            order: index + 1,
+            thumbnail: stop.thumbnail || stop.placeImageUrl || stop.imageUrl,
+          })),
+          // Store original trip data for "Sử dụng chuyến đi"
+          originalTripData: tripData,
+        };
+        return { cleanContent, itineraryShare };
+      } catch (e) {
+        return { cleanContent: content, itineraryShare: null };
+      }
     }
+    return { cleanContent: content, itineraryShare: null };
+  };
 
+  const { cleanContent, itineraryShare: embeddedItinerary } =
+    parseEmbeddedItinerary(post.content || "");
+  const itineraryToShow = post.itineraryShare || embeddedItinerary;
+  const hasItinerary = !!itineraryToShow;
+
+  const handleCardPress = () => {
+    // Navigate to post detail when tapping on card (outside of itinerary card)
     if (onPress) {
       onPress(post.id);
     } else {
@@ -89,11 +130,25 @@ export function PostCard({
     }
   };
 
+  const handleItineraryPress = () => {
+    if (itineraryToShow && onOpenItinerary) {
+      onOpenItinerary(itineraryToShow);
+    }
+  };
+
+  // Use View wrapper when has itinerary to allow nested TouchableOpacity to work
+  const CardWrapper = hasItinerary ? View : TouchableOpacity;
+  const wrapperProps = hasItinerary
+    ? {}
+    : {
+        testID: "post-card",
+        activeOpacity: 0.9,
+        onPress: handleCardPress,
+      };
+
   return (
-    <TouchableOpacity
-      testID="post-card"
-      activeOpacity={0.9}
-      onPress={handlePress}
+    <CardWrapper
+      {...wrapperProps}
       style={[
         styles.container,
         {
@@ -102,30 +157,33 @@ export function PostCard({
         },
       ]}
     >
-      <PostHeader
-        author={post.author}
-        createdAt={post.createdAt}
-        visibility={post.visibility}
-        onMenuPress={() => onMenuPress(post.id)}
-        onAvatarPress={() => onAvatarPress?.(post.author.id)}
-      />
+      {/* Make header area tappable to go to post detail */}
+      <Pressable onPress={handleCardPress}>
+        <PostHeader
+          author={post.author}
+          createdAt={post.createdAt}
+          visibility={post.visibility}
+          onMenuPress={() => onMenuPress(post.id)}
+          onAvatarPress={() => onAvatarPress?.(post.author.id)}
+        />
 
-      {post.tags && post.tags.length > 0 && (
-        <TagChips tags={post.tags} colors={colors} />
-      )}
+        {post.tags && post.tags.length > 0 && (
+          <TagChips tags={post.tags} colors={colors} />
+        )}
 
-      <View style={styles.contentContainer}>
-        <Text style={[styles.content, { color: colors.textPrimary }]}>
-          {post.content}
-        </Text>
-      </View>
+        {cleanContent.length > 0 && (
+          <View style={styles.contentContainer}>
+            <Text style={[styles.content, { color: colors.textPrimary }]}>
+              {cleanContent}
+            </Text>
+          </View>
+        )}
+      </Pressable>
 
-      {post.itineraryShare && (
+      {itineraryToShow && (
         <ItineraryShareCard
-          itinerary={post.itineraryShare}
-          onViewDetails={onViewItineraryDetails || (() => {})}
-          onOpenItinerary={onOpenItinerary || (() => {})}
-          onMessage={onMessage}
+          itinerary={itineraryToShow}
+          onPress={handleItineraryPress}
         />
       )}
 
@@ -149,7 +207,7 @@ export function PostCard({
         onCommentPress={() => onCommentPress(post.id)}
         onSharePress={() => onSharePress?.(post.id)}
       />
-    </TouchableOpacity>
+    </CardWrapper>
   );
 }
 

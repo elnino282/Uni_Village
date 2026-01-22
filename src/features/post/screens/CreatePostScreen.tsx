@@ -256,17 +256,36 @@ export function CreatePostScreen({ initialTab = 'post', postId }: CreatePostScre
                     locations: selectedLocations.length > 0 ? selectedLocations : undefined,
                 });
             } else if (activeTab === 'itinerary' && selectedItinerary) {
-                // Post itinerary as content (local trips are not on backend)
+                // Post itinerary with embedded trip data for ItineraryShareCard rendering
+                const tripShareData = {
+                    id: selectedItinerary.id,
+                    title: selectedItinerary.title,
+                    date: selectedItinerary.date,
+                    timeRange: selectedItinerary.timeRange,
+                    area: selectedItinerary.area || 'TP.HCM',
+                    stopsCount: selectedItinerary.stopsCount,
+                    stops: (selectedItinerary.stops || []).map((stop: any) => ({
+                        id: stop.id,
+                        time: stop.time || '',
+                        name: stop.name,
+                        thumbnail: stop.thumbnail,
+                    })),
+                };
+                
+                // Create content with trip data marker for PostCard to detect
                 const stopsText = selectedItinerary.stops?.map((s: any) => `• ${s.name}`).join('\n') || '';
-                const itineraryDescription = itineraryContent || 
+                const description = itineraryContent || 
                     `📅 ${selectedItinerary.title}\n\n` +
                     `🗓️ Ngày: ${selectedItinerary.date}\n` +
                     `⏰ Giờ: ${selectedItinerary.timeRange}\n` +
                     `📍 ${selectedItinerary.stopsCount} điểm dừng\n\n` +
                     (stopsText ? `Các điểm đến:\n${stopsText}` : '');
                 
+                // Embed trip data as JSON with marker
+                const contentWithTripData = `${description}\n\n[ITINERARY_SHARE]${JSON.stringify(tripShareData)}[/ITINERARY_SHARE]`;
+                
                 createRealPost({
-                    content: itineraryDescription,
+                    content: contentWithTripData,
                     postType: PostType.EXPERIENCE,
                     visibility: postVisibility === 'public' ? Visibility.PUBLIC : Visibility.PRIVATE,
                 });

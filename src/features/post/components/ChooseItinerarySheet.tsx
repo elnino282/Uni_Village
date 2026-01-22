@@ -93,6 +93,7 @@ export const ChooseItinerarySheet = forwardRef<BottomSheet, ChooseItinerarySheet
                                 id: dest.id,
                                 time: dest.time || '',
                                 name: dest.name,
+                                thumbnail: dest.thumbnail || dest.placeImageUrl || dest.imageUrl,
                             })),
                             isSaved: false,
                             status: status,

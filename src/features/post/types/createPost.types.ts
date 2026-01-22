@@ -29,6 +29,7 @@ export interface ItineraryStopPreview {
     id: string;
     time: string;
     name: string;
+    thumbnail?: string;
 }
 
 /**

@@ -1,99 +1,99 @@
-export type ItineraryStatus = 'ongoing' | 'upcoming' | 'past';
+export type ItineraryStatus = "ongoing" | "upcoming" | "past";
 
 // ============================================
 // Backend API Types (matching Java DTOs)
 // ============================================
 
 export enum TourStatus {
-    SCHEDULED = 'SCHEDULED',    // upcoming
-    ONGOING = 'ONGOING',        // ongoing  
-    COMPLETED = 'COMPLETED',    // past
-    CANCELLED = 'CANCELLED'
+  SCHEDULED = "SCHEDULED", // upcoming
+  ONGOING = "ONGOING", // ongoing
+  COMPLETED = "COMPLETED", // past
+  CANCELLED = "CANCELLED",
 }
 
 export interface TourStopResponse {
-    id: number;
-    tourId: number;
-    placeId: number;
-    placeName: string;
-    placeImageUrl?: string;
-    order: number;
-    visitTime?: string;
-    isCheckedIn: boolean;
-    isSkipped: boolean;
-    checkedInAt?: string;
-    lat?: number;
-    lng?: number;
+  id: number;
+  tourId: number;
+  placeId: number;
+  placeName: string;
+  placeImageUrl?: string;
+  order: number;
+  visitTime?: string;
+  isCheckedIn: boolean;
+  isSkipped: boolean;
+  checkedInAt?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface TourResponse {
-    id: number;
-    userId: number;
-    tourName: string;
-    startDate: string; // ISO datetime
-    startTime: string; // ISO datetime
-    status: TourStatus;
-    stops: TourStopResponse[];
-    createdAt: string;
-    updatedAt: string;
+  id: number;
+  userId: number;
+  tourName: string;
+  startDate: string; // ISO datetime
+  startTime: string; // ISO datetime
+  status: TourStatus;
+  stops: TourStopResponse[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TourRequest {
-    tourName: string;
-    startDate: string; // ISO datetime
-    startTime: string; // ISO datetime
+  tourName: string;
+  startDate: string; // ISO datetime
+  startTime: string; // ISO datetime
 }
 
 export interface TourStopRequest {
-    placeId: number;
-    order: number;
-    visitTime?: string;
+  placeId: number;
+  order: number;
+  visitTime?: string;
 }
 
 export interface CheckInRequest {
-    placeId: number;
-    tourId?: number;
-    tourStopId?: number;
+  placeId: number;
+  tourId?: number;
+  tourStopId?: number;
 }
 
 export interface CheckInResponse {
-    id: number;
-    userId: number;
-    placeId: number;
-    placeName: string;
-    tourId?: number;
-    tourStopId?: number;
-    checkedInAt: string;
+  id: number;
+  userId: number;
+  placeId: number;
+  placeName: string;
+  tourId?: number;
+  tourStopId?: number;
+  checkedInAt: string;
 }
 
 // AI Itinerary Types
 export interface ItinerarySuggestRequest {
-    mood: string;
-    budget: string;
-    startLocation: {
-        lat: number;
-        lng: number;
-    };
-    maxDistance?: number;
-    categories?: string[];
+  mood: string;
+  budget: string;
+  startLocation: {
+    lat: number;
+    lng: number;
+  };
+  maxDistance?: number;
+  categories?: string[];
 }
 
 export interface SuggestedItineraryStop {
-    placeId: number;
-    name: string;
-    description?: string;
-    imageUrl?: string;
-    lat: number;
-    lng: number;
-    order: number;
-    aiReason?: string;
+  placeId: number;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  lat: number;
+  lng: number;
+  order: number;
+  aiReason?: string;
 }
 
 export interface SuggestedItinerary {
-    mood: string;
-    stops: SuggestedItineraryStop[];
-    totalDistance: number;
-    estimatedDuration: number;
+  mood: string;
+  stops: SuggestedItineraryStop[];
+  totalDistance: number;
+  estimatedDuration: number;
 }
 
 // ============================================
@@ -104,28 +104,28 @@ export interface SuggestedItinerary {
  * Represents a stop/destination within an itinerary
  */
 export interface ItineraryStop {
-    id: string;
-    name: string;
-    /** Duration in minutes at this stop */
-    durationMinutes: number;
-    /** Optional image URL for the stop */
-    imageUrl?: string;
-    /** Order in the itinerary */
-    order: number;
+  id: string;
+  name: string;
+  /** Duration in minutes at this stop */
+  durationMinutes: number;
+  /** Optional image URL for the stop */
+  imageUrl?: string;
+  /** Order in the itinerary */
+  order: number;
 }
 
 export interface Itinerary {
-    id: string;
-    title: string;
-    startDate: string;
-    endDate?: string;
-    status: ItineraryStatus;
-    locations?: string[];
-    note?: string;
-    /** User-uploaded cover image URL (optional, defaults to first stop's image) */
-    coverImageUrl?: string;
-    /** Stops/destinations in the itinerary */
-    stops?: ItineraryStop[];
+  id: string;
+  title: string;
+  startDate: string;
+  endDate?: string;
+  status: ItineraryStatus;
+  locations?: string[];
+  note?: string;
+  /** User-uploaded cover image URL (optional, defaults to first stop's image) */
+  coverImageUrl?: string;
+  /** Stops/destinations in the itinerary */
+  stops?: ItineraryStop[];
 }
 
 /**
@@ -133,50 +133,58 @@ export interface Itinerary {
  * Priority: coverImageUrl > first stop's image > default placeholder
  */
 export function getItineraryCoverImage(itinerary: Itinerary): string {
-    if (itinerary.coverImageUrl) {
-        return itinerary.coverImageUrl;
-    }
-    if (itinerary.stops?.[0]?.imageUrl) {
-        return itinerary.stops[0].imageUrl;
-    }
-    // Default placeholder
-    return 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=400&h=300&fit=crop';
+  if (itinerary.coverImageUrl) {
+    return itinerary.coverImageUrl;
+  }
+  if (itinerary.stops?.[0]?.imageUrl) {
+    return itinerary.stops[0].imageUrl;
+  }
+  // Default placeholder
+  return "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=400&h=300&fit=crop";
 }
 
 /**
  * Calculate total duration from stops (in hours)
  * Returns null if no stops available
  */
-export function calculateItineraryDuration(itinerary: Itinerary): number | null {
-    if (!itinerary.stops || itinerary.stops.length === 0) {
-        return null;
-    }
-    const totalMinutes = itinerary.stops.reduce((sum, stop) => sum + stop.durationMinutes, 0);
-    return Math.round(totalMinutes / 60 * 10) / 10; // Round to 1 decimal
+export function calculateItineraryDuration(
+  itinerary: Itinerary,
+): number | null {
+  if (!itinerary.stops || itinerary.stops.length === 0) {
+    return null;
+  }
+  const totalMinutes = itinerary.stops.reduce(
+    (sum, stop) => sum + stop.durationMinutes,
+    0,
+  );
+  return Math.round((totalMinutes / 60) * 10) / 10; // Round to 1 decimal
 }
 
 /**
  * Get destinations count from stops or locations
  */
 export function getItineraryDestinationsCount(itinerary: Itinerary): number {
-    return itinerary.stops?.length ?? itinerary.locations?.length ?? 0;
+  return itinerary.stops?.length ?? itinerary.locations?.length ?? 0;
 }
 
 export interface ItineraryShareStop {
-    id: string;
-    time: string;
-    name: string;
-    address: string;
-    note?: string;
-    order: number;
+  id: string;
+  time: string;
+  name: string;
+  address: string;
+  note?: string;
+  order: number;
+  thumbnail?: string;
 }
 
 export interface ItineraryShareData {
-    id: string;
-    dayLabel: string;
-    date: string;
-    stopsCount: number;
-    timeRange: string;
-    tags: string[];
-    stops: ItineraryShareStop[];
+  id: string;
+  dayLabel: string;
+  date: string;
+  stopsCount: number;
+  timeRange: string;
+  tags: string[];
+  stops: ItineraryShareStop[];
+  /** Original trip data for "Sử dụng chuyến đi" feature */
+  originalTripData?: any;
 }
