@@ -72,51 +72,71 @@ export const ChooseItinerarySheet = forwardRef<
   );
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load trips from AsyncStorage
+  // Load trips from API
   const loadTrips = useCallback(async () => {
     setIsLoading(true);
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const tripsJson = await AsyncStorage.getItem('@trips');
+      // Import fetchItineraries from itinerary service
+      const { fetchItineraries } = await import('@/features/itinerary/services/itineraryService');
       
-      if (tripsJson) {
-        const trips = JSON.parse(tripsJson);
-        const mappedItineraries: ItineraryWithStatus[] = trips.map(
-          (trip: any) => {
-            const startDate = new Date(trip.startDate);
-            const formattedDate = `${String(startDate.getDate()).padStart(2, "0")}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${startDate.getFullYear()}`;
-            const startTime = new Date(trip.startTime);
-            const formattedTime = `${String(startTime.getHours()).padStart(2, "0")}:${String(startTime.getMinutes()).padStart(2, "0")}`;
+      // Fetch all itineraries from API
+      const itineraries = await fetchItineraries();
+      
+      const mappedItineraries: ItineraryWithStatus[] = itineraries.map(
+        (itinerary: any) => {
+          const startDate = new Date(itinerary.startDate);
+          const formattedDate = `${String(startDate.getDate()).padStart(2, "0")}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${startDate.getFullYear()}`;
 
-            // Use actual status from trip data
-            const status = trip.status || "upcoming";
-            const badgeStyle = getStatusBadgeStyle(status);
+          // Map API status to filter status
+          // API returns: "ongoing" | "upcoming" | "past"
+          // Filter expects: "upcoming" | "ongoing" | "completed"
+          let filterStatus: string;
+          if (itinerary.status === "ongoing") {
+            filterStatus = "ongoing";
+          } else if (itinerary.status === "past") {
+            filterStatus = "completed";
+          } else {
+            filterStatus = "upcoming";
+          }
 
-            return {
-              id: trip.id,
-              title: trip.tripName,
+          const badgeStyle = getStatusBadgeStyle(filterStatus);
+
+          return {
+            id: itinerary.id,
+            title: itinerary.title,
+            date: formattedDate,
+            timeRange: "",
+            area: itinerary.locations?.[0] || "Việt Nam",
+            stopsCount: itinerary.stops?.length || 0,
+            tags: [badgeStyle.label],
+            stops: (itinerary.stops || []).slice(0, 3).map((stop: any) => ({
+              id: stop.id,
+              time: "",
+              name: stop.name,
+              thumbnail: stop.imageUrl,
+            })),
+            isSaved: false,
+            status: filterStatus,
+            // Store original itinerary data for posting
+            originalTripData: {
+              id: itinerary.id,
+              title: itinerary.title,
               date: formattedDate,
-              timeRange: formattedTime,
-              area: "TP.HCM",
-              stopsCount: trip.destinations?.length || 0,
-              tags: [badgeStyle.label],
-              stops: (trip.destinations || []).slice(0, 3).map((dest: any) => ({
-                id: dest.id,
-                time: dest.time || "",
-                name: dest.name,
-                thumbnail: dest.thumbnail || dest.placeImageUrl || dest.imageUrl,
+              startDate: itinerary.startDate,
+              startTime: itinerary.startDate,
+              area: itinerary.locations?.[0] || "Việt Nam",
+              stopsCount: itinerary.stops?.length || 0,
+              stops: (itinerary.stops || []).map((stop: any) => ({
+                id: stop.id,
+                name: stop.name,
+                thumbnail: stop.imageUrl,
+                time: "",
               })),
-              isSaved: false,
-              status: status,
-              // Store original trip data for posting
-              originalTripData: trip,
-            };
-          },
-        );
-        setAllItineraries(mappedItineraries);
-      } else {
-        setAllItineraries([]);
-      }
+            },
+          };
+        },
+      );
+      setAllItineraries(mappedItineraries);
     } catch (error) {
       console.error("Failed to load trips:", error);
       setAllItineraries([]);
