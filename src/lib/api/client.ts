@@ -9,10 +9,10 @@ import type { AuthTokens } from "@/features/auth/types";
 import { isAuthResponse, mapAuthResponse } from "@/features/auth/types";
 import { ApiError } from "@/lib/errors/ApiError";
 import axios, {
-    AxiosError,
-    AxiosInstance,
-    AxiosRequestConfig,
-    AxiosResponse,
+  AxiosError,
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
 } from "axios";
 import { API_ENDPOINTS } from "./endpoints";
 
@@ -115,8 +115,31 @@ const refreshAccessToken = async (): Promise<AuthTokens | null> => {
         const tokens = mapAuthResponse(response.data);
         await setTokens(tokens);
         return tokens;
-      } catch {
+      } catch (error: any) {
+        if (__DEV__) {
+          console.log(
+            "[Auth] Refresh token failed:",
+            error?.response?.status,
+            error?.response?.data,
+          );
+        }
         await clear();
+
+        // Check if account is locked (403 with ACCOUNT_LOCKED or any 403 during refresh)
+        const status = error?.response?.status;
+        const errorData = error?.response?.data;
+        const errorCode =
+          typeof errorData === "string"
+            ? JSON.parse(errorData)?.error
+            : errorData?.error;
+
+        if (status === 403 || errorCode === "ACCOUNT_LOCKED") {
+          console.log("[Auth] Account locked - redirecting to login");
+          // Import router dynamically to avoid circular dependency
+          const { router } = await import("expo-router");
+          router.replace("/login");
+        }
+
         return null;
       } finally {
         refreshPromise = null;
@@ -262,3 +285,4 @@ export const apiClient = {
 };
 
 export { axiosInstance };
+

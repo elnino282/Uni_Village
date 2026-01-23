@@ -1,10 +1,19 @@
+import { useSettingsStore } from '@/features/settings/store/settings.store';
+import i18n from '@/lib/i18n';
 import { Providers } from '@/providers';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-import { useSettingsStore } from '@/features/settings/store/settings.store';
 import { useEffect } from 'react';
-import i18n from '@/lib/i18n';
+import 'react-native-reanimated';
+import { LogBox } from 'react-native';
+import 'react-native-reanimated';
+
+// Suppress API error popups in dev mode - these are handled by axios interceptors
+LogBox.ignoreLogs([
+  '[API Error]',
+  'ApiError:',
+  'Error fetching',
+]);
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -16,7 +25,7 @@ export default function RootLayout() {
   // Sync store language with i18next on startup/change
   useEffect(() => {
     if (language && i18n.language !== language) {
-        i18n.changeLanguage(language);
+      i18n.changeLanguage(language);
     }
   }, [language]);
 
@@ -61,6 +70,10 @@ export default function RootLayout() {
             presentation: 'modal',
             animation: 'slide_from_bottom',
           }}
+        />
+        <Stack.Screen 
+          name="auth/google/callback" 
+          options={{ headerShown: false }} 
         />
       </Stack>
       <StatusBar style="auto" />

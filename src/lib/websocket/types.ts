@@ -1,6 +1,6 @@
 import type {
-    MessageResponse,
-    MessageType,
+  MessageResponse,
+  MessageType,
 } from "@/shared/types/backend.types";
 
 /**
@@ -86,7 +86,17 @@ export type WebSocketTopic =
   | { type: "user-queue" }
   | { type: "user-messages" }
   | { type: "user-ack" }
-  | { type: "user-events" };
+  | { type: "user-events" }
+  | { type: "force-logout" };
+
+/**
+ * Event sent by admin to force user logout
+ */
+export interface ForceLogoutEvent {
+  type: "ACCOUNT_LOCKED" | "SESSION_EXPIRED" | "SECURITY_BREACH";
+  reason: string;
+  userId: number;
+}
 
 export interface WebSocketConfig {
   url: string;

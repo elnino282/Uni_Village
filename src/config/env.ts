@@ -15,6 +15,9 @@ export const env = {
 
     GEMINI_API_KEY: process.env.EXPO_PUBLIC_GEMINI_API_KEY || '',
 
+    // Google OAuth
+    GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
+
     APP_NAME: process.env.EXPO_PUBLIC_APP_NAME || 'Uni Village',
     APP_VERSION: process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0',
 
