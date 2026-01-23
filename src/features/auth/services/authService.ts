@@ -83,13 +83,5 @@ export const authService = {
         }
     },
 
-    loginWithGoogle: async (): Promise<AuthResponse> => {
-        console.log('Google login pressed');
-        return { success: false, message: 'Not implemented' };
-    },
 
-    loginWithFacebook: async (): Promise<AuthResponse> => {
-        console.log('Facebook login pressed');
-        return { success: false, message: 'Not implemented' };
-    },
 };

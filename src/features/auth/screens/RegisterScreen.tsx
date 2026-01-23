@@ -29,6 +29,7 @@ import {
     SocialAuthButtons,
     TermsRow,
 } from '../components';
+import { useGoogleAuth } from '../hooks';
 import { registerSchema, type RegisterFormData } from '../schemas';
 import { authService } from '../services';
 
@@ -100,13 +101,8 @@ export function RegisterScreen() {
         router.push({ pathname: '/(auth)/login' });
     }, []);
 
-    const handleGoogleLogin = useCallback(async () => {
-        await authService.loginWithGoogle();
-    }, []);
-
-    const handleFacebookLogin = useCallback(async () => {
-        await authService.loginWithFacebook();
-    }, []);
+    // Google OAuth hook
+    const { signInWithGoogle, isLoading: isGoogleLoading } = useGoogleAuth();;
 
     const handleTermsPress = useCallback(() => {
         // TODO: Navigate to terms screen or open WebView
@@ -247,8 +243,8 @@ export function RegisterScreen() {
 
                     {/* Social Buttons */}
                     <SocialAuthButtons
-                        onGooglePress={handleGoogleLogin}
-                        onFacebookPress={handleFacebookLogin}
+                        onGooglePress={signInWithGoogle}
+                        isLoading={isGoogleLoading}
                     />
 
                     {/* Footer */}

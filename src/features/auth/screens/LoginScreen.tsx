@@ -27,6 +27,7 @@ import {
     PrimaryButton,
     SocialAuthButtons,
 } from '../components';
+import { useGoogleAuth } from '../hooks';
 import { loginSchema, type LoginFormData } from '../schemas';
 import { authService } from '../services';
 
@@ -34,6 +35,9 @@ export function LoginScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Google OAuth hook
+    const { signInWithGoogle, isLoading: isGoogleLoading } = useGoogleAuth();
 
     const {
         control,
@@ -76,14 +80,6 @@ export function LoginScreen() {
 
     const handleRegister = useCallback(() => {
         router.push({ pathname: '/(auth)/register' });
-    }, []);
-
-    const handleGoogleLogin = useCallback(async () => {
-        await authService.loginWithGoogle();
-    }, []);
-
-    const handleFacebookLogin = useCallback(async () => {
-        await authService.loginWithFacebook();
     }, []);
 
     return (
@@ -166,8 +162,8 @@ export function LoginScreen() {
 
                     {/* Social Buttons */}
                     <SocialAuthButtons
-                        onGooglePress={handleGoogleLogin}
-                        onFacebookPress={handleFacebookLogin}
+                        onGooglePress={signInWithGoogle}
+                        isLoading={isGoogleLoading}
                     />
 
                     {/* Footer */}

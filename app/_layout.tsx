@@ -4,6 +4,7 @@ import { Providers } from '@/providers';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import 'react-native-reanimated';
 import { LogBox } from 'react-native';
 import 'react-native-reanimated';
 
@@ -69,6 +70,10 @@ export default function RootLayout() {
             presentation: 'modal',
             animation: 'slide_from_bottom',
           }}
+        />
+        <Stack.Screen 
+          name="auth/google/callback" 
+          options={{ headerShown: false }} 
         />
       </Stack>
       <StatusBar style="auto" />

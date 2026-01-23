@@ -1,9 +1,5 @@
 export {
-    useLogin,
-    useRegister,
-    useVerifyRegisterOtp,
-    useForgotPassword,
-    useVerifyForgotPasswordOtp,
-    useChangePassword,
-    useLogout,
+    useChangePassword, useForgotPassword, useLogin, useLogout, useRegister, useVerifyForgotPasswordOtp, useVerifyRegisterOtp
 } from './useAuth';
+
+export { useGoogleAuth } from './useGoogleAuth';

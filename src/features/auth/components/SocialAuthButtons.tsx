@@ -1,22 +1,22 @@
 /**
  * SocialAuthButtons Component
- * Google and Facebook circular buttons
+ * Google authentication circular button only
  */
 
 import { Colors, Shadows } from '@/shared/constants/theme';
 import { useColorScheme } from '@/shared/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 interface SocialAuthButtonsProps {
     onGooglePress: () => void;
-    onFacebookPress: () => void;
+    isLoading?: boolean;
 }
 
 export function SocialAuthButtons({
     onGooglePress,
-    onFacebookPress,
+    isLoading = false,
 }: SocialAuthButtonsProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
@@ -28,20 +28,16 @@ export function SocialAuthButtons({
                     styles.button,
                     { backgroundColor: colors.card },
                     pressed && styles.buttonPressed,
+                    isLoading && styles.buttonDisabled,
                 ]}
                 onPress={onGooglePress}
+                disabled={isLoading}
             >
-                <Ionicons name="logo-google" size={24} color="#DB4437" />
-            </Pressable>
-            <Pressable
-                style={({ pressed }) => [
-                    styles.button,
-                    { backgroundColor: colors.card },
-                    pressed && styles.buttonPressed,
-                ]}
-                onPress={onFacebookPress}
-            >
-                <Ionicons name="logo-facebook" size={24} color="#4267B2" />
+                {isLoading ? (
+                    <ActivityIndicator size="small" color="#DB4437" />
+                ) : (
+                    <Ionicons name="logo-google" size={24} color="#DB4437" />
+                )}
             </Pressable>
         </View>
     );
@@ -64,5 +60,8 @@ const styles = StyleSheet.create({
     buttonPressed: {
         opacity: 0.8,
         transform: [{ scale: 0.95 }],
+    },
+    buttonDisabled: {
+        opacity: 0.6,
     },
 });
