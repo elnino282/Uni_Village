@@ -104,8 +104,18 @@ const getChannelById = async (channelId: number): Promise<ChannelResponse | null
 };
 
 const getChannelByConversation = async (conversationId: string): Promise<ChannelResponse | null> => {
-    const response = await channelsApi.getChannelByConversation(conversationId);
-    return response.result ?? null;
+    try {
+        const response = await channelsApi.getChannelByConversation(conversationId);
+        return response.result ?? null;
+    } catch (error: any) {
+        // If 404, it might be a private channel or user not member.
+        // We return null so the caller can handle it (e.g. show empty state or fallback).
+        if (error?.status === 404 || error?.response?.status === 404) {
+            return null;
+        }
+        console.warn('[ChannelInfoService] Failed to fetch channel by conversation:', error);
+        return null;
+    }
 };
 
 export const channelInfoService = {

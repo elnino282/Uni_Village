@@ -3,7 +3,12 @@
  * Displays channel/group information matching Figma design
  */
 
+import { queryKeys } from "@/config/queryKeys";
+import { websocketService } from "@/lib/websocket";
+import type { WebSocketMessage } from "@/lib/websocket/types";
+import type { ChannelResponse } from "@/shared/types/backend.types";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -19,6 +24,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { channelQueryKeys } from "../hooks/channelQueryKeys";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useRegenerateInviteCode } from "@/features/chat/hooks/useChannels";
@@ -28,6 +34,7 @@ import {
     ErrorMessage,
     LoadingScreen,
 } from "@/shared/components/feedback";
+import { Button } from "@/shared/components/ui";
 import {
     BorderRadius,
     Colors,
@@ -41,7 +48,7 @@ import {
     ShareChannelBottomSheet,
     type ShareChannelBottomSheetRef,
 } from "../components";
-import { useChannelInfo, useJoinChannel } from "../hooks";
+import { useChannelInfo, useJoinChannel, useLeaveChannel } from "../hooks";
 import type { ChannelInvitePayload } from "../types";
 
 /**
@@ -64,11 +71,60 @@ export function ChannelInfoScreen() {
     refetch,
   } = useChannelInfo(channelId || "");
   const joinChannelMutation = useJoinChannel();
+  const leaveChannelMutation = useLeaveChannel();
   const { mutate: regenerateInvite, isPending: isRegenerating } =
     useRegenerateInviteCode();
+  const queryClient = useQueryClient();
 
   // Bottom sheet ref for sharing
   const shareBottomSheetRef = useRef<ShareChannelBottomSheetRef>(null);
+
+  // WebSocket Subscription for Channel Updates (including multi-device sync for leave)
+  React.useEffect(() => {
+    if (!channelInfo?.id) return;
+
+    console.log(
+      `[ChannelInfo] Subscribing to channel updates: ${channelInfo.id}`,
+    );
+
+    const subscription = websocketService.subscribeToChannel(
+      channelInfo.id,
+      (message: WebSocketMessage<ChannelResponse>) => {
+        if (message.eventType === "CHANNEL_CHANGED") {
+          console.log(
+            "[ChannelInfo] Received CHANNEL_CHANGED event",
+            message.data,
+          );
+
+          const response = message.data;
+
+          // Multi-device sync: If user is no longer a member, navigate away
+          if (response && response.isJoined === false) {
+            console.log(
+              "[ChannelInfo] User is no longer a member, navigating away",
+            );
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.conversations.all,
+            });
+            router.replace("/(tabs)/community");
+            return;
+          }
+
+          // Invalidate query to refetch fresh data
+          queryClient.invalidateQueries({
+            queryKey: channelQueryKeys.info(channelId || channelInfo.id),
+          });
+
+          // Also refetch explicitly to be sure
+          refetch();
+        }
+      },
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [channelInfo?.id, queryClient, refetch, channelId, router]);
 
   const [showInviteSection, setShowInviteSection] = useState(false);
 
@@ -151,6 +207,35 @@ export function ChannelInfoScreen() {
       ],
     );
   }, [channelInfo?.channelId, isRegenerating, regenerateInvite, refetch]);
+
+  const handleLeaveChannel = () => {
+    if (!channelInfo?.id) return;
+
+    Alert.alert("Rời nhóm", "Bạn có chắc chắn muốn rời khỏi nhóm này không?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Rời nhóm",
+        style: "destructive",
+        onPress: () => {
+          leaveChannelMutation.mutate(
+            {
+              conversationId: channelInfo.id,
+              cacheKey: channelId || channelInfo.id,
+            },
+            {
+              onSuccess: () => {
+                // Invalidate conversations list and navigate away
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.conversations.all,
+                });
+                router.replace("/(tabs)/community");
+              },
+            },
+          );
+        },
+      },
+    ]);
+  };
 
   const handleBack = () => {
     router.back();
@@ -241,15 +326,15 @@ export function ChannelInfoScreen() {
           <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Thông tin nhóm</Text>
-        
+
         {/* Share Button */}
-        <TouchableOpacity 
-          style={styles.menuButton} 
-          onPress={handleSystemShare}
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={handleShareInviteLink}
         >
           <MaterialIcons name="share" size={24} color="#ffffff" />
         </TouchableOpacity>
-        
+
         {/* Old Menu Button - kept as requested or just replaced? 
             Requirement says: "Feature Refactor: Gỡ bỏ block 'Link mời tham gia', thay thế bằng tính năng Native Share Channel." 
             And "Header: Có một khung trắng trống phía trên tên nhóm... -> Cần xóa."
@@ -343,6 +428,17 @@ export function ChannelInfoScreen() {
           { backgroundColor: colors.card, borderTopColor: colors.border },
         ]}
       >
+        {channelInfo.isJoined && (
+          <Button
+            title="Rời nhóm"
+            variant="ghost"
+            textStyle={{ color: "#ef4444" }}
+            onPress={handleLeaveChannel}
+            loading={leaveChannelMutation.isPending}
+            disabled={leaveChannelMutation.isPending}
+            style={{ marginBottom: Spacing.sm }}
+          />
+        )}
         <TouchableOpacity
           style={styles.ctaButtonWrapper}
           onPress={handleJoinChat}
