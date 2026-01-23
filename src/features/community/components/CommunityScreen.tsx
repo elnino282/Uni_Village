@@ -78,11 +78,12 @@ export function CommunityScreen() {
   const [selectedItinerary, setSelectedItinerary] =
     useState<ItineraryShareData | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(
-    null
+    null,
   );
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [isReportSuccessModalOpen, setIsReportSuccessModalOpen] = useState(false);
+  const [isReportSuccessModalOpen, setIsReportSuccessModalOpen] =
+    useState(false);
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
   const [isSaveSuccessModalOpen, setIsSaveSuccessModalOpen] = useState(false);
   const [lastSaveResult, setLastSaveResult] = useState<boolean>(true);
@@ -112,7 +113,7 @@ export function CommunityScreen() {
   useFocusEffect(
     useCallback(() => {
       refetch();
-    }, [refetch])
+    }, [refetch]),
   );
 
   // Check if the selected post belongs to current user
@@ -138,7 +139,7 @@ export function CommunityScreen() {
       }
       return false;
     },
-    [currentUserId]
+    [currentUserId],
   );
 
   const isSelectedPostOwner = useMemo(() => {
@@ -161,7 +162,7 @@ export function CommunityScreen() {
         setIsMenuOpen(true);
       }
     },
-    [data?.data, isPostOwner]
+    [data?.data, isPostOwner],
   );
 
   const handleMenuClose = useCallback(() => {
@@ -176,14 +177,14 @@ export function CommunityScreen() {
         likePost(postId);
       }
     },
-    [likePost, isLikingPost]
+    [likePost, isLikingPost],
   );
 
   const handleCommentPress = useCallback(
     (postId: string) => {
       router.push(`/post/${postId}` as any);
     },
-    [router]
+    [router],
   );
 
   const handleLocationPress = useCallback((location: PostLocation) => {
@@ -198,7 +199,7 @@ export function CommunityScreen() {
         router.push(`/profile/${authorId}` as any);
       }
     },
-    [router]
+    [router],
   );
 
   const handleCloseLocationSheet = useCallback(() => {
@@ -218,7 +219,7 @@ export function CommunityScreen() {
         });
       }
     },
-    [savePost, isSavingPost]
+    [savePost, isSavingPost],
   );
 
   const handleReportPost = useCallback((postId: string) => {
@@ -243,11 +244,11 @@ export function CommunityScreen() {
               setIsReportModalOpen(false);
               setReportTargetId(null);
             },
-          }
+          },
         );
       }
     },
-    [reportTargetId, reportPost, isReportingPost]
+    [reportTargetId, reportPost, isReportingPost],
   );
 
   const handleBlockPost = useCallback(
@@ -256,7 +257,7 @@ export function CommunityScreen() {
         blockPost(postId);
       }
     },
-    [blockPost, isBlockingPost]
+    [blockPost, isBlockingPost],
   );
 
   // Owner menu handlers
@@ -273,14 +274,14 @@ export function CommunityScreen() {
         }, 150);
       }
     },
-    [data?.data]
+    [data?.data],
   );
 
   const handleEditPost = useCallback(
     (postId: string) => {
       router.push({ pathname: "/post/edit", params: { postId } } as any);
     },
-    [router]
+    [router],
   );
 
   const handleMoveToTrash = useCallback(
@@ -295,7 +296,7 @@ export function CommunityScreen() {
         },
       ]);
     },
-    [deletePost, isDeletingPost]
+    [deletePost, isDeletingPost],
   );
 
   const handleUpdateVisibility = useCallback(
@@ -312,7 +313,7 @@ export function CommunityScreen() {
         },
       });
     },
-    [data?.data, updatePost, isUpdatingPost]
+    [data?.data, updatePost, isUpdatingPost],
   );
 
   const handleCloseEditPrivacy = useCallback(() => {
@@ -338,7 +339,7 @@ export function CommunityScreen() {
       setSelectedItinerary(itinerary);
       setIsSheetVisible(true);
     },
-    []
+    [],
   );
 
   const handleOpenItinerary = useCallback((itinerary: ItineraryShareData) => {
@@ -389,7 +390,7 @@ export function CommunityScreen() {
       handleAvatarPress,
       handleViewItineraryDetails,
       handleOpenItinerary,
-    ]
+    ],
   );
 
   const keyExtractor = useCallback((item: CommunityPost) => item.id, []);
@@ -399,22 +400,22 @@ export function CommunityScreen() {
     data?.data.filter((post) =>
       searchQuery
         ? post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.author.displayName
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase())
-        : true
+          post.author.displayName
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())
+        : true,
     ) || [];
 
   // Helper function to check if content has embedded itinerary
   const hasEmbeddedItinerary = (content: string): boolean => {
-    return content.includes('[ITINERARY_SHARE]');
+    return content.includes("[ITINERARY_SHARE]");
   };
 
   // Then filter by content type based on active chip
   const filteredPosts = searchFilteredPosts.filter((post) => {
     // Check for embedded itinerary in content
-    const hasEmbedded = hasEmbeddedItinerary(post.content || '');
-    
+    const hasEmbedded = hasEmbeddedItinerary(post.content || "");
+
     switch (contentFilterTab) {
       case "itineraries":
         // Show posts with itineraryShare OR embedded itinerary in content
@@ -511,7 +512,11 @@ export function CommunityScreen() {
                       onPress={() => router.push("/channel/discover" as Href)}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="compass-outline" size={20} color="#FFFFFF" />
+                      <Ionicons
+                        name="compass-outline"
+                        size={20}
+                        color="#FFFFFF"
+                      />
                       <Text style={styles.discoverButtonText}>
                         Khám phá Channels công khai
                       </Text>

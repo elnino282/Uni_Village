@@ -1,6 +1,6 @@
 import type {
-  MessageResponse,
-  MessageType,
+    MessageResponse,
+    MessageType,
 } from "@/shared/types/backend.types";
 
 /**
@@ -20,6 +20,8 @@ export type WebSocketEventType =
   | "DELIVERED"
   | "TYPING"
   | "CHANNEL_CHANGED"
+  | "CHANNEL_CREATED"
+  | "MEMBER_ADDED"
   | "COMMENT_CHANGED"
   | "REACTION_CHANGED"
   | "POST_CHANGED"
@@ -168,6 +170,24 @@ export interface ConversationUpgradedEvent {
   newStatus: ParticipantStatus;
   reason: UpgradeReason;
 }
+
+/**
+ * Channel event payload for CHANNEL_CREATED and MEMBER_ADDED events
+ * Minimal data to trigger conversation list refresh
+ */
+export interface ChannelEventPayload {
+  channelId: number;
+  conversationId: string;
+  channelName: string;
+}
+
+/**
+ * Union type for user queue events (conversation upgrade or channel events)
+ */
+export type UserQueueEvent =
+  | { eventType: "CONVERSATION_UPGRADED"; data: ConversationUpgradedEvent }
+  | { eventType: "CHANNEL_CREATED"; data: ChannelEventPayload }
+  | { eventType: "MEMBER_ADDED"; data: ChannelEventPayload };
 
 /**
  * Payload for sending a message via WebSocket

@@ -3,24 +3,24 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    Alert,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -29,7 +29,6 @@ import { Button } from "@/shared/components/ui";
 import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 
-import { useCreateCommunityPost } from "@/features/community/hooks/useCommunityPosts";
 import { useCreatePost, usePostDetail, useUpdatePost } from "../hooks";
 import { fileUploadService, type PickedFile } from "../services";
 
@@ -44,10 +43,10 @@ import { SelectedChannelCard } from "../components/SelectedChannelCard";
 import { SelectedItineraryCard } from "../components/SelectedItineraryCard";
 import type { PostLocation } from "../types";
 import type {
-    ChannelForSelection,
-    ChannelVisibility,
-    CreatePostTab,
-    ItineraryForSelection,
+  ChannelForSelection,
+  ChannelVisibility,
+  CreatePostTab,
+  ItineraryForSelection,
 } from "../types/createPost.types";
 
 interface CreatePostScreenProps {
@@ -117,8 +116,6 @@ export function CreatePostScreen({
   const channelSheetRef = useRef<BottomSheet>(null);
   const itinerarySheetRef = useRef<BottomSheet>(null);
 
-  const { mutateAsync: createCommunityPost, isPending: isCreating } =
-    useCreateCommunityPost();
   const { mutate: createRealPost, isPending: isCreatingRealPost } =
     useCreatePost();
   const { mutateAsync: updatePost, isPending: isUpdatingPost } =
@@ -127,8 +124,7 @@ export function CreatePostScreen({
     usePostDetail(resolvedPostId);
 
   const canSubmit = useMemo(() => {
-    if (isSubmitting || isCreating || isCreatingRealPost || isUpdatingPost)
-      return false;
+    if (isSubmitting || isCreatingRealPost || isUpdatingPost) return false;
     if (isEditMode) {
       const hasContent = postContent.trim().length > 0;
       const hasMedia = selectedFiles.length > 0 || existingMediaUrls.length > 0;
@@ -151,7 +147,6 @@ export function CreatePostScreen({
     selectedChannel,
     selectedItinerary,
     isSubmitting,
-    isCreating,
     isCreatingRealPost,
     isUpdatingPost,
     selectedFiles,
@@ -292,35 +287,32 @@ export function CreatePostScreen({
             selectedLocations.length > 0 ? selectedLocations : undefined,
         });
       } else if (activeTab === "itinerary" && selectedItinerary) {
-        // Use originalTripData if available (contains all stops), otherwise use selectedItinerary
-        const tripData = (selectedItinerary as any).originalTripData || selectedItinerary;
-        const allStops = tripData.stops || selectedItinerary.stops || [];
-        
         // Post itinerary with embedded trip data for ItineraryShareCard rendering
         const tripShareData = {
           id: selectedItinerary.id,
           title: selectedItinerary.title,
           date: selectedItinerary.date,
           timeRange: selectedItinerary.timeRange,
-          area: selectedItinerary.area || tripData.area || "TP.HCM",
-          stopsCount: allStops.length,
-          stops: allStops.map((stop: any) => ({
+          area: selectedItinerary.area || "TP.HCM",
+          stopsCount: selectedItinerary.stopsCount,
+          stops: (selectedItinerary.stops || []).map((stop: any) => ({
             id: stop.id,
             time: stop.time || "",
             name: stop.name,
-            thumbnail: stop.thumbnail || stop.imageUrl,
+            thumbnail: stop.thumbnail,
           })),
         };
 
         // Create content with trip data marker for PostCard to detect
         const stopsText =
-          allStops.map((s: any) => `• ${s.name}`).join("\n") || "";
+          selectedItinerary.stops?.map((s: any) => `• ${s.name}`).join("\n") ||
+          "";
         const description =
           itineraryContent ||
           `📅 ${selectedItinerary.title}\n\n` +
             `🗓️ Ngày: ${selectedItinerary.date}\n` +
             `⏰ Giờ: ${selectedItinerary.timeRange}\n` +
-            `📍 ${allStops.length} điểm dừng\n\n` +
+            `📍 ${selectedItinerary.stopsCount} điểm dừng\n\n` +
             (stopsText ? `Các điểm đến:\n${stopsText}` : "");
 
         // Embed trip data as JSON with marker
@@ -335,9 +327,34 @@ export function CreatePostScreen({
               : Visibility.PRIVATE,
         });
       } else if (activeTab === "channel" && selectedChannel) {
-        await createCommunityPost({
-          content: channelContent,
-          visibility: "public",
+        // Create channel share data for embedding in post
+        const channelShareData = {
+          channelId: selectedChannel.id,
+          name: selectedChannel.name,
+          emoji: selectedChannel.emoji,
+          description: selectedChannel.description || "",
+          memberCount: selectedChannel.memberCount || 0,
+        };
+
+        // Create description text for the post
+        const description =
+          channelContent ||
+          `📢 Mời tham gia Channel: ${selectedChannel.name}\n\n` +
+            (selectedChannel.description
+              ? `${selectedChannel.description}\n\n`
+              : "") +
+            `👥 ${selectedChannel.memberCount || 0} thành viên`;
+
+        // Embed channel data as JSON with marker
+        const contentWithChannelData = `${description}\n\n[CHANNEL_SHARE]${JSON.stringify(channelShareData)}[/CHANNEL_SHARE]`;
+
+        createRealPost({
+          content: contentWithChannelData,
+          postType: PostType.EXPERIENCE,
+          visibility:
+            postVisibility === "public"
+              ? Visibility.PUBLIC
+              : Visibility.PRIVATE,
         });
       }
 

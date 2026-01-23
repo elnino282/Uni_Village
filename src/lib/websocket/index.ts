@@ -2,6 +2,7 @@ export { stompClient } from "./stompClient";
 export type {
     AckEvent,
     AckStatus,
+    ChannelEventPayload,
     ChatMessageEvent,
     ChatMessageWsEvent,
     ChatSendPayload,
@@ -13,11 +14,12 @@ export type {
     StompSubscription,
     TypingEvent,
     UpgradeReason,
+    UserQueueEvent,
     WebSocketConfig,
     WebSocketEventType,
     WebSocketMessage,
     WebSocketTopic,
     WsMessageData
 } from "./types";
-export { websocketService, WebSocketService } from "./websocketService";
+export { WebSocketService, websocketService } from "./websocketService";
 

@@ -15,11 +15,12 @@ export interface ChannelForSelection {
   emoji?: string;
   description: string;
   memberCount: number;
-  postsPerWeek: number;
+  postsPerWeek?: number;
   lastActive: string;
-  visibility: ChannelVisibility;
+  visibility?: ChannelVisibility;
   guidelines?: string;
-  isOwner: boolean;
+  isOwner?: boolean;
+  avatarUrl?: string;
 }
 
 /**

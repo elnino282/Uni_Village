@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { queryKeys } from "@/config/queryKeys";
 import type {
     AckEvent,
+    ChannelEventPayload,
     ChatMessageEvent,
     ConversationUpgradedEvent,
 } from "@/lib/websocket";
@@ -189,6 +190,27 @@ export function useGlobalWebSocketSubscriptions() {
     [setParticipantStatus, debouncedInvalidateConversations],
   );
 
+  // Memoized channel event handler for CHANNEL_CREATED and MEMBER_ADDED
+  const handleChannelEvent = useCallback(
+    (
+      event: ChannelEventPayload,
+      eventType: "CHANNEL_CREATED" | "MEMBER_ADDED",
+    ) => {
+      console.log(`[Global WS] Channel event (${eventType}):`, event);
+
+      // Immediately invalidate conversations to show the new channel
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations.all,
+      });
+
+      // Also invalidate channels list if it exists
+      queryClient.invalidateQueries({
+        queryKey: ["channels"],
+      });
+    },
+    [queryClient],
+  );
+
   // Subscribe to user queues when connected
   // Key fix: Add isConnected as dependency to re-subscribe when connection is established
   useEffect(() => {
@@ -203,6 +225,7 @@ export function useGlobalWebSocketSubscriptions() {
       onMessage: handleIncomingMessage,
       onAck: handleAckEvent,
       onConversationEvent: handleConversationEvent,
+      onChannelEvent: handleChannelEvent,
     });
 
     console.log("[Global WS] Global subscriptions initialized");
@@ -216,5 +239,6 @@ export function useGlobalWebSocketSubscriptions() {
     handleIncomingMessage,
     handleAckEvent,
     handleConversationEvent,
+    handleChannelEvent,
   ]);
 }

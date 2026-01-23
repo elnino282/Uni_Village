@@ -9,15 +9,14 @@ import { router, useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    View,
 } from "react-native";
 
 import type { Itinerary } from "@/features/itinerary/types/itinerary.types";
-import { getItineraryCoverImage } from "@/features/itinerary/types/itinerary.types";
 import { EmptyState } from "@/shared/components/feedback";
 import { Colors } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
@@ -33,11 +32,11 @@ import {
 import type { MessageResponse } from "@/shared/types/backend.types";
 import { MessageType } from "@/shared/types/backend.types";
 import {
-  useChatSubscription,
-  useMessages,
-  useSendMessageHybrid,
-  useSendSharedCard,
-  useThread,
+    useChatSubscription,
+    useMessages,
+    useSendMessageHybrid,
+    useSendSharedCard,
+    useThread,
 } from "../hooks";
 import { isVirtualThreadId } from "../services";
 import type {
@@ -54,8 +53,8 @@ import type {
 import { isGroupThread } from "../types";
 import { AcceptMessageRequestBanner } from "./AcceptMessageRequestBanner";
 import {
-  AddMemberBottomSheet,
-  type AddMemberBottomSheetRef,
+    AddMemberBottomSheet,
+    type AddMemberBottomSheetRef,
 } from "./AddMemberBottomSheet";
 import { ChatComposer } from "./ChatComposer";
 import { ChatHeader } from "./ChatHeader";
@@ -393,18 +392,27 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
 
   const handleSelectItinerary = useCallback(
     (itinerary: Itinerary) => {
-      sendSharedCard({
-        threadId,
-        card: {
-          id: itinerary.id,
-          title: itinerary.title,
-          imageUrl: getItineraryCoverImage(itinerary),
-          ctaText: t("common.viewDetails"),
-          route: `/itinerary/${itinerary.id}`,
-        },
-      });
+      // Build itinerary share data (same format as Community posts)
+      const tripShareData = {
+        id: itinerary.id,
+        title: itinerary.title,
+        date: itinerary.startDate,
+        stopsCount: itinerary.stops?.length || 0,
+        timeRange: "",
+        area: itinerary.locations?.[0] || "",
+        stops: (itinerary.stops || []).slice(0, 5).map((stop, index) => ({
+          id: stop.id || String(index),
+          time: "",
+          name: stop.name || "",
+          thumbnail: stop.imageUrl || "",
+        })),
+      };
+
+      // Embed itinerary data in message content (like Community)
+      const contentWithItinerary = `[ITINERARY_SHARE]${JSON.stringify(tripShareData)}[/ITINERARY_SHARE]`;
+      handleSend(contentWithItinerary);
     },
-    [sendSharedCard, threadId, t],
+    [handleSend],
   );
 
   const handleInfoPress = useCallback(() => {
