@@ -1,10 +1,10 @@
+import { useSettingsStore } from '@/features/settings/store/settings.store';
+import i18n from '@/lib/i18n';
 import { Providers } from '@/providers';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-import { useSettingsStore } from '@/features/settings/store/settings.store';
 import { useEffect } from 'react';
-import i18n from '@/lib/i18n';
+import 'react-native-reanimated';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -61,6 +61,10 @@ export default function RootLayout() {
             presentation: 'modal',
             animation: 'slide_from_bottom',
           }}
+        />
+        <Stack.Screen 
+          name="auth/google/callback" 
+          options={{ headerShown: false }} 
         />
       </Stack>
       <StatusBar style="auto" />
