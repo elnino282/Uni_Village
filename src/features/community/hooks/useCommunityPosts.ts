@@ -132,6 +132,11 @@ export function useReportPost() {
             showErrorToast("Bạn không thể báo cáo nội dung của chính mình");
           } else if (error.code === "INVALID_REPORT_TARGET") {
             showErrorToast("Không tìm thấy nội dung cần báo cáo");
+          } else if (error.code === "RESOURCE_NOT_FOUND") {
+            // Post was deleted - remove from cache and show message
+            addReportedPost(postId);
+            removePostFromCollections(queryClient, Number(postId));
+            showErrorToast("Bài viết này đã bị xóa");
           } else {
             showErrorToast("Không thể gửi báo cáo");
           }
