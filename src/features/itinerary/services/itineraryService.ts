@@ -55,6 +55,7 @@ function mapTourToItinerary(tour: TourResponse): Itinerary {
 
 /**
  * Fetch user's itineraries with optional status filter
+ * Note: The list API doesn't return full stop details, so we fetch each tour by ID
  */
 export async function fetchItineraries(
   status?: "ongoing" | "upcoming" | "past",
@@ -67,7 +68,23 @@ export async function fetchItineraries(
     else if (status === "past") backendStatus = TourStatus.COMPLETED;
 
     const result = await itineraryApi.getMyTours(backendStatus, 0, 50);
-    return result.content.map(mapTourToItinerary);
+    
+    // The list API doesn't return full stop details, so fetch each tour by ID
+    // Use Promise.all for parallel fetching to improve performance
+    const toursWithDetails = await Promise.all(
+      result.content.map(async (tour) => {
+        try {
+          const fullTour = await itineraryApi.getTourById(tour.id);
+          return fullTour;
+        } catch (error) {
+          // If fetching details fails, use the basic tour data
+          console.warn(`Failed to fetch details for tour ${tour.id}:`, error);
+          return tour;
+        }
+      })
+    );
+    
+    return toursWithDetails.map(mapTourToItinerary);
   } catch (error) {
     console.error("Failed to fetch itineraries:", error);
     return [];

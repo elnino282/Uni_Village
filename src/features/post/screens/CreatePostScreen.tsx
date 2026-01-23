@@ -3,24 +3,24 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import {
-  Alert,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Alert,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -44,10 +44,10 @@ import { SelectedChannelCard } from "../components/SelectedChannelCard";
 import { SelectedItineraryCard } from "../components/SelectedItineraryCard";
 import type { PostLocation } from "../types";
 import type {
-  ChannelForSelection,
-  ChannelVisibility,
-  CreatePostTab,
-  ItineraryForSelection,
+    ChannelForSelection,
+    ChannelVisibility,
+    CreatePostTab,
+    ItineraryForSelection,
 } from "../types/createPost.types";
 
 interface CreatePostScreenProps {
@@ -292,32 +292,35 @@ export function CreatePostScreen({
             selectedLocations.length > 0 ? selectedLocations : undefined,
         });
       } else if (activeTab === "itinerary" && selectedItinerary) {
+        // Use originalTripData if available (contains all stops), otherwise use selectedItinerary
+        const tripData = (selectedItinerary as any).originalTripData || selectedItinerary;
+        const allStops = tripData.stops || selectedItinerary.stops || [];
+        
         // Post itinerary with embedded trip data for ItineraryShareCard rendering
         const tripShareData = {
           id: selectedItinerary.id,
           title: selectedItinerary.title,
           date: selectedItinerary.date,
           timeRange: selectedItinerary.timeRange,
-          area: selectedItinerary.area || "TP.HCM",
-          stopsCount: selectedItinerary.stopsCount,
-          stops: (selectedItinerary.stops || []).map((stop: any) => ({
+          area: selectedItinerary.area || tripData.area || "TP.HCM",
+          stopsCount: allStops.length,
+          stops: allStops.map((stop: any) => ({
             id: stop.id,
             time: stop.time || "",
             name: stop.name,
-            thumbnail: stop.thumbnail,
+            thumbnail: stop.thumbnail || stop.imageUrl,
           })),
         };
 
         // Create content with trip data marker for PostCard to detect
         const stopsText =
-          selectedItinerary.stops?.map((s: any) => `• ${s.name}`).join("\n") ||
-          "";
+          allStops.map((s: any) => `• ${s.name}`).join("\n") || "";
         const description =
           itineraryContent ||
           `📅 ${selectedItinerary.title}\n\n` +
             `🗓️ Ngày: ${selectedItinerary.date}\n` +
             `⏰ Giờ: ${selectedItinerary.timeRange}\n` +
-            `📍 ${selectedItinerary.stopsCount} điểm dừng\n\n` +
+            `📍 ${allStops.length} điểm dừng\n\n` +
             (stopsText ? `Các điểm đến:\n${stopsText}` : "");
 
         // Embed trip data as JSON with marker
