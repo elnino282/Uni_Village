@@ -75,12 +75,14 @@ export const ChooseItinerarySheet = forwardRef<
   // Load trips from API
   const loadTrips = useCallback(async () => {
     setIsLoading(true);
+    console.log('[ChooseItinerarySheet] Loading trips from API...');
     try {
       // Import fetchItineraries from itinerary service
       const { fetchItineraries } = await import('@/features/itinerary/services/itineraryService');
       
       // Fetch all itineraries from API
       const itineraries = await fetchItineraries();
+      console.log('[ChooseItinerarySheet] Fetched itineraries:', itineraries.length, itineraries);
       
       const mappedItineraries: ItineraryWithStatus[] = itineraries.map(
         (itinerary: any) => {
