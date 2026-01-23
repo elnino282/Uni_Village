@@ -183,12 +183,12 @@ class WebSocketService {
    * Subscribe to channel update events
    * Destination: /topic/channel.{conversationId}
    */
-  subscribeToChannel(
+  subscribeToChannel<T = MessageEvent>(
     conversationId: string,
-    onMessage: (message: WebSocketMessage<MessageEvent>) => void,
+    onMessage: (message: WebSocketMessage<T>) => void,
   ): StompSubscription | null {
     const destination = `/topic/channel.${conversationId}`;
-    const subscription = stompClient.subscribe<MessageEvent>(
+    const subscription = stompClient.subscribe<T>(
       destination,
       onMessage,
     );

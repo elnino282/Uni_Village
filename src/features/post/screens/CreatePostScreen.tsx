@@ -287,14 +287,6 @@ export function CreatePostScreen({
             selectedLocations.length > 0 ? selectedLocations : undefined,
         });
       } else if (activeTab === "itinerary" && selectedItinerary) {
-<<<<<<< Updated upstream
-=======
-        // Use originalTripData if available (contains all stops), otherwise use selectedItinerary
-        const tripData =
-          (selectedItinerary as any).originalTripData || selectedItinerary;
-        const allStops = tripData.stops || selectedItinerary.stops || [];
-
->>>>>>> Stashed changes
         // Post itinerary with embedded trip data for ItineraryShareCard rendering
         const tripShareData = {
           id: selectedItinerary.id,

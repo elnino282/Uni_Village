@@ -6,22 +6,27 @@
 /**
  * Thread type discriminator
  */
-export type ThreadType = 'dm' | 'group';
+export type ThreadType = "dm" | "group";
 
 /**
  * Message sender type
  */
-export type MessageSender = 'me' | 'other' | 'system';
+export type MessageSender = "me" | "other" | "system";
 
 /**
  * Message type discriminator
  */
-export type MessageType = 'text' | 'sharedCard' | 'image' | 'system';
+export type MessageType =
+  | "text"
+  | "sharedCard"
+  | "image"
+  | "system"
+  | "channelInvite";
 
 /**
  * Message delivery status
  */
-export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
+export type MessageStatus = "sending" | "sent" | "delivered" | "read";
 
 /**
  * Base message interface
@@ -48,7 +53,7 @@ interface BaseMessage {
  * Text message
  */
 export interface TextMessage extends BaseMessage {
-  type: 'text';
+  type: "text";
   text: string;
 }
 
@@ -68,7 +73,7 @@ export interface SharedCard {
  * Shared card message
  */
 export interface SharedCardMessage extends BaseMessage {
-  type: 'sharedCard';
+  type: "sharedCard";
   card: SharedCard;
 }
 
@@ -76,7 +81,7 @@ export interface SharedCardMessage extends BaseMessage {
  * Image message
  */
 export interface ImageMessage extends BaseMessage {
-  type: 'image';
+  type: "image";
   imageUrl: string;
   caption?: string;
 }
@@ -85,14 +90,42 @@ export interface ImageMessage extends BaseMessage {
  * System message (e.g., "X added Y to the group")
  */
 export interface SystemMessage extends BaseMessage {
-  type: 'system';
+  type: "system";
   text: string;
+}
+
+/**
+ * Channel invite payload for messages
+ */
+export interface ChannelInviteData {
+  channelId: string;
+  conversationId: string;
+  inviteCode: string;
+  name: string;
+  emoji?: string;
+  description: string;
+  memberCount: number;
+  avatarUrl?: string;
+  inviterName: string;
+}
+
+/**
+ * Channel invite message
+ */
+export interface ChannelInviteMessage extends BaseMessage {
+  type: "channelInvite";
+  invite: ChannelInviteData;
 }
 
 /**
  * Union type for all message types
  */
-export type Message = TextMessage | SharedCardMessage | ImageMessage | SystemMessage;
+export type Message =
+  | TextMessage
+  | SharedCardMessage
+  | ImageMessage
+  | SystemMessage
+  | ChannelInviteMessage;
 
 /**
  * Chat thread peer information
@@ -106,7 +139,7 @@ export interface ThreadPeer {
 /**
  * Online status for a peer
  */
-export type OnlineStatus = 'online' | 'offline' | 'away';
+export type OnlineStatus = "online" | "offline" | "away";
 
 /**
  * Chat thread metadata
@@ -119,9 +152,16 @@ export interface ChatThread {
   /** Localized online status text: "Đang hoạt động", "Offline", etc. */
   onlineStatusText: string;
   /** Relationship status with the other user (for DM chats) */
-  relationshipStatus?: 'NONE' | 'PENDING_OUTGOING' | 'PENDING_INCOMING' | 'ACCEPTED' | 'BLOCKED' | 'BLOCKED_BY' | 'FRIEND';
+  relationshipStatus?:
+    | "NONE"
+    | "PENDING_OUTGOING"
+    | "PENDING_INCOMING"
+    | "ACCEPTED"
+    | "BLOCKED"
+    | "BLOCKED_BY"
+    | "FRIEND";
   /** Participant status (INBOX/REQUEST) */
-  participantStatus?: 'INBOX' | 'REQUEST' | 'ARCHIVED' | 'DELETED';
+  participantStatus?: "INBOX" | "REQUEST" | "ARCHIVED" | "DELETED";
 }
 
 /**
@@ -137,8 +177,11 @@ export interface PinnedMessage {
 /**
  * Group chat thread extends base ChatThread
  */
-export interface GroupThread extends Omit<ChatThread, 'peer' | 'onlineStatus' | 'onlineStatusText'> {
-  type: 'group';
+export interface GroupThread extends Omit<
+  ChatThread,
+  "peer" | "onlineStatus" | "onlineStatusText"
+> {
+  type: "group";
   name: string;
   avatarUrl?: string;
   memberCount: number;
@@ -155,7 +198,7 @@ export interface GroupMember {
   displayName: string;
   avatarUrl?: string;
   isOnline: boolean;
-  role: 'admin' | 'member';
+  role: "admin" | "member";
 }
 
 /**
@@ -178,7 +221,13 @@ export interface UserSearchResult {
   displayName: string;
   email?: string;
   avatarUrl?: string;
-  relationshipStatus: 'NONE' | 'PENDING_OUTGOING' | 'PENDING_INCOMING' | 'ACCEPTED' | 'BLOCKED' | 'BLOCKED_BY';
+  relationshipStatus:
+    | "NONE"
+    | "PENDING_OUTGOING"
+    | "PENDING_INCOMING"
+    | "ACCEPTED"
+    | "BLOCKED"
+    | "BLOCKED_BY";
 }
 
 /**
@@ -190,7 +239,7 @@ export type Thread = ChatThread | GroupThread;
  * Type guard for group thread
  */
 export function isGroupThread(thread: Thread): thread is GroupThread {
-  return thread.type === 'group';
+  return thread.type === "group";
 }
 
 /**

@@ -3,22 +3,20 @@
  * Bottom sheet for selecting an Itinerary when creating a post
  */
 
-import { fetchItineraries } from "@/features/itinerary/services/itineraryService";
-import type { Itinerary } from "@/features/itinerary/types/itinerary.types";
 import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import BottomSheet, {
-  BottomSheetBackdrop,
-  BottomSheetFlatList,
-  BottomSheetTextInput,
+    BottomSheetBackdrop,
+    BottomSheetFlatList,
+    BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import React, {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
+    forwardRef,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
 } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -77,15 +75,33 @@ export const ChooseItinerarySheet = forwardRef<
   // Load trips from API
   const loadTrips = useCallback(async () => {
     setIsLoading(true);
+    console.log('[ChooseItinerarySheet] Loading trips from API...');
     try {
+      // Import fetchItineraries from itinerary service
+      const { fetchItineraries } = await import('@/features/itinerary/services/itineraryService');
+      
+      // Fetch all itineraries from API
       const itineraries = await fetchItineraries();
+      console.log('[ChooseItinerarySheet] Fetched itineraries:', itineraries.length, itineraries);
+      
       const mappedItineraries: ItineraryWithStatus[] = itineraries.map(
-        (itinerary: Itinerary) => {
+        (itinerary: any) => {
           const startDate = new Date(itinerary.startDate);
           const formattedDate = `${String(startDate.getDate()).padStart(2, "0")}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${startDate.getFullYear()}`;
 
-          const status = itinerary.status || "upcoming";
-          const badgeStyle = getStatusBadgeStyle(status);
+          // Map API status to filter status
+          // API returns: "ongoing" | "upcoming" | "past"
+          // Filter expects: "upcoming" | "ongoing" | "completed"
+          let filterStatus: string;
+          if (itinerary.status === "ongoing") {
+            filterStatus = "ongoing";
+          } else if (itinerary.status === "past") {
+            filterStatus = "completed";
+          } else {
+            filterStatus = "upcoming";
+          }
+
+          const badgeStyle = getStatusBadgeStyle(filterStatus);
 
           return {
             id: itinerary.id,
@@ -95,14 +111,30 @@ export const ChooseItinerarySheet = forwardRef<
             area: itinerary.locations?.[0] || "Việt Nam",
             stopsCount: itinerary.stops?.length || 0,
             tags: [badgeStyle.label],
-            stops: (itinerary.stops || []).slice(0, 3).map((stop) => ({
+            stops: (itinerary.stops || []).slice(0, 3).map((stop: any) => ({
               id: stop.id,
               time: "",
               name: stop.name,
               thumbnail: stop.imageUrl,
             })),
             isSaved: false,
-            status: status,
+            status: filterStatus,
+            // Store original itinerary data for posting
+            originalTripData: {
+              id: itinerary.id,
+              title: itinerary.title,
+              date: formattedDate,
+              startDate: itinerary.startDate,
+              startTime: itinerary.startDate,
+              area: itinerary.locations?.[0] || "Việt Nam",
+              stopsCount: itinerary.stops?.length || 0,
+              stops: (itinerary.stops || []).map((stop: any) => ({
+                id: stop.id,
+                name: stop.name,
+                thumbnail: stop.imageUrl,
+                time: "",
+              })),
+            },
           };
         },
       );

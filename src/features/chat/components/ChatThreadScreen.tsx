@@ -25,6 +25,10 @@ import { useColorScheme } from "@/shared/hooks";
 import "@/lib/i18n";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import {
+  ChannelJoinModal,
+  type ChannelJoinModalRef,
+} from "@/features/channel/components";
 import type { MessageResponse } from "@/shared/types/backend.types";
 import { MessageType } from "@/shared/types/backend.types";
 import {
@@ -36,12 +40,15 @@ import {
 } from "../hooks";
 import { isVirtualThreadId } from "../services";
 import type {
-    ChatThread,
-    GroupThread,
-    ImageMessage,
-    Message,
-    TextMessage,
-    UserPreview,
+  ChannelInviteData,
+  ChannelInviteMessage,
+  ChatThread,
+  GroupThread,
+  ImageMessage,
+  Message,
+  SystemMessage,
+  TextMessage,
+  UserPreview,
 } from "../types";
 import { isGroupThread } from "../types";
 import { AcceptMessageRequestBanner } from "./AcceptMessageRequestBanner";
@@ -104,6 +111,42 @@ function mapMessageResponse(
       conversationId,
       isUnsent,
     } satisfies SystemMessage;
+  }
+
+  // Handle CHANNEL_INVITE messages
+  // Parse invite payload from message content (format: [CHANNEL_INVITE:{...}])
+  const channelInviteMatch = msg.content?.match(/\[CHANNEL_INVITE:(.*)\]/);
+  if (channelInviteMatch || (msg.messageType as string) === "CHANNEL_INVITE") {
+    let inviteData: ChannelInviteData | null = null;
+
+    if (channelInviteMatch) {
+      try {
+        inviteData = JSON.parse(channelInviteMatch[1]);
+      } catch (e) {
+        console.warn("[ChatThread] Failed to parse channel invite:", e);
+      }
+    }
+
+    if (inviteData) {
+      // Extract display text (text before the JSON marker)
+      const displayText =
+        msg.content?.replace(/\[CHANNEL_INVITE:.*\]/, "").trim() || "";
+
+      return {
+        id: String(msg.id ?? Date.now()),
+        type: "channelInvite" as const,
+        invite: inviteData,
+        sender: isSentByMe ? "me" : "other",
+        createdAt: msg.timestamp ?? new Date().toISOString(),
+        timeLabel,
+        status,
+        senderName: msg.senderName,
+        senderAvatar: msg.senderAvatarUrl,
+        messageId,
+        conversationId,
+        isUnsent,
+      } satisfies ChannelInviteMessage;
+    }
   }
 
   if (msg.messageType === MessageType.IMAGE) {
@@ -194,6 +237,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
   // Bottom sheet refs
   const itinerarySheetRef = useRef<BottomSheet>(null);
   const addMemberSheetRef = useRef<AddMemberBottomSheetRef>(null);
+  const channelJoinModalRef = useRef<ChannelJoinModalRef>(null);
 
   // Auth for current user ID
   const currentUserId = useAuthStore((state) => state.user?.id);
@@ -398,6 +442,11 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
     console.log("Pinned message dismissed");
   }, []);
 
+  // Handler for channel invite card press
+  const handleChannelInvitePress = useCallback((invite: ChannelInviteData) => {
+    channelJoinModalRef.current?.open(invite);
+  }, []);
+
   // Subscribe to conversation-specific WebSocket events using the dedicated hook
   // This properly handles re-subscription when WebSocket connects/reconnects
   const isVirtual = isVirtualThreadId(threadId);
@@ -453,6 +502,7 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
           messages={messages}
           isLoading={isLoadingMessages}
           isGroupChat={isGroup}
+          onChannelInvitePress={handleChannelInvitePress}
         />
 
         {/* Input composer */}
@@ -482,6 +532,9 @@ export function ChatThreadScreen({ threadId }: ChatThreadScreenProps) {
           onMembersAdded={handleMembersAdded}
         />
       )}
+
+      {/* Channel Join Modal for invite cards */}
+      <ChannelJoinModal ref={channelJoinModalRef} />
     </View>
   );
 }
