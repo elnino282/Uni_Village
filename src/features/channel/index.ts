@@ -3,13 +3,26 @@
  */
 
 // Screens
-export { ChannelInfoScreen } from './screens';
+export { ChannelInfoScreen } from "./screens";
+
+// Components
+export {
+    ChannelJoinModal, ShareChannelBottomSheet, type ChannelJoinModalRef, type ShareChannelBottomSheetRef
+} from "./components";
 
 // Hooks
-export { useChannelInfo, useJoinChannel, useLeaveChannel } from './hooks';
+export { useChannelInfo, useJoinChannel, useLeaveChannel } from "./hooks";
 
 // Services
-export { MOCK_CHANNEL_INFO, channelInfoService } from './services';
+export { MOCK_CHANNEL_INFO, channelInfoService } from "./services";
 
 // Types
-export type { ChannelInfo, ChannelInfoResponse, ChannelInvite, ChannelMember, JoinChannelResponse } from './types';
+export type {
+    ChannelInfo,
+    ChannelInfoResponse,
+    ChannelInvite,
+    ChannelInvitePayload,
+    ChannelMember,
+    JoinChannelResponse
+} from "./types";
+

@@ -5,6 +5,8 @@ export {
     useChannelByConversation,
     useChannelJoinRequests,
     useChannelMembers,
+    useJoinByInviteCode,
+    useRegenerateInviteCode,
     useRemoveChannelMember,
     useUpdateChannel
 } from "./useChannels";
@@ -20,6 +22,7 @@ export {
 } from "./useConversations";
 export * from "./useCreateChannel";
 export * from "./useDeleteConversation";
+export * from "./useFriends";
 export * from "./useGlobalWebSocketSubscriptions";
 export * from "./useGroupMembers";
 export * from "./useMessageActions";

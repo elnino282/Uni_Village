@@ -3,20 +3,29 @@
  * User row with avatar, online status, name, and circular checkbox for selection
  * Matches Figma node 499:1729
  */
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Avatar } from '@/shared/components/ui';
-import { Colors, Spacing, Typography } from '@/shared/constants';
-import { useColorScheme } from '@/shared/hooks';
+import { Avatar } from "@/shared/components/ui";
+import { Colors, Spacing, Typography } from "@/shared/constants";
+import { useColorScheme } from "@/shared/hooks";
 
-import type { FriendPreview } from '../types/channel.types';
+/**
+ * Selectable user display type - supports both FriendPreview and simpler user objects
+ */
+export interface SelectableUser {
+  id: string;
+  displayName: string;
+  avatarUrl?: string;
+  isOnline?: boolean;
+  statusText?: string;
+}
 
 interface MemberSelectRowProps {
-  friend: FriendPreview;
+  friend: SelectableUser;
   isSelected: boolean;
-  onToggle: (friend: FriendPreview) => void;
+  onToggle: (friend: SelectableUser) => void;
 }
 
 /**
@@ -36,22 +45,15 @@ export function MemberSelectRow({
 
   return (
     <Pressable
-      style={({ pressed }) => [
-        styles.container,
-        pressed && styles.pressed,
-      ]}
+      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
       onPress={handlePress}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: isSelected }}
-      accessibilityLabel={`${friend.displayName}${isSelected ? ', đã chọn' : ''}`}
+      accessibilityLabel={`${friend.displayName}${isSelected ? ", đã chọn" : ""}`}
     >
       {/* Avatar with online indicator */}
       <View style={styles.avatarContainer}>
-        <Avatar
-          source={friend.avatarUrl}
-          name={friend.displayName}
-          size="lg"
-        />
+        <Avatar source={friend.avatarUrl} name={friend.displayName} size="lg" />
         {friend.isOnline && (
           <View
             style={[
@@ -70,12 +72,14 @@ export function MemberSelectRow({
         >
           {friend.displayName}
         </Text>
-        <Text
-          style={[styles.status, { color: colors.textSecondary }]}
-          numberOfLines={1}
-        >
-          {friend.statusText}
-        </Text>
+        {friend.statusText && (
+          <Text
+            style={[styles.status, { color: colors.textSecondary }]}
+            numberOfLines={1}
+          >
+            {friend.statusText}
+          </Text>
+        )}
       </View>
 
       {/* Circular checkbox */}
@@ -84,12 +88,13 @@ export function MemberSelectRow({
           styles.checkbox,
           isSelected
             ? { backgroundColor: colors.fabBlue, borderColor: colors.fabBlue }
-            : { backgroundColor: 'transparent', borderColor: colors.checkboxBorder },
+            : {
+                backgroundColor: "transparent",
+                borderColor: colors.checkboxBorder,
+              },
         ]}
       >
-        {isSelected && (
-          <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-        )}
+        {isSelected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
       </View>
     </Pressable>
   );
@@ -97,8 +102,8 @@ export function MemberSelectRow({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
     minHeight: 75,
@@ -107,22 +112,22 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   avatarContainer: {
-    position: 'relative',
+    position: "relative",
   },
   onlineIndicator: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     right: 0,
     width: 14,
     height: 14,
     borderRadius: 7,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: "#FFFFFF",
   },
   textContainer: {
     flex: 1,
     marginLeft: Spacing.md,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   name: {
     fontSize: 15,
@@ -137,7 +142,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
