@@ -102,16 +102,18 @@ export function ItineraryDetailScreen() {
             tripName: tripName || "Lịch trình AI",
             startDate: startDateParam ? new Date(startDateParam) : new Date(),
             startTime: startDateParam ? new Date(startDateParam) : new Date(),
-            destinations: parsedDestinations.map((dest: any, index: number) => ({
-              id: dest.id || `ai-${index}`,
-              name: dest.name,
-              thumbnail: dest.thumbnail || "",
-              order: dest.order || index + 1,
-              time: dest.time,
-              lat: dest.lat,
-              lng: dest.lng,
-              address: dest.address,
-            })),
+            destinations: parsedDestinations.map(
+              (dest: any, index: number) => ({
+                id: dest.id || `ai-${index}`,
+                name: dest.name,
+                thumbnail: dest.thumbnail || "",
+                order: dest.order || index + 1,
+                time: dest.time,
+                lat: dest.lat,
+                lng: dest.lng,
+                address: dest.address,
+              }),
+            ),
           });
           return;
         } catch (parseError) {
@@ -258,7 +260,7 @@ export function ItineraryDetailScreen() {
         });
         tripId = newItinerary.id;
         // Update local state with the new ID
-        setTripData(prev => ({ ...prev, id: tripId }));
+        setTripData((prev) => ({ ...prev, id: tripId }));
       }
 
       if (!tripId) {
