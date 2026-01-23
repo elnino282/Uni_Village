@@ -14,10 +14,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAuthStore } from '@/features/auth';
+import { useMyProfile } from '@/features/profile';
 import { Avatar } from '@/shared/components/ui';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/shared/constants';
 import { useColorScheme } from '@/shared/hooks';
-import { mockCurrentUser } from '../services/mockPostDetail';
 
 interface CommentComposerProps {
   onSubmit: (content: string) => void;
@@ -36,6 +37,11 @@ export function CommentComposer({
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
+  
+  const currentUser = useAuthStore((state) => state.user);
+  const { profile: myProfile } = useMyProfile();
+  const currentUserAvatar = currentUser?.avatarUrl ?? myProfile?.avatarUrl ?? '';
+  const currentUserName = currentUser?.displayName ?? myProfile?.displayName ?? 'User';
 
   const handleSubmit = () => {
     if (text.trim() && !isSubmitting) {
@@ -72,8 +78,8 @@ export function CommentComposer({
         {/* User avatar */}
         <Avatar
           size="sm"
-          source={mockCurrentUser.avatarUrl}
-          name={mockCurrentUser.displayName}
+          source={currentUserAvatar}
+          name={currentUserName}
           style={styles.avatar}
         />
 
