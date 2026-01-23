@@ -1,10 +1,41 @@
 import type { PostResponse } from "@/features/post/types";
+import type { ChannelInvite } from "@/shared/types";
 import { getImageUrl } from "@/shared/utils/imageUtils";
 import type {
-    CommunityPost,
-    CommunityPostsResponse,
-    PostAuthor,
+  CommunityPost,
+  CommunityPostsResponse,
+  PostAuthor,
 } from "../types";
+
+/**
+ * Parse channel share data from post content
+ */
+function parseChannelShare(content: string): ChannelInvite | undefined {
+  const match = content.match(/\[CHANNEL_SHARE\](.*?)\[\/CHANNEL_SHARE\]/s);
+  if (!match) return undefined;
+
+  try {
+    const data = JSON.parse(match[1]);
+    return {
+      channelId: data.channelId,
+      name: data.name,
+      emoji: data.emoji,
+      description: data.description || "",
+      memberCount: data.memberCount || 0,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Remove channel share marker from content for display
+ */
+function cleanChannelShareContent(content: string): string {
+  return content
+    .replace(/\n?\n?\[CHANNEL_SHARE\].*?\[\/CHANNEL_SHARE\]/s, "")
+    .trim();
+}
 
 export function mapPostResponseToCommunityPost(
   post: PostResponse,
@@ -15,10 +46,16 @@ export function mapPostResponseToCommunityPost(
     avatarUrl: getImageUrl(post.authorAvatarUrl),
   };
 
+  const rawContent = post.content || "";
+  const channelInvite = parseChannelShare(rawContent);
+  const displayContent = channelInvite
+    ? cleanChannelShareContent(rawContent)
+    : rawContent;
+
   return {
     id: String(post.id),
     author,
-    content: post.content || "",
+    content: displayContent,
     imageUrl: getImageUrl(post.mediaUrls?.[0]),
     postType: post.postType,
     locations:
@@ -37,6 +74,7 @@ export function mapPostResponseToCommunityPost(
     createdAt: post.createdAt || new Date().toISOString(),
     updatedAt: post.updatedAt || new Date().toISOString(),
     visibility: post.visibility === "PUBLIC" ? "public" : "private",
+    channelInvite,
   };
 }
 

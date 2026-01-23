@@ -29,7 +29,6 @@ import { Button } from "@/shared/components/ui";
 import { BorderRadius, Colors, Spacing, Typography } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 
-import { useCreateCommunityPost } from "@/features/community/hooks/useCommunityPosts";
 import { useCreatePost, usePostDetail, useUpdatePost } from "../hooks";
 import { fileUploadService, type PickedFile } from "../services";
 
@@ -117,8 +116,6 @@ export function CreatePostScreen({
   const channelSheetRef = useRef<BottomSheet>(null);
   const itinerarySheetRef = useRef<BottomSheet>(null);
 
-  const { mutateAsync: createCommunityPost, isPending: isCreating } =
-    useCreateCommunityPost();
   const { mutate: createRealPost, isPending: isCreatingRealPost } =
     useCreatePost();
   const { mutateAsync: updatePost, isPending: isUpdatingPost } =
@@ -127,8 +124,7 @@ export function CreatePostScreen({
     usePostDetail(resolvedPostId);
 
   const canSubmit = useMemo(() => {
-    if (isSubmitting || isCreating || isCreatingRealPost || isUpdatingPost)
-      return false;
+    if (isSubmitting || isCreatingRealPost || isUpdatingPost) return false;
     if (isEditMode) {
       const hasContent = postContent.trim().length > 0;
       const hasMedia = selectedFiles.length > 0 || existingMediaUrls.length > 0;
@@ -151,7 +147,6 @@ export function CreatePostScreen({
     selectedChannel,
     selectedItinerary,
     isSubmitting,
-    isCreating,
     isCreatingRealPost,
     isUpdatingPost,
     selectedFiles,
@@ -292,6 +287,14 @@ export function CreatePostScreen({
             selectedLocations.length > 0 ? selectedLocations : undefined,
         });
       } else if (activeTab === "itinerary" && selectedItinerary) {
+<<<<<<< Updated upstream
+=======
+        // Use originalTripData if available (contains all stops), otherwise use selectedItinerary
+        const tripData =
+          (selectedItinerary as any).originalTripData || selectedItinerary;
+        const allStops = tripData.stops || selectedItinerary.stops || [];
+
+>>>>>>> Stashed changes
         // Post itinerary with embedded trip data for ItineraryShareCard rendering
         const tripShareData = {
           id: selectedItinerary.id,
@@ -332,9 +335,34 @@ export function CreatePostScreen({
               : Visibility.PRIVATE,
         });
       } else if (activeTab === "channel" && selectedChannel) {
-        await createCommunityPost({
-          content: channelContent,
-          visibility: "public",
+        // Create channel share data for embedding in post
+        const channelShareData = {
+          channelId: selectedChannel.id,
+          name: selectedChannel.name,
+          emoji: selectedChannel.emoji,
+          description: selectedChannel.description || "",
+          memberCount: selectedChannel.memberCount || 0,
+        };
+
+        // Create description text for the post
+        const description =
+          channelContent ||
+          `📢 Mời tham gia Channel: ${selectedChannel.name}\n\n` +
+            (selectedChannel.description
+              ? `${selectedChannel.description}\n\n`
+              : "") +
+            `👥 ${selectedChannel.memberCount || 0} thành viên`;
+
+        // Embed channel data as JSON with marker
+        const contentWithChannelData = `${description}\n\n[CHANNEL_SHARE]${JSON.stringify(channelShareData)}[/CHANNEL_SHARE]`;
+
+        createRealPost({
+          content: contentWithChannelData,
+          postType: PostType.EXPERIENCE,
+          visibility:
+            postVisibility === "public"
+              ? Visibility.PUBLIC
+              : Visibility.PRIVATE,
         });
       }
 
