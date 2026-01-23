@@ -6,14 +6,14 @@
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
-    Alert,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    View,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -23,12 +23,12 @@ import { LoadingScreen } from "@/shared/components/feedback";
 import { Colors, Shadows, Spacing, Typography } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import {
-    useCreateComment,
-    useDeletePost,
-    usePostComments,
-    usePostDetail,
-    useReportComment,
-    useUpdatePost,
+  useCreateComment,
+  useDeletePost,
+  usePostComments,
+  usePostDetail,
+  useReportComment,
+  useUpdatePost,
 } from "../hooks";
 import { useLikeComment, useLikePost } from "../hooks/useReactions";
 import type { CommentRequest, PostLocation, PostVisibility } from "../types";
@@ -40,13 +40,15 @@ import { EditPrivacySheet } from "@/features/community/components/EditPrivacyShe
 import { PostOverflowMenu } from "@/features/community/components/PostOverflowMenu";
 import { PostOwnerMenu } from "@/features/community/components/PostOwnerMenu";
 import {
-    useBlockPost,
-    useReportPost,
-    useSavePost,
+  useBlockPost,
+  useReportPost,
+  useSavePost,
 } from "@/features/community/hooks";
+import { ItineraryShareCard } from "@/features/itinerary/components/ItineraryShareCard";
+import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.types";
 import {
-    PostActionRow,
-    PostLocationDetailSheet,
+  PostActionRow,
+  PostLocationDetailSheet,
 } from "@/shared/components/post";
 import { PostType, Visibility } from "@/shared/types/backend.types";
 import { mapCommentResponseToComment } from "../adapters/commentAdapter";
@@ -80,7 +82,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
   const [selectedPostVisibility, setSelectedPostVisibility] =
     useState<PostVisibility>("public");
   const [selectedLocation, setSelectedLocation] = useState<PostLocation | null>(
-    null
+    null,
   );
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
@@ -89,7 +91,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
     useState(false);
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
   const [reportTargetType, setReportTargetType] = useState<"post" | "comment">(
-    "post"
+    "post",
   );
 
   // Queries & mutations - disable all fetching when post is deleted
@@ -122,14 +124,118 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
     return String(post.authorId) === String(currentUserId);
   }, [post?.authorId, currentUserId]);
 
+  // Parse embedded itinerary from content
+  const parseEmbeddedItinerary = useCallback((content: string) => {
+    const match = content.match(
+      /\[ITINERARY_SHARE\](.*?)\[\/ITINERARY_SHARE\]/s,
+    );
+    if (match) {
+      try {
+        const tripData = JSON.parse(match[1]);
+        const cleanContent = content
+          .replace(/\n*\[ITINERARY_SHARE\].*?\[\/ITINERARY_SHARE\]/s, "")
+          .trim();
+        const itineraryShare: ItineraryShareData = {
+          id: tripData.id || String(Date.now()),
+          dayLabel: tripData.title || "Lịch trình",
+          date: tripData.date,
+          stopsCount: tripData.stopsCount || tripData.stops?.length || 0,
+          timeRange: tripData.timeRange || "",
+          tags: ["Lịch trình"],
+          stops: (tripData.stops || []).map((stop: any, index: number) => ({
+            id: stop.id || String(index),
+            time: stop.time || "",
+            name: stop.name,
+            address: tripData.area || "TP.HCM",
+            order: index + 1,
+          })),
+          originalTripData: tripData,
+        };
+        return { cleanContent, itineraryShare };
+      } catch (e) {
+        return { cleanContent: content, itineraryShare: null };
+      }
+    }
+    return { cleanContent: content, itineraryShare: null };
+  }, []);
+
+  // Parsed content and itinerary
+  const { cleanContent: parsedContent, itineraryShare: embeddedItinerary } =
+    useMemo(() => {
+      if (!post?.content) return { cleanContent: "", itineraryShare: null };
+      return parseEmbeddedItinerary(post.content);
+    }, [post?.content, parseEmbeddedItinerary]);
+
+  // Handler for opening shared itinerary
+  const handleOpenItinerary = useCallback(
+    (itinerary: ItineraryShareData) => {
+      // Build destinations from stops
+      const buildDestinations = () => {
+        if (!itinerary.stops || itinerary.stops.length === 0) return [];
+        return itinerary.stops.map((stop, index) => ({
+          id: stop.id || String(index + 1),
+          name: stop.name || "Địa điểm",
+          time: stop.time,
+          address: stop.address,
+          thumbnail: stop.thumbnail,
+          order: index + 1,
+        }));
+      };
+
+      // Normalize originalTripData or build from scratch
+      let tripData;
+      if (itinerary.originalTripData) {
+        const original = itinerary.originalTripData;
+        // Ensure destinations exists - prefer destinations, fallback to stops
+        tripData = {
+          ...original,
+          id: original.id || itinerary.id,
+          tripName:
+            original.tripName || original.tourName || itinerary.dayLabel,
+          startDate: original.startDate || new Date().toISOString(),
+          startTime: original.startTime || new Date().toISOString(),
+          destinations:
+            original.destinations ||
+            (original.stops
+              ? original.stops.map((stop: any, index: number) => ({
+                  id: stop.id?.toString() || String(index + 1),
+                  name: stop.placeName || stop.name || "Địa điểm",
+                  thumbnail:
+                    stop.placeImageUrl || stop.imageUrl || stop.thumbnail,
+                  time: stop.visitTime || stop.time,
+                  address: stop.address,
+                  order: stop.order || index + 1,
+                }))
+              : buildDestinations()),
+          area: original.area || "TP.HCM",
+        };
+      } else {
+        tripData = {
+          id: itinerary.id,
+          tripName: itinerary.dayLabel,
+          startDate: new Date().toISOString(),
+          startTime: new Date().toISOString(),
+          destinations: buildDestinations(),
+          area: "TP.HCM",
+        };
+      }
+
+      router.push({
+        pathname: "/(modals)/shared-itinerary",
+        params: { tripData: JSON.stringify(tripData) },
+      });
+    },
+    [router],
+  );
+
   // Flatten comments for FlatList - MUST be before any early returns to follow React hooks rules
   const flattenedComments = useMemo(
     () => commentsData?.pages.flatMap((page) => page.content) || [],
-    [commentsData?.pages]
+    [commentsData?.pages],
   );
   const uiComments = useMemo(
     () => flattenedComments.map(mapCommentResponseToComment),
-    [flattenedComments]
+    [flattenedComments],
   );
 
   // Handlers
@@ -143,7 +249,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
     if (!post) return;
     if (isPostOwner) {
       setSelectedPostVisibility(
-        post.visibility === Visibility.PUBLIC ? "public" : "private"
+        post.visibility === Visibility.PUBLIC ? "public" : "private",
       );
       setIsOwnerMenuOpen(true);
     } else {
@@ -185,7 +291,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         toggleCommentLikeMutation.mutate({ commentId, postId: post.id });
       }
     },
-    [toggleCommentLikeMutation, post?.id]
+    [toggleCommentLikeMutation, post?.id],
   );
 
   const handleReplyPress = useCallback((commentId: string) => {
@@ -199,7 +305,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
       if (!targetPostId || isSavingPost) return;
       savePost(targetPostId);
     },
-    [post?.id, savePost, isSavingPost]
+    [post?.id, savePost, isSavingPost],
   );
 
   const handleReportPost = useCallback(
@@ -212,7 +318,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
       setIsReportModalOpen(true);
       setIsMenuOpen(false);
     },
-    [post?.id]
+    [post?.id],
   );
 
   const handleReportComment = useCallback((commentId: string) => {
@@ -243,7 +349,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
                 setIsReportModalOpen(false);
                 setReportTargetId(null);
               },
-            }
+            },
           );
         }
       } else {
@@ -261,7 +367,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
                 setIsReportModalOpen(false);
                 setReportTargetId(null);
               },
-            }
+            },
           );
         }
       }
@@ -273,7 +379,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
       reportComment,
       isReportingPost,
       isReportingComment,
-    ]
+    ],
   );
 
   const handleBlockPost = useCallback(
@@ -283,13 +389,13 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
       if (!targetPostId || isBlockingPost) return;
       blockPost(targetPostId);
     },
-    [post?.id, blockPost, isBlockingPost]
+    [post?.id, blockPost, isBlockingPost],
   );
 
   const handleEditPrivacy = useCallback(() => {
     if (!post) return;
     setSelectedPostVisibility(
-      post.visibility === Visibility.PUBLIC ? "public" : "private"
+      post.visibility === Visibility.PUBLIC ? "public" : "private",
     );
     setIsEditPrivacyOpen(true);
   }, [post]);
@@ -310,7 +416,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
     if (!post?.id || isDeletingPost) return;
     Alert.alert(
       "Xóa bài viết",
-      "Bạn có chắc muốn xóa bài viết này vĩnh viễn?",
+      "Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.",
       [
         { text: "Hủy", style: "cancel" },
         {
@@ -327,7 +433,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
             });
           },
         },
-      ]
+      ],
     );
   }, [post?.id, deletePost, isDeletingPost, router]);
 
@@ -343,7 +449,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         },
       });
     },
-    [post?.id, post?.postType, updatePost, isUpdatingPost]
+    [post?.id, post?.postType, updatePost, isUpdatingPost],
   );
 
   const handleSubmitComment = useCallback(
@@ -364,7 +470,7 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         },
       });
     },
-    [createCommentMutation, replyingToId, post?.id]
+    [createCommentMutation, replyingToId, post?.id],
   );
 
   const handleCancelReply = useCallback(() => {
@@ -419,11 +525,21 @@ export function PostDetailScreen({ postId }: PostDetailScreenProps) {
         />
 
         {/* Content */}
-        <View style={styles.contentContainer}>
-          <Text style={[styles.content, { color: colors.text }]}>
-            {post.content}
-          </Text>
-        </View>
+        {parsedContent.length > 0 && (
+          <View style={styles.contentContainer}>
+            <Text style={[styles.content, { color: colors.text }]}>
+              {parsedContent}
+            </Text>
+          </View>
+        )}
+
+        {/* Embedded Itinerary Card */}
+        {embeddedItinerary && (
+          <ItineraryShareCard
+            itinerary={embeddedItinerary}
+            onPress={() => handleOpenItinerary(embeddedItinerary)}
+          />
+        )}
 
         {/* Media */}
         {post.mediaUrls && post.mediaUrls.length > 0 && (

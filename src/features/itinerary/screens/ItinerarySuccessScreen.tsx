@@ -1,21 +1,22 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { Colors } from "@/shared/constants";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-    Animated,
-    Easing,
-    Image,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Animated,
+  Easing,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { fetchItineraries } from "@/features/itinerary/services/itineraryService";
 
 interface Destination {
   id: string;
@@ -47,15 +48,12 @@ export default function ItinerarySuccessScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [tripNumber, setTripNumber] = useState(1);
 
-  // Load trip count
+  // Load trip count from API
   useEffect(() => {
     const loadTripCount = async () => {
       try {
-        const tripsJson = await AsyncStorage.getItem("@trips");
-        if (tripsJson) {
-          const trips = JSON.parse(tripsJson);
-          setTripNumber(trips.length);
-        }
+        const trips = await fetchItineraries();
+        setTripNumber(trips.length);
       } catch (error) {
         console.error("Failed to load trip count:", error);
       }

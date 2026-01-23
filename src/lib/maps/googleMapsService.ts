@@ -1,15 +1,15 @@
 /**
  * Google Maps Service
- * 
+ *
  * CURRENT STATUS: Using REAL GOOGLE MAPS API ✅
  * Provides navigation and routing functionality.
  * Falls back to mock data if API key is not configured.
- * 
+ *
  * Required APIs: Directions API
  * Docs: https://developers.google.com/maps/documentation/directions
  */
 
-import { env } from '@/config/env';
+import { env } from "@/config/env";
 
 export interface Location {
   latitude: number;
@@ -20,7 +20,14 @@ export interface RouteStep {
   distance: string; // e.g., "200 m"
   duration: string; // e.g., "2 phút"
   instruction: string; // e.g., "Rẽ trái vào đường Nguyễn Văn Cừ"
-  maneuver?: 'turn-left' | 'turn-right' | 'straight' | 'u-turn' | 'merge' | 'roundabout-left' | 'roundabout-right';
+  maneuver?:
+    | "turn-left"
+    | "turn-right"
+    | "straight"
+    | "u-turn"
+    | "merge"
+    | "roundabout-left"
+    | "roundabout-right";
 }
 
 export interface NavigationRoute {
@@ -30,16 +37,35 @@ export interface NavigationRoute {
   steps: RouteStep[]; // Turn-by-turn instructions
 }
 
-export type TravelMode = 'driving' | 'walking' | 'bicycling' | 'transit';
+export type TravelMode = "driving" | "walking" | "bicycling" | "transit";
 
 export interface DirectionsOptions {
   mode?: TravelMode;
   language?: string;
   alternatives?: boolean;
-  avoid?: ('tolls' | 'highways' | 'ferries')[];
+  avoid?: ("tolls" | "highways" | "ferries")[];
 }
 
-const DIRECTIONS_API_BASE = 'https://maps.googleapis.com/maps/api/directions/json';
+const DIRECTIONS_API_BASE =
+  "https://maps.googleapis.com/maps/api/directions/json";
+
+/**
+ * Validate if coordinates are valid
+ */
+function isValidCoordinate(location: Location): boolean {
+  return (
+    typeof location.latitude === "number" &&
+    typeof location.longitude === "number" &&
+    !isNaN(location.latitude) &&
+    !isNaN(location.longitude) &&
+    location.latitude >= -90 &&
+    location.latitude <= 90 &&
+    location.longitude >= -180 &&
+    location.longitude <= 180 &&
+    // Check not default 0,0 coordinates
+    !(location.latitude === 0 && location.longitude === 0)
+  );
+}
 
 /**
  * Get directions from origin to destination using Google Directions API
@@ -48,33 +74,47 @@ const DIRECTIONS_API_BASE = 'https://maps.googleapis.com/maps/api/directions/jso
 export async function getDirections(
   origin: Location,
   destination: Location,
-  options: DirectionsOptions = {}
+  options: DirectionsOptions = {},
 ): Promise<NavigationRoute> {
   const apiKey = env.GOOGLE_MAPS_API_KEY;
 
+  // Validate coordinates first
+  if (!isValidCoordinate(origin) || !isValidCoordinate(destination)) {
+    console.warn("⚠️ Invalid coordinates detected:", {
+      origin: `${origin.latitude}, ${origin.longitude}`,
+      destination: `${destination.latitude}, ${destination.longitude}`,
+    });
+    return getMockDirections(origin, destination);
+  }
+
   // If no API key, use mock data
   if (!apiKey) {
-    console.warn('⚠️ Google Maps API key not configured, using mock data');
+    console.warn("⚠️ Google Maps API key not configured, using mock data");
     return getMockDirections(origin, destination);
   }
 
   try {
-    console.log('🗺️ Calling Google Maps Directions API...');
+    console.log("🗺️ Calling Google Maps Directions API...");
+    console.log(`   Origin: ${origin.latitude}, ${origin.longitude}`);
+    console.log(
+      `   Destination: ${destination.latitude}, ${destination.longitude}`,
+    );
+    console.log(`   Mode: ${options.mode || "driving"}`);
 
     const params = new URLSearchParams({
       origin: `${origin.latitude},${origin.longitude}`,
       destination: `${destination.latitude},${destination.longitude}`,
-      mode: options.mode || 'driving',
-      language: options.language || 'vi',
+      mode: options.mode || "driving",
+      language: options.language || "vi",
       key: apiKey,
     });
 
     if (options.alternatives) {
-      params.append('alternatives', 'true');
+      params.append("alternatives", "true");
     }
 
     if (options.avoid && options.avoid.length > 0) {
-      params.append('avoid', options.avoid.join('|'));
+      params.append("avoid", options.avoid.join("|"));
     }
 
     const response = await fetch(`${DIRECTIONS_API_BASE}?${params}`);
@@ -85,16 +125,39 @@ export async function getDirections(
 
     const data = await response.json();
 
-    if (data.status !== 'OK') {
+    if (data.status !== "OK") {
+      // If ZERO_RESULTS with walking/bicycling, try driving mode
+      if (
+        data.status === "ZERO_RESULTS" &&
+        options.mode &&
+        options.mode !== "driving"
+      ) {
+        console.warn(
+          `⚠️ No route found for ${options.mode}, trying driving mode...`,
+        );
+        return getDirections(origin, destination, {
+          ...options,
+          mode: "driving",
+        });
+      }
+
+      // Log more details for debugging
+      console.error("❌ Directions API failed:", {
+        status: data.status,
+        error_message: data.error_message,
+        origin: `${origin.latitude}, ${origin.longitude}`,
+        destination: `${destination.latitude}, ${destination.longitude}`,
+      });
+
       throw new Error(`Directions API error: ${data.status}`);
     }
 
-    console.log('✅ Google Maps response received');
+    console.log("✅ Google Maps response received");
 
     return parseDirectionsResponse(data);
   } catch (error) {
-    console.error('❌ Error fetching directions:', error);
-    console.warn('⚠️ Using mock data as fallback');
+    console.error("❌ Error fetching directions:", error);
+    console.warn("⚠️ Using mock data as fallback");
     // Fallback to mock data on error
     return getMockDirections(origin, destination);
   }
@@ -103,15 +166,18 @@ export async function getDirections(
 /**
  * Get mock directions (fallback when API is unavailable)
  */
-function getMockDirections(origin: Location, destination: Location): Promise<NavigationRoute> {
+function getMockDirections(
+  origin: Location,
+  destination: Location,
+): Promise<NavigationRoute> {
   return new Promise((resolve) => {
     setTimeout(() => {
       const latDiff = destination.latitude - origin.latitude;
       const lngDiff = destination.longitude - origin.longitude;
 
       resolve({
-        distance: '2.5 km',
-        duration: '8 phút',
+        distance: "2.5 km",
+        duration: "8 phút",
         polylinePoints: [
           origin,
           {
@@ -126,29 +192,28 @@ function getMockDirections(origin: Location, destination: Location): Promise<Nav
         ],
         steps: [
           {
-            distance: '500 m',
-            duration: '2 phút',
-            instruction: 'Đi thẳng theo đường hiện tại',
-            maneuver: 'straight',
+            distance: "500 m",
+            duration: "2 phút",
+            instruction: "Đi thẳng theo đường hiện tại",
+            maneuver: "straight",
           },
           {
-            distance: '800 m',
-            duration: '3 phút',
-            instruction: 'Rẽ trái vào đường Nguyễn Văn Cừ',
-            maneuver: 'turn-left',
+            distance: "800 m",
+            duration: "3 phút",
+            instruction: "Rẽ trái vào đường Nguyễn Văn Cừ",
+            maneuver: "turn-left",
           },
           {
-            distance: '1.2 km',
-            duration: '3 phút',
-            instruction: 'Tiếp tục đi thẳng, điểm đến ở bên phải',
-            maneuver: 'straight',
+            distance: "1.2 km",
+            duration: "3 phút",
+            instruction: "Tiếp tục đi thẳng, điểm đến ở bên phải",
+            maneuver: "straight",
           },
         ],
       });
     }, 500);
   });
 }
-
 
 /**
  * Parse Google Directions API response to NavigationRoute format
@@ -161,7 +226,7 @@ function parseDirectionsResponse(data: any): NavigationRoute {
   const steps: RouteStep[] = leg.steps.map((step: any) => ({
     distance: step.distance.text,
     duration: step.duration.text,
-    instruction: step.html_instructions.replace(/<[^>]*>/g, ''), // Remove HTML tags
+    instruction: step.html_instructions.replace(/<[^>]*>/g, ""), // Remove HTML tags
     maneuver: mapManeuver(step.maneuver),
   }));
 
@@ -178,21 +243,21 @@ function parseDirectionsResponse(data: any): NavigationRoute {
 /**
  * Map Google Maps maneuver to our maneuver types
  */
-function mapManeuver(maneuver?: string): RouteStep['maneuver'] {
-  if (!maneuver) return 'straight';
+function mapManeuver(maneuver?: string): RouteStep["maneuver"] {
+  if (!maneuver) return "straight";
 
-  const maneuverMap: Record<string, RouteStep['maneuver']> = {
-    'turn-left': 'turn-left',
-    'turn-right': 'turn-right',
-    'straight': 'straight',
-    'uturn-left': 'u-turn',
-    'uturn-right': 'u-turn',
-    'merge': 'merge',
-    'roundabout-left': 'roundabout-left',
-    'roundabout-right': 'roundabout-right',
+  const maneuverMap: Record<string, RouteStep["maneuver"]> = {
+    "turn-left": "turn-left",
+    "turn-right": "turn-right",
+    straight: "straight",
+    "uturn-left": "u-turn",
+    "uturn-right": "u-turn",
+    merge: "merge",
+    "roundabout-left": "roundabout-left",
+    "roundabout-right": "roundabout-right",
   };
 
-  return maneuverMap[maneuver] || 'straight';
+  return maneuverMap[maneuver] || "straight";
 }
 
 /**
@@ -252,9 +317,9 @@ export function calculateDistance(from: Location, to: Location): number {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(from.latitude)) *
-    Math.cos(toRad(to.latitude)) *
-    Math.sin(dLon / 2) *
-    Math.sin(dLon / 2);
+      Math.cos(toRad(to.latitude)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in km

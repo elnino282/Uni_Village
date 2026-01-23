@@ -42,9 +42,9 @@ const logError = (error: AxiosError) => {
         const method = error.config?.method?.toUpperCase();
         const url = error.config?.url;
         const status = error.response?.status;
-        
+
         console.error(`[API Error] ${method} ${url}${status ? ` - ${status}` : ''}`);
-        
+
         // Only log response data for non-auth errors to avoid logging sensitive data
         if (error.response?.data && !url?.includes('/auth/')) {
             console.error('[API Error Details]', error.response.data);
@@ -86,8 +86,24 @@ const refreshAccessToken = async (): Promise<AuthTokens | null> => {
                 const tokens = mapAuthResponse(response.data);
                 await setTokens(tokens);
                 return tokens;
-            } catch {
+            } catch (error: any) {
+                console.log('[Auth] Refresh token failed:', error?.response?.status, error?.response?.data);
                 await clear();
+
+                // Check if account is locked (403 with ACCOUNT_LOCKED or any 403 during refresh)
+                const status = error?.response?.status;
+                const errorData = error?.response?.data;
+                const errorCode = typeof errorData === 'string'
+                    ? JSON.parse(errorData)?.error
+                    : errorData?.error;
+
+                if (status === 403 || errorCode === 'ACCOUNT_LOCKED') {
+                    console.log('[Auth] Account locked - redirecting to login');
+                    // Import router dynamically to avoid circular dependency
+                    const { router } = await import('expo-router');
+                    router.replace('/login');
+                }
+
                 return null;
             } finally {
                 refreshPromise = null;
@@ -130,7 +146,7 @@ axiosInstance.interceptors.response.use(
     },
     async (error: AxiosError) => {
         logError(error);
-        
+
         const originalRequest = error.config as RetryableConfig | undefined;
 
         if (

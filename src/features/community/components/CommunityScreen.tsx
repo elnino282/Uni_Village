@@ -23,27 +23,27 @@ import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.ty
 import { useDeletePost, useUpdatePost } from "@/features/post/hooks";
 import type { CreatePostTab } from "@/features/post/types/createPost.types";
 import {
-    EmptyState,
-    ErrorMessage,
-    LoadingScreen,
+  EmptyState,
+  ErrorMessage,
+  LoadingScreen,
 } from "@/shared/components/feedback";
 import { PostLocationDetailSheet } from "@/shared/components/post";
 import { Colors, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import { PostType, Visibility } from "@/shared/types/backend.types";
 import {
-    useBlockPost,
-    useCommunityPosts,
-    useLikePost,
-    useReportPost,
-    useSavePost,
+  useBlockPost,
+  useCommunityPosts,
+  useLikePost,
+  useReportPost,
+  useSavePost,
 } from "../hooks";
 import type {
-    CommunityPost,
-    CommunityTab,
-    ContentFilterTab,
-    PostLocation,
-    PostVisibility,
+  CommunityPost,
+  CommunityTab,
+  ContentFilterTab,
+  PostLocation,
+  PostVisibility,
 } from "../types";
 
 import { CommunityFAB } from "./CommunityFAB";
@@ -107,6 +107,13 @@ export function CommunityScreen() {
   const { mutate: blockPost, isPending: isBlockingPost } = useBlockPost();
   const { mutate: updatePost, isPending: isUpdatingPost } = useUpdatePost();
   const { mutate: deletePost, isPending: isDeletingPost } = useDeletePost();
+
+  // Refetch posts when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   // Check if the selected post belongs to current user
   const selectedPost = useMemo(() => {
@@ -392,9 +399,9 @@ export function CommunityScreen() {
     data?.data.filter((post) =>
       searchQuery
         ? post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          post.author.displayName
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())
+        post.author.displayName
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
         : true
     ) || [];
 

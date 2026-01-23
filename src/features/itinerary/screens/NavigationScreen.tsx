@@ -1,14 +1,14 @@
 /**
  * NavigationScreen - Google Maps Style Navigation
- * 
+ *
  * CURRENT STATUS: Using MOCK DATA
- * 
+ *
  * TO ENABLE REAL GOOGLE MAPS:
  * 1. Get API key from: https://console.cloud.google.com/
  * 2. Add to .env: EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_key
  * 3. Uncomment real API calls in: src/lib/maps/googleMapsService.ts
  * 4. See full guide: docs/GOOGLE_MAPS_SETUP.md
- * 
+ *
  * FEATURES:
  * - Real-time navigation with turn-by-turn instructions
  * - Route visualization on map
@@ -30,7 +30,7 @@ import {
   Share,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -39,7 +39,7 @@ import { useUserLocation } from "@/features/map/hooks/useUserLocation";
 import { getDirections, type Location, type NavigationRoute } from "@/lib/maps";
 import { Colors, useColorScheme } from "@/shared";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 export function NavigationScreen() {
   const router = useRouter();
@@ -48,7 +48,9 @@ export function NavigationScreen() {
   const colors = Colors[colorScheme];
 
   // Use real user location
-  const { location: userLocation, requestPermission } = useUserLocation({ enableWatch: true });
+  const { location: userLocation, requestPermission } = useUserLocation({
+    enableWatch: true,
+  });
 
   const [currentLocation, setCurrentLocation] = useState<Location>({
     latitude: 10.762622,
@@ -68,9 +70,20 @@ export function NavigationScreen() {
     }
   }, [userLocation]);
 
-  const [destinationLocation] = useState<Location>({
-    latitude: parseFloat(params.destinationLat as string) || 10.773996,
-    longitude: parseFloat(params.destinationLng as string) || 106.657663,
+  const [destinationLocation] = useState<Location>(() => {
+    const lat = parseFloat(params.destinationLat as string);
+    const lng = parseFloat(params.destinationLng as string);
+
+    // Log for debugging
+    console.log("🧭 Navigation destination params:", {
+      raw: { lat: params.destinationLat, lng: params.destinationLng },
+      parsed: { lat, lng },
+    });
+
+    return {
+      latitude: !isNaN(lat) ? lat : 10.773996,
+      longitude: !isNaN(lng) ? lng : 106.657663,
+    };
   });
 
   const [route, setRoute] = useState<NavigationRoute | null>(null);
@@ -79,12 +92,16 @@ export function NavigationScreen() {
   const [pulseAnim] = useState(new Animated.Value(1));
   const [loading, setLoading] = useState(true);
 
-  const destinationName = params.destinationName as string || "Điểm đến";
-  const destinationImage = params.destinationImage as string || "";
+  const destinationName = (params.destinationName as string) || "Điểm đến";
+  const destinationImage = (params.destinationImage as string) || "";
 
   // Load route when component mounts or location changes
   useEffect(() => {
     if (currentLocation) {
+      console.log("🧭 Loading route:", {
+        from: currentLocation,
+        to: destinationLocation,
+      });
       loadRoute();
     }
   }, [currentLocation]);
@@ -93,10 +110,13 @@ export function NavigationScreen() {
     try {
       setLoading(true);
       // This will use mock data now, but will use real Google API when you add API key
-      const routeData = await getDirections(currentLocation, destinationLocation);
+      const routeData = await getDirections(
+        currentLocation,
+        destinationLocation,
+      );
       setRoute(routeData);
     } catch (error) {
-      console.error('Failed to load route:', error);
+      console.error("Failed to load route:", error);
     } finally {
       setLoading(false);
     }
@@ -116,7 +136,7 @@ export function NavigationScreen() {
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
   }, []);
 
@@ -145,7 +165,7 @@ export function NavigationScreen() {
   if (loading || !route) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <SafeAreaView style={styles.loadingContainer} edges={['top']}>
+        <SafeAreaView style={styles.loadingContainer} edges={["top"]}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.icon} />
           </Pressable>
@@ -164,10 +184,17 @@ export function NavigationScreen() {
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={{
-          latitude: (currentLocation.latitude + destinationLocation.latitude) / 2,
-          longitude: (currentLocation.longitude + destinationLocation.longitude) / 2,
-          latitudeDelta: Math.abs(currentLocation.latitude - destinationLocation.latitude) * 2.5,
-          longitudeDelta: Math.abs(currentLocation.longitude - destinationLocation.longitude) * 2.5,
+          latitude:
+            (currentLocation.latitude + destinationLocation.latitude) / 2,
+          longitude:
+            (currentLocation.longitude + destinationLocation.longitude) / 2,
+          latitudeDelta:
+            Math.abs(currentLocation.latitude - destinationLocation.latitude) *
+            2.5,
+          longitudeDelta:
+            Math.abs(
+              currentLocation.longitude - destinationLocation.longitude,
+            ) * 2.5,
         }}
         showsUserLocation={false}
         showsMyLocationButton={false}
@@ -176,10 +203,10 @@ export function NavigationScreen() {
         {/* Current Location Marker with Pulse */}
         <Marker coordinate={currentLocation} anchor={{ x: 0.5, y: 0.5 }}>
           <View style={styles.currentLocationMarker}>
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.currentLocationPulse,
-                { transform: [{ scale: pulseAnim }] }
+                { transform: [{ scale: pulseAnim }] },
               ]}
             />
             <View style={styles.currentLocationDot} />
@@ -187,10 +214,7 @@ export function NavigationScreen() {
         </Marker>
 
         {/* Destination Marker */}
-        <Marker
-          coordinate={destinationLocation}
-          anchor={{ x: 0.5, y: 1 }}
-        >
+        <Marker coordinate={destinationLocation} anchor={{ x: 0.5, y: 1 }}>
           <View style={styles.destinationMarker}>
             <View style={styles.destinationPin}>
               <Ionicons name="location" size={32} color="#FF4444" />
@@ -208,7 +232,7 @@ export function NavigationScreen() {
       </MapView>
 
       {/* Top Info Bar */}
-      <SafeAreaView style={styles.topBar} edges={['top']}>
+      <SafeAreaView style={styles.topBar} edges={["top"]}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </Pressable>
@@ -218,7 +242,7 @@ export function NavigationScreen() {
             <Text style={styles.durationText}>{route.duration}</Text>
             <Text style={styles.distanceText}>{route.distance}</Text>
           </View>
-          
+
           <View style={styles.topInfoRight}>
             <Pressable style={styles.topIconButton}>
               <Ionicons name="volume-high" size={20} color="#FFFFFF" />
@@ -232,7 +256,9 @@ export function NavigationScreen() {
 
       {/* Navigation Instructions */}
       {isNavigating && currentStep && (
-        <View style={[styles.instructionCard, { backgroundColor: colors.card }]}>
+        <View
+          style={[styles.instructionCard, { backgroundColor: colors.card }]}
+        >
           <View style={styles.instructionIcon}>
             <MaterialIcons name="arrow-upward" size={32} color="#4285F4" />
           </View>
@@ -240,7 +266,9 @@ export function NavigationScreen() {
             <Text style={[styles.instructionDistance, { color: colors.text }]}>
               {currentStep.distance}
             </Text>
-            <Text style={[styles.instructionText, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.instructionText, { color: colors.textSecondary }]}
+            >
               {currentStep.instruction}
             </Text>
           </View>
@@ -250,20 +278,37 @@ export function NavigationScreen() {
       {/* Destination Info Card */}
       <View style={[styles.destinationCard, { backgroundColor: colors.card }]}>
         {destinationImage ? (
-          <Image source={{ uri: destinationImage }} style={styles.destinationImage} />
+          <Image
+            source={{ uri: destinationImage }}
+            style={styles.destinationImage}
+          />
         ) : (
-          <View style={[styles.destinationImagePlaceholder, { backgroundColor: colors.border }]}>
+          <View
+            style={[
+              styles.destinationImagePlaceholder,
+              { backgroundColor: colors.border },
+            ]}
+          >
             <Ionicons name="location" size={32} color={colors.icon} />
           </View>
         )}
-        
+
         <View style={styles.destinationInfo}>
           <Text style={[styles.destinationName, { color: colors.text }]}>
             {destinationName}
           </Text>
           <View style={styles.destinationMeta}>
-            <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-            <Text style={[styles.destinationMetaText, { color: colors.textSecondary }]}>
+            <Ionicons
+              name="time-outline"
+              size={14}
+              color={colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.destinationMetaText,
+                { color: colors.textSecondary },
+              ]}
+            >
               {route.duration} • {route.distance}
             </Text>
           </View>
@@ -275,12 +320,23 @@ export function NavigationScreen() {
       </View>
 
       {/* Bottom Action Buttons */}
-      <View style={[styles.bottomActions, { backgroundColor: colors.background }]}>
+      <View
+        style={[styles.bottomActions, { backgroundColor: colors.background }]}
+      >
         {!isNavigating ? (
           <>
-            <Pressable 
-              style={[styles.actionButton, styles.previewButton, { backgroundColor: colors.background, borderColor: colors.border }]}
-              onPress={() => {/* Preview route */}}
+            <Pressable
+              style={[
+                styles.actionButton,
+                styles.previewButton,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => {
+                /* Preview route */
+              }}
             >
               <MaterialIcons name="preview" size={20} color={colors.text} />
               <Text style={[styles.actionButtonText, { color: colors.text }]}>
@@ -288,7 +344,7 @@ export function NavigationScreen() {
               </Text>
             </Pressable>
 
-            <Pressable 
+            <Pressable
               style={[styles.actionButton, styles.startButton]}
               onPress={startNavigation}
             >
@@ -298,48 +354,58 @@ export function NavigationScreen() {
           </>
         ) : (
           <>
-            <Pressable 
-              style={[styles.actionButton, styles.stopButton, { backgroundColor: '#FF4444' }]}
+            <Pressable
+              style={[
+                styles.actionButton,
+                styles.stopButton,
+                { backgroundColor: "#FF4444" },
+              ]}
               onPress={stopNavigation}
             >
               <Ionicons name="stop" size={20} color="#FFFFFF" />
               <Text style={styles.stopButtonText}>Dừng</Text>
             </Pressable>
 
-            <Pressable 
-              style={[styles.quickActionButton, { backgroundColor: colors.card }]}
+            <Pressable
+              style={[
+                styles.quickActionButton,
+                { backgroundColor: colors.card },
+              ]}
               onPress={async () => {
                 try {
-                  const phoneNumber = 'tel:1900XXXX'; // Replace with actual phone number
+                  const phoneNumber = "tel:1900XXXX"; // Replace with actual phone number
                   const canCall = await Linking.canOpenURL(phoneNumber);
                   if (canCall) {
                     await Linking.openURL(phoneNumber);
                   } else {
-                    Alert.alert('Lỗi', 'Không thể thực hiện cuộc gọi');
+                    Alert.alert("Lỗi", "Không thể thực hiện cuộc gọi");
                   }
                 } catch (error) {
-                  console.error('Call error:', error);
-                  Alert.alert('Lỗi', 'Không thể thực hiện cuộc gọi');
+                  console.error("Call error:", error);
+                  Alert.alert("Lỗi", "Không thể thực hiện cuộc gọi");
                 }
               }}
             >
               <Ionicons name="call" size={20} color={colors.text} />
             </Pressable>
 
-            <Pressable 
-              style={[styles.quickActionButton, { backgroundColor: colors.card }]}
+            <Pressable
+              style={[
+                styles.quickActionButton,
+                { backgroundColor: colors.card },
+              ]}
               onPress={async () => {
                 try {
-                  const destinationName = params.destinationName || 'Điểm đến';
-                  const distance = route?.distance || '';
-                  const duration = route?.duration || '';
-                  
+                  const destinationName = params.destinationName || "Điểm đến";
+                  const distance = route?.distance || "";
+                  const duration = route?.duration || "";
+
                   await Share.share({
                     message: `🗺️ Đang đi đến: ${destinationName}\n📍 Khoảng cách: ${distance}\n⏱️ Thời gian: ${duration}\n\nVị trí: https://maps.google.com/?q=${destinationLocation.latitude},${destinationLocation.longitude}`,
                     title: `Điều hướng đến ${destinationName}`,
                   });
                 } catch (error) {
-                  console.error('Share error:', error);
+                  console.error("Share error:", error);
                 }
               }}
             >
@@ -350,7 +416,9 @@ export function NavigationScreen() {
       </View>
 
       {/* Recenter Button */}
-      <Pressable style={[styles.recenterButton, { backgroundColor: colors.card }]}>
+      <Pressable
+        style={[styles.recenterButton, { backgroundColor: colors.card }]}
+      >
         <MaterialIcons name="my-location" size={24} color={colors.text} />
       </Pressable>
     </View>
@@ -363,8 +431,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
   },
   loadingText: {
@@ -378,100 +446,100 @@ const styles = StyleSheet.create({
   currentLocationMarker: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   currentLocationPulse: {
-    position: 'absolute',
+    position: "absolute",
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(66, 133, 244, 0.3)',
+    backgroundColor: "rgba(66, 133, 244, 0.3)",
   },
   currentLocationDot: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#4285F4',
+    backgroundColor: "#4285F4",
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: "#FFFFFF",
   },
   destinationMarker: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   destinationPin: {
     width: 48,
     height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
   },
   topBar: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     gap: 12,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   topInfoContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   topInfoLeft: {
     flex: 1,
   },
   durationText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   distanceText: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: "rgba(255, 255, 255, 0.8)",
     fontSize: 14,
     marginTop: 2,
   },
   topInfoRight: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   topIconButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   instructionCard: {
-    position: 'absolute',
+    position: "absolute",
     top: 120,
     left: 16,
     right: 16,
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -481,9 +549,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E8F4FD',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#E8F4FD",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
   instructionContent: {
@@ -491,7 +559,7 @@ const styles = StyleSheet.create({
   },
   instructionDistance: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 4,
   },
   instructionText: {
@@ -499,14 +567,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   destinationCard: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 140,
     left: 16,
     right: 16,
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 12,
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -521,22 +589,22 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   destinationInfo: {
     flex: 1,
     marginLeft: 12,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   destinationName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 6,
   },
   destinationMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   destinationMetaText: {
@@ -544,18 +612,18 @@ const styles = StyleSheet.create({
   },
   destinationOptions: {
     padding: 8,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   bottomActions: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 16,
     paddingVertical: 16,
     gap: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -563,9 +631,9 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingVertical: 16,
     borderRadius: 12,
@@ -575,46 +643,46 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   startButton: {
-    backgroundColor: '#4285F4',
+    backgroundColor: "#4285F4",
   },
   startButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   stopButton: {
     flex: 2,
   },
   stopButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   quickActionButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   recenterButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 220,
     right: 16,
     width: 56,
     height: 56,
     borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
