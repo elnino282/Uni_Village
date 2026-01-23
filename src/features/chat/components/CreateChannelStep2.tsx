@@ -24,7 +24,7 @@ import { useColorScheme, useDebounce } from "@/shared/hooks";
 
 import { useSearchUsers } from "../hooks/useSearchUsers";
 import type { FriendPreview } from "../types/channel.types";
-import { MemberSelectRow } from "./MemberSelectRow";
+import { MemberSelectRow, type SelectableUser } from "./MemberSelectRow";
 import { StepIndicator } from "./StepIndicator";
 
 /** Footer height constant */
@@ -71,29 +71,38 @@ export function CreateChannelStep2({
 
   const { data: users = [], isLoading } = useSearchUsers(debouncedSearch);
 
-  // Convert users to friend format
-  const friends: FriendPreview[] = users.map((user) => ({
+  // Convert users to selectable user format
+  const selectableUsers: SelectableUser[] = users.map((user) => ({
     id: user.id.toString(),
-    username: user.username,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
+    isOnline: undefined,
+    statusText: undefined,
   }));
 
-  const handleToggleMember = (friend: FriendPreview) => {
-    const isSelected = selectedMembers.some((m) => m.id === friend.id);
+  const handleToggleMember = (selectableUser: SelectableUser) => {
+    const isSelected = selectedMembers.some((m) => m.id === selectableUser.id);
+    // Convert SelectableUser back to FriendPreview for state
+    const asFriendPreview: FriendPreview = {
+      id: selectableUser.id,
+      displayName: selectableUser.displayName,
+      avatarUrl: selectableUser.avatarUrl,
+      isOnline: selectableUser.isOnline ?? false,
+      statusText: selectableUser.statusText ?? "",
+    };
     if (isSelected) {
       onSelectedMembersChange(
-        selectedMembers.filter((m) => m.id !== friend.id),
+        selectedMembers.filter((m) => m.id !== selectableUser.id),
       );
     } else {
-      onSelectedMembersChange([...selectedMembers, friend]);
+      onSelectedMembersChange([...selectedMembers, asFriendPreview]);
     }
   };
 
   const isSelected = (friendId: string) =>
     selectedMembers.some((m) => m.id === friendId);
 
-  const renderFriend = ({ item }: { item: FriendPreview }) => (
+  const renderFriend = ({ item }: { item: SelectableUser }) => (
     <MemberSelectRow
       friend={item}
       isSelected={isSelected(item.id)}
@@ -101,7 +110,7 @@ export function CreateChannelStep2({
     />
   );
 
-  const keyExtractor = (item: FriendPreview) => item.id;
+  const keyExtractor = (item: SelectableUser) => item.id;
 
   return (
     <View style={styles.container}>
@@ -165,7 +174,7 @@ export function CreateChannelStep2({
         </View>
       ) : (
         <FlatList
-          data={friends}
+          data={selectableUsers}
           renderItem={renderFriend}
           keyExtractor={keyExtractor}
           style={styles.list}
