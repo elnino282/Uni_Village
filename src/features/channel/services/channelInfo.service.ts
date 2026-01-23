@@ -31,9 +31,21 @@ const mapMembers = (members: ChannelMemberResponse[]): ChannelMember[] =>
 
 const resolveCreator = (channel: ChannelResponse, members: ChannelMemberResponse[]) => {
     const creatorMember = members.find((member) => member.userId === channel.creatorId);
+    
+    // Try to resolve name from member list, or current user if they are the creator
+    let displayName = creatorMember?.userName;
+    
+    if (!displayName) {
+        const currentUser = useAuthStore.getState().user;
+        const currentUserId = currentUser?.id ?? currentUser?.userId;
+        if (currentUserId === channel.creatorId && currentUser?.displayName) {
+            displayName = currentUser.displayName;
+        }
+    }
+
     return {
         id: creatorMember?.userId?.toString() ?? channel.creatorId?.toString() ?? '',
-        displayName: creatorMember?.userName ?? CREATOR_NAME_FALLBACK,
+        displayName: displayName ?? CREATOR_NAME_FALLBACK,
     };
 };
 

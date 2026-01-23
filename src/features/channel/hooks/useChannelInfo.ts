@@ -20,5 +20,6 @@ export function useChannelInfo(channelId: string) {
         queryFn: () => channelInfoService.getChannelInfo(channelId),
         enabled: !!channelId,
         staleTime: STALE_TIME,
+        refetchInterval: 5000, // Poll every 5 seconds for member updates
     });
 }

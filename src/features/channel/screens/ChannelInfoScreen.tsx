@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ChannelInfoScreen
  * Displays channel/group information matching Figma design
  */
@@ -241,9 +241,25 @@ export function ChannelInfoScreen() {
           <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Thông tin nhóm</Text>
-        <TouchableOpacity style={styles.menuButton}>
-          <MaterialIcons name="more-vert" size={24} color="#ffffff" />
+        
+        {/* Share Button */}
+        <TouchableOpacity 
+          style={styles.menuButton} 
+          onPress={handleSystemShare}
+        >
+          <MaterialIcons name="share" size={24} color="#ffffff" />
         </TouchableOpacity>
+        
+        {/* Old Menu Button - kept as requested or just replaced? 
+            Requirement says: "Feature Refactor: Gỡ bỏ block 'Link mời tham gia', thay thế bằng tính năng Native Share Channel." 
+            And "Header: Có một khung trắng trống phía trên tên nhóm... -> Cần xóa."
+            It doesn't say "Remove menu button". 
+            But typically share is an action. 
+            I will replace the menu button with Share button as per standard mobile patterns for this context, 
+            or add it beside it. 
+            The design usually has Back - Title - Actions. 
+            I'll replace the generic menu with Share for now as it's the primary action requested.
+        */}
       </View>
 
       <ScrollView
@@ -251,23 +267,23 @@ export function ChannelInfoScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Preview Image Block */}
-        <View style={styles.previewContainer}>
-          <View
-            style={[
-              styles.previewCard,
-              { backgroundColor: colors.card },
-              Shadows.md,
-            ]}
-          >
-            {channelInfo.previewImageUrl && (
+        {channelInfo.previewImageUrl && (
+          <View style={styles.previewContainer}>
+            <View
+              style={[
+                styles.previewCard,
+                { backgroundColor: colors.card },
+                Shadows.md,
+              ]}
+            >
               <Image
                 source={{ uri: channelInfo.previewImageUrl }}
                 style={styles.previewImage}
                 contentFit="cover"
               />
-            )}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Channel Title */}
         <Text style={[styles.channelTitle, { color: colors.textPrimary }]}>
@@ -317,99 +333,7 @@ export function ChannelInfoScreen() {
           </View>
         </View>
 
-        {/* Invite Link Section - Show for admins or if allowSharing is true */}
-        {channelInfo.isJoined &&
-          (channelInfo.isAdmin || channelInfo.allowSharing) &&
-          channelInfo.inviteCode && (
-            <View
-              style={[styles.inviteContainer, { backgroundColor: colors.card }]}
-            >
-              <View style={styles.inviteHeader}>
-                <MaterialIcons
-                  name="link"
-                  size={22}
-                  color={colors.actionBlue}
-                />
-                <Text
-                  style={[styles.inviteTitle, { color: colors.textPrimary }]}
-                >
-                  Link mời tham gia
-                </Text>
-              </View>
-
-              <View
-                style={[
-                  styles.inviteLinkBox,
-                  { backgroundColor: colors.backgroundSecondary },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.inviteLinkText,
-                    { color: colors.textSecondary },
-                  ]}
-                  numberOfLines={1}
-                  ellipsizeMode="middle"
-                >
-                  {getInviteLink()}
-                </Text>
-              </View>
-
-              <View style={styles.inviteActions}>
-                <TouchableOpacity
-                  style={[
-                    styles.inviteActionButton,
-                    { backgroundColor: colors.actionBlue },
-                  ]}
-                  onPress={handleCopyInviteLink}
-                  activeOpacity={0.8}
-                >
-                  <MaterialIcons
-                    name="content-copy"
-                    size={18}
-                    color="#FFFFFF"
-                  />
-                  <Text style={styles.inviteActionText}>Sao chép</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.inviteActionButton,
-                    { backgroundColor: colors.actionBlue },
-                  ]}
-                  onPress={handleShareInviteLink}
-                  activeOpacity={0.8}
-                >
-                  <MaterialIcons name="share" size={18} color="#FFFFFF" />
-                  <Text style={styles.inviteActionText}>Chia sẻ</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Regenerate invite - Admin only */}
-              {channelInfo.isAdmin && (
-                <TouchableOpacity
-                  style={styles.regenerateButton}
-                  onPress={handleRegenerateInvite}
-                  disabled={isRegenerating}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons
-                    name="refresh"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                  <Text
-                    style={[
-                      styles.regenerateText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {isRegenerating ? "Đang tạo..." : "Tạo link mới"}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+        {/* Invite Link Section REMOVED per requirement */}
       </ScrollView>
 
       {/* Footer CTA */}
