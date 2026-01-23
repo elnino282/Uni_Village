@@ -3,9 +3,9 @@
  */
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import type { ItineraryShareData } from "@/features/itinerary/types/itinerary.types";
 import { Avatar } from "@/shared/components/ui";
 import {
   BorderRadius,
@@ -17,6 +17,44 @@ import {
 import { useColorScheme } from "@/shared/hooks";
 
 import type { ProfilePost } from "../types";
+
+// Parse embedded itinerary data from content if present
+const parseEmbeddedItinerary = (content: string) => {
+  const match = content.match(
+    /\[ITINERARY_SHARE\](.*?)\[\/ITINERARY_SHARE\]/s,
+  );
+  if (match) {
+    try {
+      const tripData = JSON.parse(match[1]);
+      const cleanContent = content
+        .replace(/\n*\[ITINERARY_SHARE\].*?\[\/ITINERARY_SHARE\]/s, "")
+        .trim();
+      // Convert to ItineraryShareData format with all required fields
+      const itineraryShare: ItineraryShareData = {
+        id: tripData.id || String(Date.now()),
+        dayLabel: tripData.title || "Lịch trình",
+        date: tripData.date,
+        stopsCount: tripData.stopsCount || tripData.stops?.length || 0,
+        timeRange: tripData.timeRange || "",
+        tags: ["Lịch trình"],
+        stops: (tripData.stops || []).map((stop: any, index: number) => ({
+          id: stop.id || String(index),
+          time: stop.time || "",
+          name: stop.name,
+          address: tripData.area || "TP.HCM",
+          order: index + 1,
+          thumbnail: stop.thumbnail || stop.placeImageUrl || stop.imageUrl,
+        })),
+        // Store original trip data for "Sử dụng chuyến đi"
+        originalTripData: tripData,
+      };
+      return { cleanContent, itineraryShare };
+    } catch (e) {
+      return { cleanContent: content, itineraryShare: null };
+    }
+  }
+  return { cleanContent: content, itineraryShare: null };
+};
 
 const getVisibilityIcon = (visibility?: string) => {
   if (!visibility) return null;
@@ -79,6 +117,9 @@ export function ProfilePostCard({
     return null;
   }
 
+  // Parse embedded itinerary from content
+  const { cleanContent, itineraryShare } = parseEmbeddedItinerary(post.content || "");
+
   const likeIcon = post.reactions.isLiked ? "heart" : "heart-outline";
   const likeColor = post.reactions.isLiked
     ? colors.heartLiked
@@ -139,9 +180,12 @@ export function ProfilePostCard({
         </Pressable>
       </View>
 
-      <Text style={[styles.content, { color: colors.textPrimary }]}>
-        {post.content}
-      </Text>
+      {/* Display clean content (without ITINERARY_SHARE marker) */}
+      {cleanContent && (
+        <Text style={[styles.content, { color: colors.textPrimary }]}>
+          {cleanContent}
+        </Text>
+      )}
 
       {post.imageUrl ? (
         <Image
@@ -151,6 +195,13 @@ export function ProfilePostCard({
           transition={200}
         />
       ) : null}
+
+      {/* Display Itinerary Share Card if present */}
+      {itineraryShare && (
+        <View style={{ marginHorizontal: Spacing.cardPadding, marginTop: Spacing.sm }}>
+          <ItineraryShareCard itinerary={itineraryShare} />
+        </View>
+      )}
 
       {post.locations.length > 0 && (
         <View style={styles.locations}>
