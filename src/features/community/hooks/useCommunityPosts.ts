@@ -1,8 +1,8 @@
 import {
-    removePostFromCollections,
-    useFeed as useRealFeed,
-    useLikePost as useRealLikePost,
-    useSavePost as useRealSavePost,
+  removePostFromCollections,
+  useFeed as useRealFeed,
+  useLikePost as useRealLikePost,
+  useSavePost as useRealSavePost,
 } from "@/features/post/hooks";
 import { myPostsKeys } from "@/features/profile/hooks/useMyPosts";
 import { reportPost as reportPostAPI } from "@/lib/api";
@@ -18,22 +18,26 @@ const COMMUNITY_POSTS_KEY = ["community", "posts"];
 
 export function useCommunityPosts(page = 1, limit = 20) {
   const feedQuery = useRealFeed({ page: page - 1, size: limit });
-  const reportedPostIds = useReportedPostsStore((state) => state.reportedPostIds);
+  const reportedPostIds = useReportedPostsStore(
+    (state) => state.reportedPostIds,
+  );
 
   const data = useMemo<CommunityPostsResponse>(() => {
     const firstPage = feedQuery.data?.pages[0];
     if (firstPage) {
-      const mappedData = mapSliceToCommunityPostsResponse(firstPage, page, limit);
-      // Filter out reported posts and private posts
-      const filteredPosts = mappedData.data.filter(
-        (post) => {
-          // Exclude reported posts
-          if (reportedPostIds.has(post.id)) return false;
-          // Exclude private posts (they should only be visible in owner's profile)
-          if (post.visibility === "private") return false;
-          return true;
-        }
+      const mappedData = mapSliceToCommunityPostsResponse(
+        firstPage,
+        page,
+        limit,
       );
+      // Filter out reported posts and private posts
+      const filteredPosts = mappedData.data.filter((post) => {
+        // Exclude reported posts
+        if (reportedPostIds.has(post.id)) return false;
+        // Exclude private posts (they should only be visible in owner's profile)
+        if (post.visibility === "private") return false;
+        return true;
+      });
       return {
         ...mappedData,
         data: filteredPosts,
@@ -107,10 +111,11 @@ export function useSavePost() {
   });
 }
 
-
 export function useReportPost() {
   const queryClient = useQueryClient();
-  const addReportedPost = useReportedPostsStore((state) => state.addReportedPost);
+  const addReportedPost = useReportedPostsStore(
+    (state) => state.addReportedPost,
+  );
 
   return useMutation({
     mutationFn: async ({
