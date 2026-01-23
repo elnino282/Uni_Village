@@ -3,22 +3,22 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    Alert,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+    SafeAreaView,
+    useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 import { BorderRadius, Colors, Shadows, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
-import { copyItinerary } from "../services/itineraryService";
+import { createItinerary } from "../services/itineraryService";
 
 interface SharedDestination {
   id: string;
@@ -30,6 +30,9 @@ interface SharedDestination {
   rating?: number;
   reviewCount?: number;
   distance?: number;
+  googlePlaceId?: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface SharedTripData {
@@ -88,12 +91,27 @@ export function SharedItineraryDetailScreen() {
     setIsSaving(true);
 
     try {
-      // Gọi API copyItinerary để copy chuyến đi từ người khác
-      const copiedTrip = await copyItinerary(tripData.id);
+      // Tạo chuyến đi mới từ dữ liệu chia sẻ
+      const now = new Date();
+      const createdTrip = await createItinerary({
+        name: tripData.tripName,
+        description: `Sao chép từ lịch trình được chia sẻ`,
+        startDate: now,
+        startTime: now,
+        googlePlaceStops: tripData.destinations?.map((dest, index) => ({
+          googlePlaceId: dest.googlePlaceId || `shared-${dest.id}`,
+          placeName: dest.name,
+          address: dest.address,
+          latitude: dest.lat,
+          longitude: dest.lng,
+          imageUrl: dest.thumbnail,
+          sequenceOrder: index + 1,
+        })),
+      });
 
       Alert.alert(
         "Thành công! 🎉",
-        `Đã thêm "${copiedTrip.title}" vào danh sách chuyến đi của bạn.`,
+        `Đã thêm "${createdTrip.title}" vào danh sách chuyến đi của bạn.`,
         [
           {
             text: "Xem ngay",
@@ -102,7 +120,7 @@ export function SharedItineraryDetailScreen() {
               setTimeout(() => {
                 router.push({
                   pathname: "/(modals)/itinerary-detail",
-                  params: { tripId: copiedTrip.id },
+                  params: { tripId: createdTrip.id },
                 });
               }, 300);
             },
