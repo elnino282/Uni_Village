@@ -25,6 +25,7 @@ import {
 import { BorderRadius, Colors, Shadows, Spacing } from "@/shared/constants";
 import { useColorScheme } from "@/shared/hooks";
 import {
+  createItinerary,
   getItineraryById,
   updateItinerary,
 } from "../services/itineraryService";
@@ -87,6 +88,36 @@ export function ItineraryDetailScreen() {
     try {
       setIsLoading(true);
       const tripId = params.tripId as string;
+      const isAiGenerated = params.isAiGenerated === "true";
+      const tripName = params.tripName as string;
+      const destinationsParam = params.destinations as string;
+      const startDateParam = params.startDate as string;
+
+      // Handle AI-generated itinerary from params (not yet saved to backend)
+      if (isAiGenerated && destinationsParam) {
+        try {
+          const parsedDestinations = JSON.parse(destinationsParam);
+          setTripData({
+            id: "", // No backend ID yet - will be created when user saves
+            tripName: tripName || "Lịch trình AI",
+            startDate: startDateParam ? new Date(startDateParam) : new Date(),
+            startTime: startDateParam ? new Date(startDateParam) : new Date(),
+            destinations: parsedDestinations.map((dest: any, index: number) => ({
+              id: dest.id || `ai-${index}`,
+              name: dest.name,
+              thumbnail: dest.thumbnail || "",
+              order: dest.order || index + 1,
+              time: dest.time,
+              lat: dest.lat,
+              lng: dest.lng,
+              address: dest.address,
+            })),
+          });
+          return;
+        } catch (parseError) {
+          console.error("Failed to parse AI destinations:", parseError);
+        }
+      }
 
       if (tripId) {
         // Load from API
@@ -205,7 +236,30 @@ export function ItineraryDetailScreen() {
 
   const handleStartTrip = async () => {
     try {
-      const tripId = tripData.id;
+      let tripId = tripData.id;
+      const isAiGenerated = params.isAiGenerated === "true";
+
+      // If AI-generated itinerary without backend ID, create it first
+      if (!tripId && isAiGenerated && tripData.destinations.length > 0) {
+        // Create the tour in backend with AI-generated destinations
+        const newItinerary = await createItinerary({
+          name: tripData.tripName,
+          description: "Lịch trình được tạo bởi AI",
+          startDate: tripData.startDate,
+          startTime: tripData.startTime,
+          googlePlaceStops: tripData.destinations.map((dest, index) => ({
+            googlePlaceId: dest.googlePlaceId || `ai-place-${index}`,
+            placeName: dest.name,
+            address: dest.address,
+            latitude: dest.lat,
+            longitude: dest.lng,
+            sequenceOrder: dest.order || index + 1,
+          })),
+        });
+        tripId = newItinerary.id;
+        // Update local state with the new ID
+        setTripData(prev => ({ ...prev, id: tripId }));
+      }
 
       if (!tripId) {
         console.error("No tripId provided");
