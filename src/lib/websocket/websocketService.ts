@@ -4,16 +4,18 @@ import { useChatStore } from "@/features/chat/store/chatStore";
 import { AppState, AppStateStatus } from "react-native";
 import { stompClient } from "./stompClient";
 import type {
-  AckEvent,
-  ChatMessageEvent,
-  ChatMessageWsEvent,
-  ChatSendPayload,
-  ConversationUpgradedEvent,
-  ForceLogoutEvent,
-  MessageEvent,
-  StompSubscription,
-  TypingEvent,
-  WebSocketMessage
+    AckEvent,
+    ChannelEventPayload,
+    ChatMessageEvent,
+    ChatMessageWsEvent,
+    ChatSendPayload,
+    ConversationUpgradedEvent,
+    ForceLogoutEvent,
+    MessageEvent,
+    StompSubscription,
+    TypingEvent,
+    UserQueueEvent,
+    WebSocketMessage,
 } from "./types";
 
 class WebSocketService {
@@ -188,10 +190,7 @@ class WebSocketService {
     onMessage: (message: WebSocketMessage<T>) => void,
   ): StompSubscription | null {
     const destination = `/topic/channel.${conversationId}`;
-    const subscription = stompClient.subscribe<T>(
-      destination,
-      onMessage,
-    );
+    const subscription = stompClient.subscribe<T>(destination, onMessage);
 
     if (subscription) {
       this.activeSubscriptions.set(`channel-${conversationId}`, subscription);
@@ -347,11 +346,16 @@ class WebSocketService {
   }
 
   /**
-   * Subscribe to conversation upgrade events
+   * Subscribe to user queue events (conversation upgrades, channel invites)
    * Destination: /user/queue/events
+   * Handles: CONVERSATION_UPGRADED, CHANNEL_CREATED, MEMBER_ADDED
    */
   subscribeToConversationEvents(
     onEvent: (event: ConversationUpgradedEvent) => void,
+    onChannelEvent?: (
+      event: ChannelEventPayload,
+      eventType: "CHANNEL_CREATED" | "MEMBER_ADDED",
+    ) => void,
   ): StompSubscription | null {
     const destination = "/user/queue/events";
     const existingKey = "user-events";
@@ -360,10 +364,23 @@ class WebSocketService {
       return this.activeSubscriptions.get(existingKey) || null;
     }
 
-    const subscription = stompClient.subscribe<ConversationUpgradedEvent>(
+    const subscription = stompClient.subscribe<UserQueueEvent>(
       destination,
       (message) => {
-        onEvent(message.data);
+        const { eventType, data } = message as unknown as {
+          eventType: string;
+          data: unknown;
+        };
+
+        if (eventType === "CONVERSATION_UPGRADED") {
+          onEvent(data as ConversationUpgradedEvent);
+        } else if (
+          eventType === "CHANNEL_CREATED" ||
+          eventType === "MEMBER_ADDED"
+        ) {
+          console.log(`[WebSocket] Received ${eventType} event:`, data);
+          onChannelEvent?.(data as ChannelEventPayload, eventType);
+        }
       },
     );
 
@@ -382,6 +399,10 @@ class WebSocketService {
     onAck?: (ack: AckEvent) => void;
     onMessage?: (event: ChatMessageEvent) => void;
     onConversationEvent?: (event: ConversationUpgradedEvent) => void;
+    onChannelEvent?: (
+      event: ChannelEventPayload,
+      eventType: "CHANNEL_CREATED" | "MEMBER_ADDED",
+    ) => void;
   }): void {
     if (handlers.onAck) {
       this.subscribeToAck(handlers.onAck);
@@ -389,8 +410,11 @@ class WebSocketService {
     if (handlers.onMessage) {
       this.subscribeToIncomingMessages(handlers.onMessage);
     }
-    if (handlers.onConversationEvent) {
-      this.subscribeToConversationEvents(handlers.onConversationEvent);
+    if (handlers.onConversationEvent || handlers.onChannelEvent) {
+      this.subscribeToConversationEvents(
+        handlers.onConversationEvent || (() => {}),
+        handlers.onChannelEvent,
+      );
     }
   }
 
@@ -398,7 +422,13 @@ class WebSocketService {
    * Unsubscribe from all user queues
    */
   unsubscribeFromUserQueues(): void {
-    const keys = ["user-ack", "user-messages", "user-events", "user-queue", "force-logout"];
+    const keys = [
+      "user-ack",
+      "user-messages",
+      "user-events",
+      "user-queue",
+      "force-logout",
+    ];
 
     keys.forEach((key) => {
       const subscription = this.activeSubscriptions.get(key);
@@ -414,7 +444,7 @@ class WebSocketService {
   /**
    * Subscribe to force logout events from admin
    * Destination: /user/queue/force-logout
-   * 
+   *
    * When admin locks a user account, this event is sent to force immediate logout.
    * The handler should clear auth state and redirect to login screen.
    */
@@ -422,7 +452,9 @@ class WebSocketService {
     onForceLogout: (event: ForceLogoutEvent) => void,
   ): StompSubscription | null {
     if (!this.isConnected()) {
-      console.warn("[WebSocket] Cannot subscribe to force-logout: not connected");
+      console.warn(
+        "[WebSocket] Cannot subscribe to force-logout: not connected",
+      );
       return null;
     }
 
@@ -591,4 +623,3 @@ class WebSocketService {
 
 export const websocketService = new WebSocketService();
 export { WebSocketService };
-
